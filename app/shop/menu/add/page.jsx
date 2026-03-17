@@ -99,8 +99,20 @@ export default function AddMenuPage() {
               </div>
             </div>
 
+
             <h2 className={styles.cardTitle} style={{marginTop:14}}>Description</h2>
             <textarea value={form.description} onChange={e=>set('description',e.target.value)} placeholder="Describe your menu..." rows={3} className={`${styles.inp} ${styles.ta}`}/>
+              <h2 className={styles.cardTitle} style={{marginTop:14}}>Cooking Time</h2>
+<div className={styles.priceWrap}>
+  <input
+    type="number"
+    value={form.cookTime}
+    onChange={e=>set('cookTime',e.target.value)}
+    placeholder="0"
+    className={styles.inp}
+  />
+  <span className={styles.priceBaht}>min</span>
+</div>
           </div>
 
           {/* Upload Image */}

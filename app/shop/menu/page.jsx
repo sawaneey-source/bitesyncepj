@@ -71,6 +71,7 @@ export default function MenuPage() {
       </div>
 
       <div className={styles.grid}>
+        
         <div className={styles.addCard} onClick={()=>router.push('/shop/menu/add')}>
           <div className={styles.addCardIco}>+</div>
           <span>Add Menu</span>
