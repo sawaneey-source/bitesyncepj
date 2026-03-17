@@ -1,0 +1,61 @@
+/* Loading */
+.loadingScreen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f4f7f4; font-family:'Sarabun',sans-serif; }
+.loadingInner  { display:flex; flex-direction:column; align-items:center; gap:12px; color:#2d6b2b; }
+.loadingLeaf   { font-size:44px; animation:spin 1.8s linear infinite; display:block; }
+.loadingText   { font-size:15px; font-weight:600; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Shell */
+.shell { display:flex; min-height:100vh; font-family:'Sarabun',sans-serif; background:#f0f4f0; }
+
+/* Sidebar */
+.sidebar {
+  width:200px; flex-shrink:0; background:#2a6129; color:#fff;
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.sideTop { padding:18px 14px 14px; border-bottom:1px solid rgba(255,255,255,0.1); }
+.logo    { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.logoMark { width:30px; height:30px; background:#f0c419; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.logoText { font-family:'Prompt',sans-serif; font-weight:800; font-size:17px; color:#fff; letter-spacing:-0.5px; }
+.logoText em { color:#f0c419; font-style:normal; }
+.storeTag { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.13); border-radius:7px; padding:5px 10px; font-size:12px; font-weight:700; color:#f0c419; }
+
+/* Nav */
+.nav { flex:1; padding:10px 10px; display:flex; flex-direction:column; gap:2px; }
+.navLink {
+  display:flex; align-items:center; gap:9px;
+  padding:9px 11px; border-radius:9px;
+  font-size:13.5px; font-weight:500; color:rgba(255,255,255,0.72);
+  text-decoration:none; transition:all .18s; position:relative;
+}
+.navLink:hover { background:rgba(255,255,255,0.1); color:#fff; }
+.navActive { background:rgba(255,255,255,0.2) !important; color:#fff !important; font-weight:700; }
+.navIcon   { font-size:15px; width:20px; text-align:center; }
+.navBadge  { margin-left:auto; background:#f0c419; color:#1a1f1a; border-radius:20px; padding:1px 7px; font-size:10px; font-weight:800; }
+
+/* Bottom profile */
+.sideBottom { padding:10px; border-top:1px solid rgba(255,255,255,0.1); position:relative; }
+.userBtn { display:flex; align-items:center; gap:8px; padding:8px 9px; border-radius:9px; cursor:pointer; background:rgba(255,255,255,0.08); transition:.2s; }
+.userBtn:hover { background:rgba(255,255,255,0.14); }
+.userAvatar { width:28px; height:28px; border-radius:50%; background:#f0c419; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#1a1f1a; flex-shrink:0; }
+.userInfo   { flex:1; min-width:0; display:flex; flex-direction:column; }
+.userName   { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.userRole   { font-size:10px; color:rgba(255,255,255,0.5); }
+.userChev   { font-size:9px; color:rgba(255,255,255,0.45); }
+.dropMenu   { background:#fff; border-radius:10px; margin-top:6px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.18); }
+.dropItem   { display:block; padding:9px 14px; font-size:13px; color:#1a1f1a; text-decoration:none; border-bottom:1px solid #f0f0f0; transition:.15s; }
+.dropItem:last-child { border-bottom:none; }
+.dropItem:hover { background:#f8faf8; }
+
+/* Main */
+.main    { flex:1; display:flex; flex-direction:column; min-width:0; }
+.topbar  { height:54px; background:#fff; border-bottom:1px solid #e2e8e2; display:flex; align-items:center; gap:10px; padding:0 22px; position:sticky; top:0; z-index:40; box-shadow:0 1px 6px rgba(0,0,0,0.05); }
+.catSelect { border:1.5px solid #dde8dd; border-radius:18px; padding:5px 12px; font-size:12.5px; font-family:'Sarabun',sans-serif; color:#374137; background:#f6f9f6; outline:none; cursor:pointer; }
+.searchBox { flex:1; max-width:280px; display:flex; align-items:center; gap:7px; background:#f4f7f4; border:1.5px solid #dde8dd; border-radius:18px; padding:6px 13px; font-size:13px; color:#8a9a8a; }
+.searchInput { border:none; background:transparent; outline:none; font-size:13px; flex:1; font-family:'Sarabun',sans-serif; color:#374137; }
+.topRight  { margin-left:auto; display:flex; align-items:center; gap:10px; }
+.cartWrap  { position:relative; cursor:pointer; font-size:20px; }
+.cartDot   { position:absolute; top:-4px; right:-5px; background:#e53935; color:#fff; border-radius:50%; width:15px; height:15px; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.topAvatar { width:30px; height:30px; border-radius:50%; background:#f0c419; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#1a1f1a; cursor:pointer; }
+.content   { flex:1; padding:26px 26px; overflow-y:auto; }

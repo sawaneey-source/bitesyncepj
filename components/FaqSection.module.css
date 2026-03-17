@@ -1,0 +1,105 @@
+.faqSection { padding: 40px 48px; background: #fff; }
+.faqHeader  { text-align: center; margin-bottom: 28px; }
+.faqTitle   { font-family: var(--fp); font-size: 22px; font-weight: 800; color: var(--dark); }
+
+.faqTabs { display: flex; justify-content: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.faqTab {
+  padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  border: none; background: transparent; color: var(--gray);
+  font-family: var(--fs); cursor: pointer; transition: all .2s;
+}
+.faqTab:hover { background: var(--green-pale); color: var(--green); }
+.faqTabActive { background: var(--green) !important; color: #fff !important; }
+
+.faqContent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+/* ── ACCORDION ── */
+.faqQuestions { display: flex; flex-direction: column; gap: 0; }
+
+.faqItem {
+  border-bottom: 1px solid #eaeeea;
+  overflow: hidden;
+}
+.faqItem:first-child { border-top: 1px solid #eaeeea; }
+
+.faqQ {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 4px;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-family: var(--fs);
+  font-weight: 500;
+  color: var(--dark);
+  cursor: pointer;
+  text-align: left;
+  gap: 12px;
+  transition: color .2s;
+}
+.faqQ:hover { color: var(--green); }
+.faqItemOpen .faqQ { color: var(--green); font-weight: 700; }
+
+.faqChevron {
+  font-size: 12px;
+  color: var(--gray);
+  flex-shrink: 0;
+  transition: color .2s;
+}
+.faqItemOpen .faqChevron { color: var(--green); }
+
+/* คำตอบ slide in */
+.faqAnswer {
+  padding: 0 4px 16px;
+  font-size: 13px;
+  color: var(--gray);
+  line-height: 1.75;
+  background: var(--green-pale);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-left: 3px solid var(--green);
+  animation: slideDown .22s ease both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── HOW IT WORKS (right) ── */
+.faqHow {
+  background: var(--green-pale);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.faqBadge {
+  background: var(--yellow); color: var(--dark);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px;
+  display: inline-block; margin-bottom: 14px;
+}
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 14px;
+}
+.stepCard {
+  background: #fff; border-radius: 10px; padding: 14px 12px;
+  text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.stepIcon  { font-size: 28px; margin-bottom: 8px; }
+.stepTitle { font-size: 12px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+.stepDesc  { font-size: 11px; color: var(--gray); line-height: 1.4; }
+.howDesc {
+  font-size: 12px; color: var(--gray); line-height: 1.7;
+  background: #fff; border-radius: 10px; padding: 12px 14px;
+}

@@ -1,0 +1,99 @@
+.pageBg {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+    url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1400&q=70') center/cover;
+  filter: blur(3px);
+  transform: scale(1.04);
+}
+.modalWrap {
+  position: relative; z-index: 10;
+  min-height: calc(100vh - 62px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 16px;
+}
+.modal {
+  background: #fff; border-radius: 20px;
+  width: 100%; max-width: 480px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.30);
+  padding: 36px 40px;
+  animation: popIn .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(.94) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modalLogo { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 8px; }
+.logoIcon {
+  width: 32px; height: 32px; background: var(--green);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.logoTxt { font-family: 'Prompt', sans-serif; font-weight: 800; font-size: 20px; }
+.logoTxt span { color: var(--green); }
+.modalTitle {
+  font-family: 'Prompt', sans-serif; font-size: 22px; font-weight: 800;
+  text-align: center; margin-bottom: 18px; color: var(--dark);
+}
+.errorBox {
+  background: #fde8e8; border: 1px solid #f5a0a0; border-radius: 10px;
+  padding: 10px 14px; font-size: 13px; color: #c0392b;
+  margin-bottom: 14px; display: flex; flex-direction: column; gap: 4px;
+}
+.roleLabel { font-size: 13px; color: var(--gray); margin-bottom: 8px; font-weight: 500; }
+.roleTabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.roleTab {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 8px; border: 1.5px solid #dde3dd; border-radius: 10px;
+  background: var(--gray-light); cursor: pointer;
+  font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--gray); transition: all .2s; position: relative;
+}
+.roleTabActive { border-color: var(--green); background: var(--green-pale); color: var(--green); }
+.roleCheck {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--green); display: flex; align-items: center; justify-content: center;
+  margin-left: 4px;
+}
+.roleCheck i { font-size: 8px; color: #fff; }
+
+.fieldGroup { margin-bottom: 14px; }
+.fieldLabel { font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 6px; display: block; }
+.inputWrap {
+  display: flex; align-items: center;
+  border: 1.5px solid #dde3dd; border-radius: 10px;
+  background: var(--gray-light); overflow: hidden; transition: border .2s;
+}
+.inputWrap:focus-within { border-color: var(--green); }
+.ic { width: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #a0a8a0; flex-shrink: 0; }
+.inputWrap input {
+  flex: 1; border: none; background: transparent;
+  padding: 11px 10px 11px 0; font-size: 14px;
+  font-family: 'Sarabun', sans-serif; color: var(--dark); outline: none;
+}
+.inputWrap input::placeholder { color: #b8c0b8; }
+.eyeBtn { width: 38px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; cursor: pointer; color: #a0a8a0; font-size: 14px; }
+
+.pwStrength { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.pwBar { flex: 1; height: 4px; border-radius: 3px; transition: background .3s; }
+
+.submitBtn {
+  width: 100%; background: var(--yellow); color: var(--dark); border: none;
+  border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 800;
+  font-family: 'Prompt', sans-serif; cursor: pointer; margin-top: 4px;
+  box-shadow: 0 4px 16px rgba(240,196,25,.4); transition: all .2s;
+}
+.submitBtn:hover { background: var(--yellow2); color: #fff; }
+.submitBtn:disabled { opacity: .6; cursor: not-allowed; }
+
+.loginRow { text-align: center; font-size: 13px; color: var(--gray); margin-top: 14px; }
+.loginRow a { color: var(--green); font-weight: 700; text-decoration: none; }
+
+.successView { text-align: center; padding: 20px 0; }
+.successIcon { font-size: 60px; margin-bottom: 16px; }
+.successView h3 { font-family: 'Prompt', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+.successView p { font-size: 14px; color: var(--gray); margin-bottom: 24px; line-height: 1.6; }
+.successBtn {
+  display: inline-block; background: var(--green); color: #fff;
+  border-radius: 12px; padding: 13px 32px;
+  font-size: 14px; font-weight: 700; font-family: 'Prompt', sans-serif; text-decoration: none;
+}

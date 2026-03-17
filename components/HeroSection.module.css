@@ -1,0 +1,128 @@
+.hero {
+  position: relative;
+  min-height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-bottom: 1px solid #eaeeea;
+}
+
+/* รูปพื้นหลัง */
+.heroBg {
+  position: absolute;
+  inset: 0;
+  background-image: url('/hero-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: scale(1.03);
+  transition: transform 8s ease;
+}
+.hero:hover .heroBg {
+  transform: scale(1.06);
+}
+
+/* overlay สีขาวโปร่งแสง ให้อ่านตัวหนังสือได้ */
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(1px);
+}
+
+/* เนื้อหากึ่งกลาง */
+.heroCenter {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 60px 24px;
+  max-width: 640px;
+  width: 100%;
+  animation: fadeUp .5s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.heroSmall {
+  font-size: 13px;
+  color: var(--gray);
+  margin-bottom: 10px;
+}
+
+.heroH1 {
+  font-family: var(--fp);
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--dark);
+  margin-bottom: 12px;
+}
+
+.heroEm {
+  color: var(--green);
+  font-style: normal;
+}
+
+.heroSub {
+  font-size: 14px;
+  color: var(--gray);
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+/* Search bar */
+.searchRow {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 2px solid #d8ddd8;
+  border-radius: 50px;
+  padding: 6px 6px 6px 18px;
+  max-width: 500px;
+  margin: 0 auto;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  transition: border-color .2s, box-shadow .2s;
+}
+.searchRow:focus-within {
+  border-color: var(--green);
+  box-shadow: 0 4px 24px rgba(58,125,56,0.15);
+}
+
+.searchIcon {
+  color: #a0a8a0;
+  font-size: 15px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  font-family: var(--fs);
+  color: var(--dark);
+  outline: none;
+  padding: 6px 0;
+}
+.searchInput::placeholder { color: #b0b8b0; }
+
+.searchBtn {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 40px;
+  padding: 10px 26px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--fs);
+  cursor: pointer;
+  transition: background .2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.searchBtn:hover { background: var(--green2); }

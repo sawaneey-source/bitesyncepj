@@ -1,0 +1,36 @@
+.toast { position:fixed; top:18px; right:18px; z-index:9999; color:#fff; padding:11px 18px; border-radius:11px; font-size:13.5px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.14); animation:si .3s ease; }
+.toastOk{background:#2a6129;}.toastErr{background:#e53935;}
+@keyframes si{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.44);z-index:999;display:flex;align-items:center;justify-content:center;}
+.modal{background:#fff;border-radius:16px;padding:28px 30px;max-width:330px;width:90%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.2);}
+.modalIco{font-size:36px;margin-bottom:10px;}.modalTitle{font-family:'Prompt',sans-serif;font-size:17px;font-weight:800;margin:0 0 6px;}.modalSub{font-size:13.5px;color:#6b7280;margin:0 0 18px;}
+.modalBtns{display:flex;gap:10px;}.btnCancel{flex:1;padding:10px;border-radius:9px;border:1.5px solid #dde8dd;background:#fff;font-size:13.5px;cursor:pointer;font-family:'Sarabun',sans-serif;}
+.btnDel{flex:1;padding:10px;border-radius:9px;border:none;background:#e53935;color:#fff;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;}
+
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.title{font-family:'Prompt',sans-serif;font-size:22px;font-weight:800;color:#1a1f1a;margin:0;}
+.addBtn{background:#2a6129;color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:13.5px;font-weight:700;font-family:'Sarabun',sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(42,97,41,.28);transition:.18s;}
+.addBtn:hover{background:#347d32;}
+
+.tabs{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap;}
+.tab{padding:5px 14px;border-radius:18px;border:1.5px solid #dde8dd;background:#fff;color:#374137;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif;transition:.18s;}
+.tab:hover{border-color:#2a6129;color:#2a6129;}
+.tabOn{background:#2a6129!important;color:#fff!important;border-color:#2a6129!important;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;}
+.addCard{border:2.5px dashed #b8d8b8;border-radius:14px;height:215px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:#f8fdf8;color:#2a6129;font-size:13px;font-weight:600;transition:border .18s;}
+.addCard:hover{border-color:#2a6129;}
+.addCardIco{width:42px;height:42px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;}
+.menuCard{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 9px rgba(0,0,0,.07);border:1px solid #eaeeea;transition:transform .22s,box-shadow .22s;}
+.menuCard:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.11);}
+.imgWrap{position:relative;height:125px;overflow:hidden;}
+.img{width:100%;height:100%;object-fit:cover;}
+.sTag{position:absolute;top:7px;right:7px;border-radius:18px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;}
+.sTagOn{background:#2a6129;}.sTagOff{background:#e53935;}
+.body{padding:9px 11px;}
+.mName{font-weight:700;font-size:13.5px;color:#1a1f1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.mCat{font-size:11.5px;color:#aaa;margin-bottom:4px;}
+.mPrice{font-family:'Prompt',sans-serif;font-size:15px;font-weight:800;color:#2a6129;margin-bottom:7px;}
+.mBtns{display:flex;gap:5px;}
+.btnEdit{flex:1;padding:5px 0;border-radius:7px;border:1.5px solid #2a6129;background:#e8f5e9;color:#2a6129;font-size:11.5px;font-weight:700;cursor:pointer;}
+.btnDelSm{width:28px;padding:5px 0;border-radius:7px;border:1.5px solid #fcc;background:#fff5f5;color:#e53935;font-size:12px;cursor:pointer;}

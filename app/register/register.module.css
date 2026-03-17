@@ -1,0 +1,86 @@
+.bg {
+  position:fixed; inset:0; z-index:0;
+  background: linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),
+    url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1400&q=70') center/cover;
+  filter:blur(3px); transform:scale(1.04);
+}
+.modalWrap {
+  position:relative; z-index:10;
+  min-height:calc(100vh - 62px);
+  display:flex; align-items:center; justify-content:center;
+  padding:32px 16px;
+}
+.modal {
+  background:#fff; border-radius:20px; width:100%; max-width:480px;
+  padding:36px 40px; box-shadow:0 24px 80px rgba(0,0,0,.3);
+  animation:popIn .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+.modalLogo { display:flex; align-items:center; gap:8px; justify-content:center; margin-bottom:8px; }
+.modalLogoIcon {
+  width:32px; height:32px; background:var(--green); border-radius:8px;
+  display:flex; align-items:center; justify-content:center; font-size:16px;
+}
+.modalLogoTxt { font-family:var(--fp); font-weight:800; font-size:20px; color:var(--dark); }
+.modalLogoTxt span { color:var(--green); }
+.modalTitle {
+  font-family:var(--fp); font-size:22px; font-weight:800;
+  text-align:center; margin-bottom:18px; color:var(--dark);
+}
+
+/* Role tabs */
+.roleLabel { font-size:13px; color:var(--gray); margin-bottom:8px; font-weight:500; }
+.roleTabs { display:flex; gap:8px; margin-bottom:20px; }
+.roleTab {
+  flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+  padding:9px 8px; border:1.5px solid #dde3dd; border-radius:10px;
+  background:var(--gray-light); font-size:13px; font-weight:600; color:var(--gray);
+  transition:all .2s; cursor:pointer;
+}
+.roleTab i { font-size:14px; }
+.roleTabActive { border-color:var(--green); background:var(--green-pale); color:var(--green); }
+.roleTab:hover:not(.roleTabActive) { border-color:#b8cdb8; color:var(--dark); }
+.roleCheck {
+  width:16px; height:16px; border-radius:50%; background:var(--green);
+  display:flex; align-items:center; justify-content:center; margin-left:auto; flex-shrink:0;
+}
+.roleCheck i { font-size:9px; color:#fff; }
+
+/* Fields */
+.fieldGroup { margin-bottom:14px; }
+.label { display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px; }
+
+/* Password strength */
+.strengthRow { display:flex; align-items:center; gap:4px; margin-top:6px; }
+.strengthBar { flex:1; height:4px; border-radius:3px; transition:background .3s; }
+
+/* Btn */
+.btnSignUp {
+  width:100%; background:var(--yellow); color:var(--dark); border:none;
+  border-radius:12px; padding:14px; font-size:15px; font-weight:800;
+  font-family:var(--fp); box-shadow:0 4px 16px rgba(240,196,25,.4);
+  transition:all .2s; margin-top:4px;
+}
+.btnSignUp:hover:not(:disabled) { background:var(--yellow2); color:#fff; }
+
+.loginRow { text-align:center; font-size:13px; color:var(--gray); margin-top:14px; }
+.loginLink { color:var(--green); font-weight:700; }
+
+/* Success */
+.successWrap {
+  position:relative; z-index:10;
+  min-height:calc(100vh - 62px);
+  display:flex; align-items:center; justify-content:center; padding:32px;
+}
+.successCard {
+  background:#fff; border-radius:20px; padding:48px 40px;
+  text-align:center; box-shadow:0 24px 80px rgba(0,0,0,.3);
+  animation:popIn .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+.successIcon { font-size:64px; margin-bottom:16px; }
+.successTitle { font-family:var(--fp); font-size:26px; font-weight:800; margin-bottom:10px; }
+.successSub { font-size:14px; color:var(--gray); line-height:1.7; margin-bottom:24px; }
+.btnGoLogin {
+  display:inline-block; background:var(--green); color:#fff;
+  border-radius:12px; padding:13px 32px; font-size:15px; font-weight:700;
+  font-family:var(--fp);
+}
