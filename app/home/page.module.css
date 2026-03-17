@@ -1,0 +1,134 @@
+/* ══════════════════════════════════
+   Home Page (Restaurant List)
+══════════════════════════════════ */
+.page { min-height:100vh; background:var(--bg); font-family:var(--fs); }
+
+/* ── Navbar ── */
+.nav { 
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border);
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--sh-glass);
+}
+.navInner { max-width:1140px; margin:0 auto; padding:0 24px; height:68px; display:flex; align-items:center; gap:20px; }
+.logo { display:flex; align-items:center; gap:10px; flex-shrink:0; cursor:pointer; transition:transform var(--t); }
+.logo:hover { transform: scale(1.02); }
+.logoMark { width:36px; height:36px; background:var(--primary); border-radius:var(--r-s); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 4px 12px rgba(27,94,32,.3); }
+.logoTxt { font-family:var(--fp); font-weight:800; font-size:22px; color:var(--dark); letter-spacing: -0.5px; }
+.logoTxt em { color:var(--primary-light); font-style:normal; }
+
+.searchWrap { 
+  flex:1; max-width:400px; display:flex; align-items:center; gap:12px; 
+  background:var(--surface); border:1.5px solid var(--gray-light); 
+  border-radius:var(--r-xl); padding:10px 20px; transition:all var(--t); 
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+.searchWrap i { color: var(--primary); font-size: 14px; }
+.searchWrap:focus-within { border-color:var(--primary-light); box-shadow:0 0 0 4px rgba(67,160,71,.1); transform: translateY(-1px); }
+.searchInp { border:none; background:transparent; outline:none; font-size:14px; flex:1; font-family:var(--fs); color:var(--text); }
+.searchInp::placeholder { color:var(--gray-mid); }
+
+.navRight { margin-left:auto; display:flex; align-items:center; gap:18px; }
+.cartBtn { position:relative; font-size:24px; cursor:pointer; color: var(--gray); transition:all var(--t); display: flex; align-items: center; }
+.cartBtn:hover { color: var(--primary); transform:scale(1.1); }
+.cartDot { position:absolute; top:-6px; right:-8px; background:var(--danger); color:#fff; border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; border: 2px solid var(--surface); }
+
+/* ── User Dropdown ── */
+.userNavWrap { position: relative; }
+.userAvatarBtn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 12px 4px 4px; border-radius: var(--r-xl);
+  cursor: pointer; transition: all var(--t);
+  background: rgba(var(--primary-pale), 0.5);
+  border: 1px solid var(--gray-light);
+}
+.userAvatarBtn:hover { background: var(--primary-pale); border-color: var(--primary-light); }
+.navAvatarCircle {
+  width: 36px; height: 36px; background: var(--primary);
+  color: white; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center;
+  font-weight: 800; font-size: 15px; box-shadow: var(--sh-1);
+}
+.userAvatarBtn i { font-size: 11px; color: var(--gray-mid); transition: transform var(--t); }
+.rotate { transform: rotate(180deg); }
+
+.navDropdown {
+  position: absolute; top: calc(100% + 15px); right: 0;
+  width: 220px; padding: 12px; border-radius: var(--r-m);
+  z-index: 200; animation: popIn 0.3s ease-out;
+}
+.dropdownInfo { padding: 4px 12px 10px; display: flex; flex-direction: column; }
+.dropdownName { font-weight: 800; font-size: 15px; color: var(--dark); font-family: var(--fp); }
+.dropdownRole { font-size: 12px; color: var(--primary); font-weight: 600; margin-top: 2px; }
+.dropdownDivider { height: 1px; background: var(--gray-light); margin: 8px 0; }
+.dropdownItem {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: var(--r-s);
+  font-size: 14px; font-weight: 600; color: var(--text);
+  transition: all var(--t); cursor: pointer;
+}
+.dropdownItem:hover { background: var(--primary-pale); color: var(--primary); transform: translateX(4px); }
+.dropdownItem i { font-size: 16px; width: 20px; text-align: center; }
+.logout { color: var(--danger)!important; }
+.logout:hover { background: var(--danger-pale)!important; color: var(--danger)!important; }
+.loginBtn { background:var(--primary); color:#fff; border:none; border-radius:var(--r-l); padding:8px 18px; font-size:13px; font-weight:700; transition:background var(--t),box-shadow var(--t); box-shadow:var(--sh-green); }
+.loginBtn:hover { background:var(--primary-mid); }
+
+/* ── Hero Banner ── */
+.hero { 
+  background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 55%, #388E3C 100%); 
+  padding: 56px 24px 50px; 
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 20px 20px; opacity: 0.3;
+}
+.heroInner { max-width:1140px; margin:0 auto; position: relative; z-index: 1; }
+.heroTitle { font-family:var(--fp); font-size:42px; font-weight:900; color:#fff; margin:0 0 12px; line-height:1.15; letter-spacing: -1px; animation: fadeUp 0.8s ease out; }
+.heroEm { color:var(--accent); }
+.heroSub { font-size:15px; color:rgba(255,255,255,.78); margin:0; }
+
+/* ── Body ── */
+.body { max-width:1140px; margin:0 auto; padding:28px 24px 80px; }
+
+/* ── Category pills ── */
+.cats { display:flex; gap:9px; margin-bottom:26px; flex-wrap:wrap; }
+.catBtn { display:flex; align-items:center; gap:6px; padding:8px 18px; border-radius:var(--r-l); border:1.5px solid var(--gray-light); background:var(--surface); color:var(--text); font-size:13px; font-weight:600; cursor:pointer; font-family:var(--fs); transition:all var(--t); box-shadow:var(--sh-1); }
+.catBtn:hover { border-color:var(--primary-light); color:var(--primary); background:var(--primary-pale); }
+.catBtnOn { background:var(--primary)!important; color:#fff!important; border-color:var(--primary)!important; box-shadow:var(--sh-green)!important; }
+.catIcon { font-size:16px; }
+
+/* ── Section header ── */
+.secHdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.secTitle { font-family:var(--fp); font-size:19px; font-weight:800; color:var(--dark); margin:0; }
+.secCount { font-size:13px; color:var(--gray); background:var(--primary-pale); color:var(--primary); border-radius:var(--r-l); padding:3px 12px; font-weight:600; }
+
+/* ── Grid ── */
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(248px,1fr)); gap:20px; }
+.empty { grid-column:1/-1; display:flex; flex-direction:column; align-items:center; padding:56px 0; color:var(--gray-mid); gap:12px; font-size:15px; }
+.empty span:first-child { font-size:52px; }
+
+/* ── Restaurant card ── */
+.restCard { background:var(--surface); border-radius:var(--r-l); overflow:hidden; box-shadow:var(--sh-1); border:1px solid var(--gray-light); cursor:pointer; transition:transform var(--t),box-shadow var(--t); }
+.restCard:hover { transform:translateY(-5px); box-shadow:var(--sh-3); }
+.restCardClosed { opacity:.58; cursor:not-allowed; }
+.restCardClosed:hover { transform:none; box-shadow:var(--sh-1); }
+.restImgWrap { position:relative; height:158px; overflow:hidden; }
+.restImg { width:100%; height:100%; object-fit:cover; transition:transform .35s; }
+.restCard:hover .restImg { transform:scale(1.05); }
+.restTag { position:absolute; top:10px; left:10px; background:var(--primary); color:#fff; border-radius:var(--r-l); padding:4px 11px; font-size:11px; font-weight:700; letter-spacing:.3px; }
+.freeTag { position:absolute; top:10px; right:10px; background:var(--accent); color:var(--dark); border-radius:var(--r-l); padding:4px 11px; font-size:11px; font-weight:700; }
+.closedOverlay { position:absolute; inset:0; background:rgba(0,0,0,.48); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; font-weight:700; font-family:var(--fp); letter-spacing:.5px; }
+.restBody { padding:13px 16px 14px; }
+.restName { font-family:var(--fp); font-weight:800; font-size:15px; color:var(--dark); margin-bottom:6px; }
+.restName:hover { color:var(--primary); }
+.restMeta { display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--gray); margin-bottom:5px; flex-wrap:wrap; }
+.restRating { color:#E65100; font-weight:700; }
+.restDot { color:var(--gray-light); }
+.restTime { color:var(--primary-mid); font-weight:600; }
+.restFee { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--gray); }
+.restFeeFree { color:var(--primary); font-weight:700; }

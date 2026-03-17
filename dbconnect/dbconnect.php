@@ -1,8 +1,8 @@
 <?php
 
-$servername = "172.25.61.117";
-$username = "test";
-$password = "1234";
+$servername = "localhost";
+$username = "root";
+$password = "";
 $dbname = "bitesync";
 
 $conn = new mysqli($servername,$username,$password,$dbname);

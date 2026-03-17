@@ -31,7 +31,7 @@ export default function LoginPage() {
         const role = data.user.role
         if      (role === 'admin')      window.location.href = '/admin/dashboard'
         else if (role === 'rider')      window.location.href = '/rider/home'
-        else if (role === 'restaurant') window.location.href = '/shop/dashboard'
+        else if (role === 'restaurant') window.location.href = '/shop'
         else                            window.location.href = '/home'
       } else {
         setError(data.message || 'เข้าสู่ระบบไม่สำเร็จ')

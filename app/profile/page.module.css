@@ -1,0 +1,209 @@
+.page { min-height: 100vh; background: var(--bg); font-family: var(--fs); }
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  animation: fadeUp 0.6s ease-out;
+}
+
+.profileCard {
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-2);
+  border: 1px solid var(--gray-light);
+  overflow: hidden;
+  position: relative;
+}
+
+.cardHeaderDecor {
+  height: 160px;
+  background: linear-gradient(135deg, #1B5E20 0%, #388E3C 50%, #81C784 100%);
+  position: relative;
+  overflow: hidden;
+}
+.cardHeaderDecor::after {
+  content: ""; position: absolute; inset: 0;
+  background: url('https://www.transparenttextures.com/patterns/carbon-fibre-big.png');
+  opacity: 0.1;
+}
+
+.header {
+  padding: 0 40px 30px;
+  margin-top: -65px;
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.avatarWrap {
+  position: relative;
+  width: 150px; height: 150px;
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: var(--sh-3);
+  border: 6px solid #fff;
+  background: #fff;
+}
+
+.avatarOverlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #fff; font-size: 24px;
+  opacity: 0; transition: opacity var(--t);
+  z-index: 2;
+}
+.avatarOverlay span { font-size: 11px; font-weight: 700; margin-top: 4px; text-transform: uppercase; }
+.avatarWrap:hover .avatarOverlay { opacity: 1; }
+
+.avatarLarge {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; font-weight: 800; color: var(--primary);
+  font-family: var(--fp);
+  position: relative; z-index: 1;
+}
+
+.avatarImg { width: 100%; height: 100%; object-fit: cover; }
+
+.headerInfo { padding-bottom: 10px; }
+.name { font-family: var(--fp); font-size: 32px; font-weight: 900; color: var(--dark); margin: 0; }
+.headerStats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.roleBadge {
+  display: inline-block;
+  padding: 5px 14px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--r-l);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: var(--sh-green);
+}
+.statItem {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.statItem i { color: var(--primary); opacity: 0.6; }
+
+.content { padding: 20px 40px 40px; }
+
+.sectionHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px; border-bottom: 2px solid var(--primary-pale);
+  padding-bottom: 15px;
+}
+.sectionTitle { font-family: var(--fp); font-size: 22px; font-weight: 900; color: var(--dark); margin: 0; letter-spacing: -0.5px; }
+
+.infoGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.infoItem { display: flex; flex-direction: column; gap: 8px; }
+.fullWidth { grid-column: 1 / -1; }
+.infoItem label { font-size: 13px; font-weight: 700; color: var(--gray); text-transform: uppercase; }
+.value { font-size: 17px; font-weight: 600; color: var(--text); padding: 12px 0; border-bottom: 1px dashed var(--gray-light); }
+
+/* Edit Mode */
+.editInput {
+  width: 100%; padding: 12.5px 16px;
+  background: #fdfdfd;
+  border: 1.5px solid #e0e6e0;
+  border-radius: var(--r-m);
+  font-family: var(--fs);
+  font-size: 15.5px;
+  transition: all var(--t);
+  outline: none;
+  box-sizing: border-box;
+}
+.editInput:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px var(--primary-pale); }
+.editArea { min-height: 100px; resize: vertical; line-height: 1.6; }
+
+.disabledInput {
+  background: #fdfdfd;
+  border: 1.5px solid #e0e6e0;
+  border-radius: var(--r-m);
+  font-family: var(--fs);
+  font-size: 15.5px;
+  transition: all var(--t);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.actions { margin-top: 40px; display: flex; gap: 16px; }
+.editBtn, .saveBtn {
+  background: var(--primary); color: #fff;
+  border: none; border-radius: var(--r-l);
+  padding: 14px 32px; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all var(--t);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sh-green);
+}
+.editBtn:hover, .saveBtn:hover { background: var(--primary-mid); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(27,94,32,0.3); }
+
+.cancelBtn {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--gray-light); border-radius: var(--r-l);
+  padding: 14px 32px; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all var(--t);
+}
+.cancelBtn:hover { background: var(--gray-light); border-color: var(--gray-mid); }
+
+.logoutBtn {
+  margin-left: auto; 
+  background: #fff; 
+  color: var(--danger);
+  border: 1.5px solid #feeceb; 
+  border-radius: var(--r-l);
+  padding: 10px 24px;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all var(--t);
+  display: flex; align-items: center; gap: 8px;
+}
+.logoutBtn:hover { 
+  background: var(--danger-pale); 
+  border-color: var(--danger-light);
+  transform: translateY(-2px);
+}
+
+/* History */
+.historyCard {
+  background: var(--surface); border-radius: var(--r-xl);
+  box-shadow: var(--sh-2); border: 1px solid var(--gray-light);
+  padding: 32px;
+}
+.emptyHistory { text-align: center; padding: 60px 20px; }
+.emptyIcon { font-size: 64px; display: block; margin-bottom: 20px; }
+.orderNowBtn {
+  background: var(--accent); color: var(--dark);
+  border: none; border-radius: var(--r-l);
+  padding: 12px 32px; font-size: 15px; font-weight: 800;
+  cursor: pointer; transition: all var(--t); margin-top: 16px;
+  box-shadow: 0 4px 15px rgba(249,168,37,0.3);
+}
+.orderNowBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(249,168,37,0.4); }
+
+.loadingPage { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
+.loader { font-size: 40px; animation: pulse 1.5s infinite; }
+
+@media (max-width: 768px) {
+  .infoGrid { grid-template-columns: 1fr; }
+  .header { padding: 0 24px 24px; flex-direction: column; align-items: center; text-align: center; }
+  .headerInfo { padding-bottom: 0; }
+  .actions { flex-direction: column; }
+  .logoutBtn { margin: 20px auto 0; }
+}

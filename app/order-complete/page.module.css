@@ -1,0 +1,23 @@
+.page { min-height:100vh; background:linear-gradient(135deg,#1e4d1e 0%,#2a6129 100%); font-family:'Sarabun',sans-serif; }
+.nav { background:rgba(0,0,0,.15); border-bottom:1px solid rgba(255,255,255,.1); }
+.navInner { max-width:600px; margin:0 auto; padding:0 20px; height:56px; display:flex; align-items:center; }
+.logo { display:flex; align-items:center; gap:7px; }
+.logoMark { width:28px; height:28px; background:#f0c419; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.logoTxt { font-family:'Prompt',sans-serif; font-weight:800; font-size:17px; color:#fff; }
+.logoTxt em { color:#f0c419; font-style:normal; }
+
+.body { display:flex; align-items:center; justify-content:center; min-height:calc(100vh - 56px); padding:24px; }
+.card { background:#fff; border-radius:24px; padding:40px 36px; max-width:420px; width:100%; text-align:center; box-shadow:0 24px 64px rgba(0,0,0,.2); }
+
+.successCircle { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,#2a6129,#4caf50); display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow:0 8px 24px rgba(42,97,41,.35); animation:pop .5s ease; }
+.successIcon { font-size:36px; color:#fff; font-weight:900; }
+@keyframes pop { from{transform:scale(0);opacity:0} 50%{transform:scale(1.15)} to{transform:scale(1);opacity:1} }
+
+.title { font-family:'Prompt',sans-serif; font-size:22px; font-weight:900; color:#1a1f1a; margin:0 0 10px; }
+.sub   { font-size:14px; color:#6b7280; line-height:1.6; margin:0 0 20px; }
+.orderIdBox { background:#f4f7f4; border-radius:10px; padding:10px 16px; font-size:14px; color:#374137; margin-bottom:24px; display:inline-block; }
+
+.btnRow { display:flex; flex-direction:column; gap:10px; }
+.btnTrack { background:#2a6129; color:#fff; border:none; border-radius:12px; padding:14px; font-size:14.5px; font-weight:800; cursor:pointer; font-family:'Prompt',sans-serif; box-shadow:0 4px 14px rgba(42,97,41,.3); transition:.18s; }
+.btnTrack:hover { background:#347d32; }
+.btnHome { background:#f4f7f4; color:#374137; border:none; border-radius:12px; padding:12px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:'Sarabun',sans-serif; }
