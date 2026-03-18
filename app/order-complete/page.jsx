@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+import Logo from '@/components/Logo'
 
 export default function OrderCompletePage() {
   const router  = useRouter()
@@ -16,30 +17,52 @@ export default function OrderCompletePage() {
     <div className={styles.page}>
       <header className={styles.nav}>
         <div className={styles.navInner}>
-          <div className={styles.logo}>
-            <div className={styles.logoMark}>🍃</div>
-            <span className={styles.logoTxt}>Bite<em>Sync</em></span>
+          <div className={styles.logo} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
+            <Logo size="small" />
           </div>
+          <div className={styles.navTitle}>สำเร็จ</div>
         </div>
       </header>
+
+      {/* Step indicator (Step 3) */}
+      <div className={styles.steps}>
+        <div className={`${styles.stepItem} ${styles.stepOn}`}>
+          <div className={styles.stepCircle}>1</div>
+          <span>ตรวจสอบ</span>
+        </div>
+        <div className={`${styles.stepLine} ${styles.stepLineOn}`}/>
+        <div className={`${styles.stepItem} ${styles.stepOn}`}>
+          <div className={styles.stepCircle}>2</div>
+          <span>ชำระเงิน</span>
+        </div>
+        <div className={`${styles.stepLine} ${styles.stepLineOn}`}/>
+        <div className={`${styles.stepItem} ${styles.stepOn}`}>
+          <div className={styles.stepCircle}>3</div>
+          <span>สำเร็จ</span>
+        </div>
+      </div>
 
       <div className={styles.body}>
         <div className={styles.card}>
           {/* Success animation */}
           <div className={styles.successCircle}>
-            <span className={styles.successIcon}>✓</span>
+            <i className="fa-solid fa-check" />
           </div>
 
-          <h1 className={styles.title}>Your order is complete !!!</h1>
-          <p className={styles.sub}>ออเดอร์ของคุณได้รับการยืนยันแล้ว<br/>ร้านค้ากำลังเตรียมอาหารให้คุณ</p>
+          <h1 className={styles.title}>สั่งอาหารสำเร็จ! 🎉</h1>
+          <p className={styles.sub}>ขอบคุณที่ใช้บริการ BiteSync<br/>ไรเดอร์กำลังเตรียมออกไปรับอาหารให้คุณ</p>
 
           <div className={styles.orderIdBox}>
-            Order: <strong>{orderId}</strong>
+            <span className={styles.orderLabel}>เลขที่ออเดอร์:</span>
+            <span className={styles.orderVal}>#{orderId}</span>
           </div>
 
           <div className={styles.btnRow}>
-            <button onClick={() => router.push(`/track/${orderId}`)} className={styles.btnTrack}>
-              🛵 Track Your Order →
+            <button onClick={() => router.push(`/home/track/${orderId}`)} className={styles.btnTrack}>
+              🛵 ติดตามออเดอร์ →
+            </button>
+            <button onClick={() => router.push(`/home/receipt/${orderId}`)} className={styles.btnReceipt}>
+              📄 ดูใบเสร็จรับเงิน
             </button>
             <button onClick={() => router.push('/home')} className={styles.btnHome}>
               กลับหน้าหลัก

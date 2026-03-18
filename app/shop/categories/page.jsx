@@ -16,11 +16,12 @@ export default function CategoriesPage() {
 
   async function load() {
     try {
-      const res  = await fetch('http://localhost/bitesync/api/shop/categories.php', { headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`} })
+      const u = JSON.parse(localStorage.getItem('bs_user'))
+      const res  = await fetch(`http://localhost/bitesync/api/shop/categories.php?usrId=${u.id}`, { headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`} })
       const data = await res.json()
       if (data.success) setCats(data.data)
     } catch {
-      setCats([{CatId:1,CatName:'Cake'},{CatId:2,CatName:'Ice Cream'},{CatId:3,CatName:'Toast'},{CatId:4,CatName:'Drinks'},{CatId:5,CatName:'Waffles'}])
+      toast_('ไม่สามารถโหลดข้อมูลได้', 'err')
     }
   }
 
@@ -28,22 +29,46 @@ export default function CategoriesPage() {
     if (!newName.trim()) return
     setLoading(true)
     try {
-      const res  = await fetch('http://localhost/bitesync/api/shop/categories.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('bs_token')}`},body:JSON.stringify({name:newName.trim()})})
+      const u = JSON.parse(localStorage.getItem('bs_user'))
+      const res  = await fetch(`http://localhost/bitesync/api/shop/categories.php?usrId=${u.id}`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('bs_token')}`},body:JSON.stringify({name:newName.trim()})})
       const data = await res.json()
       if (data.success) setCats(p=>[...p,data.data])
-    } catch { setCats(p=>[...p,{CatId:Date.now(),CatName:newName.trim()}]) }
+    } catch {
+      toast_('เพิ่มหมวดหมู่ไม่สำเร็จ', 'err')
+    }
     setNew(''); toast_('เพิ่มหมวดหมู่แล้ว!'); setLoading(false)
   }
 
   async function saveEdit(id) {
     if (!editVal.trim()) return
-    try { await fetch(`http://localhost/bitesync/api/shop/categories.php?id=${id}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('bs_token')}`},body:JSON.stringify({name:editVal.trim()})}) } catch {}
-    setCats(p=>p.map(c=>c.CatId===id?{...c,CatName:editVal.trim()}:c)); setEditId(null); toast_('แก้ไขแล้ว!')
+    try {
+      const u = JSON.parse(localStorage.getItem('bs_user'))
+      const res = await fetch(`http://localhost/bitesync/api/shop/categories.php?id=${id}&usrId=${u.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('bs_token')}`
+        },
+        body: JSON.stringify({ name: editVal.trim() })
+      })
+      if (res.ok) {
+        setCats(p => p.map(c => c.CatId === id ? { ...c, CatName: editVal.trim() } : c))
+        setEditId(null)
+        toast_('แก้ไขแล้ว!')
+      } else {
+        toast_('แก้ไขไม่สำเร็จ', 'err')
+      }
+    } catch {
+      toast_('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'err')
+    }
   }
 
   async function del(id) {
     if (!confirm('ลบหมวดหมู่นี้?')) return
-    try { await fetch(`http://localhost/bitesync/api/shop/categories.php?id=${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`}}) } catch {}
+    try { 
+      const u = JSON.parse(localStorage.getItem('bs_user'))
+      await fetch(`http://localhost/bitesync/api/shop/categories.php?id=${id}&usrId=${u.id}`,{method:'DELETE',headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`}}) 
+    } catch {}
     setCats(p=>p.filter(c=>c.CatId!==id)); toast_('ลบแล้ว','err')
   }
 
@@ -58,7 +83,7 @@ export default function CategoriesPage() {
         </div>
         <div className={styles.addRow}>
           <input value={newName} onChange={e=>setNew(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()} placeholder="New category..." className={styles.addInput}/>
-          <button onClick={add} disabled={loading||!newName.trim()} className={styles.addBtn}>+ Add Category</button>
+          <button onClick={add} disabled={false} className={styles.addBtn}>+ Add Category</button>
         </div>
       </div>
 

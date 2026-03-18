@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@900&family=Prompt:wght@900&display=swap');
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Inter', 'Prompt', sans-serif;
+  cursor: pointer;
+  user-select: none;
+}
+
+.logoMark {
+  background: #1a4d2e; /* Dark green icon background */
+  color: #fff;
+  border-radius: 25%; /* Rounded square */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.logoText {
+  display: flex;
+  align-items: center;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.bite { color: #1a1f1a; } /* Black text */
+.sync { color: #00b14f; } /* Green text */
+
+/* Sizes */
+.small .logoMark { width: 28px; height: 28px; font-size: 14px; }
+.small .logoText { font-size: 16px; }
+
+.medium .logoMark { width: 36px; height: 36px; font-size: 18px; }
+.medium .logoText { font-size: 22px; }
+
+.large .logoMark { width: 44px; height: 44px; font-size: 22px; }
+.large .logoText { font-size: 26px; }
+
+@keyframes bounce { to { transform: translateY(-10px); } }

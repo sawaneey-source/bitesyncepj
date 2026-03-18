@@ -13,6 +13,7 @@ export default function ProfilePage() {
   const [imageFile, setImageFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [history, setHistory] = useState([])
 
   useEffect(() => {
     const u = localStorage.getItem('bs_user')
@@ -32,6 +33,10 @@ export default function ProfilePage() {
       if (userData.image) {
         setPreviewUrl(`http://localhost/bitesync/public${userData.image}`)
       }
+
+      // Load History
+      const h = JSON.parse(localStorage.getItem('bs_history') || '[]')
+      setHistory(h)
     } else {
       router.push('/login')
     }
@@ -136,7 +141,7 @@ export default function ProfilePage() {
                   <i className="fa-solid fa-calendar-day" /> ตั้งแต่ มี.ค. 2024
                 </span>
                 <span className={styles.statItem}>
-                  <i className="fa-solid fa-bag-shopping" /> 0 ออเดอร์
+                  <i className="fa-solid fa-bag-shopping" /> {history.length} ออเดอร์
                 </span>
               </div>
             </div>
@@ -230,11 +235,41 @@ export default function ProfilePage() {
 
         <div className={styles.historyCard}>
           <h2 className={styles.sectionTitle}>ประวัติการสั่งซื้อล่าสุด</h2>
-          <div className={styles.emptyHistory}>
-            <span className={styles.emptyIcon}>🥡</span>
-            <p>ยังไม่มีประวัติการสั่งซื้อ</p>
-            <button onClick={() => router.push('/home')} className={styles.orderNowBtn}>สั่งอาหารเลย</button>
-          </div>
+          {history.length === 0 ? (
+            <div className={styles.emptyHistory}>
+              <span className={styles.emptyIcon}>🥡</span>
+              <p>ยังไม่มีประวัติการสั่งซื้อ</p>
+              <button onClick={() => router.push('/home')} className={styles.orderNowBtn}>สั่งอาหารเลย</button>
+            </div>
+          ) : (
+            <div className={styles.historyList}>
+              {history.map((order, idx) => (
+                <div key={order.id || idx} className={styles.historyItem}>
+                  <div className={styles.histHeader}>
+                    <div className={styles.histMain}>
+                      <div className={styles.histShop}>{order.shopName}</div>
+                      <div className={styles.histDate}>{order.date}</div>
+                    </div>
+                    <div className={styles.histPrice}>{order.total.toLocaleString()} ฿</div>
+                  </div>
+                  <div className={styles.histItems}>
+                    {order.items.map((it, i) => (
+                      <span key={it.id || i}>{it.name}{i < order.items.length - 1 ? ', ' : ''}</span>
+                    ))}
+                  </div>
+                  <div className={styles.histFooter}>
+                    <span className={styles.histStatus}>✅ {order.status}</span>
+                    <button 
+                      onClick={() => router.push(`/home/receipt/${order.id}`)} 
+                      className={styles.viewBtn}
+                    >
+                      ดูใบเสร็จ
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

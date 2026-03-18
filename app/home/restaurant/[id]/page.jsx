@@ -2,31 +2,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import styles from './page.module.css'
+import Logo from '@/components/Logo'
+import Navbar from '@/components/Navbar'
 
-const MOCK_SHOP = {
-  id:1, name:'มอกกี้เบเกอรี่', category:'Bakery',
-  rating:4.8, reviews:124, deliveryTime:'15-25', deliveryFee:15,
-  address:'123 ถ.กาญจนวนิช อ.หาดใหญ่ จ.สงขลา',
-  img:'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&q=80',
-  open:true,
-}
-
-const MOCK_MENUS = [
-  { id:1, name:'White Cherry Cake',  price:80,  category:'Cake',    rating:4.7, sold:45, img:'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=300&q=80',  desc:'เค้กสตรอว์เบอร์รี่สด หวานนุ่ม' },
-  { id:2, name:'Chip Cookies',       price:65,  category:'Cake',    rating:4.5, sold:32, img:'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=300&q=80',  desc:'คุกกี้ช็อกโกแลตชิพ กรอบนอกนุ่มใน' },
-  { id:3, name:'Coconut Flan',       price:90,  category:'Toast',   rating:4.8, sold:28, img:'https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=300&q=80',  desc:'ฟลังมะพร้าวอ่อน หอมหวาน' },
-  { id:4, name:'Lava Flan',          price:90,  category:'Cake',    rating:4.6, sold:19, img:'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=300&q=80',  desc:'ลาวาช็อกโกแลต ร้อนๆ เหนียวๆ' },
-  { id:5, name:'Banana Cook',        price:65,  category:'Toast',   rating:4.4, sold:22, img:'https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?w=300&q=80',  desc:'กล้วยอบกรอบ กินกับไอศกรีม' },
-  { id:6, name:'Strawberry Waffle',  price:95,  category:'Waffle',  rating:4.9, sold:67, img:'https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=300&q=80',  desc:'วาฟเฟิลสตรอว์เบอร์รี่ กรอบหอม' },
-  { id:7, name:'Thai Milk Tea',      price:55,  category:'Drinks',  rating:4.5, sold:88, img:'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&q=80',  desc:'ชาไทยนม สูตรต้นตำรับ' },
-  { id:8, name:'Matcha Latte',       price:65,  category:'Drinks',  rating:4.7, sold:54, img:'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=300&q=80',  desc:'มัทฉะลาเต้ นำเข้าจากญี่ปุ่น' },
-]
-
-const MOCK_REVIEWS = [
-  { id:1, user:'สมชาย', avatar:'ส', rating:5, comment:'อร่อยมากครับ ส่งเร็ว ร้านนี้แนะนำเลย', date:'2 วันที่แล้ว', img:'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=100&q=70' },
-  { id:2, user:'นิดา',  avatar:'น', rating:4, comment:'เค้กหอมมาก บรรจุภัณฑ์สวย แต่ส่งช้านิดหน่อย', date:'5 วันที่แล้ว', img:null },
-  { id:3, user:'เอิร์ธ', avatar:'อ', rating:5, comment:'ประทับใจมากๆ ครั้งหน้าจะสั่งอีกแน่นอน', date:'1 สัปดาห์ที่แล้ว', img:'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=100&q=70' },
-]
 
 export default function RestaurantPage() {
   const router  = useRouter()
@@ -37,23 +15,100 @@ export default function RestaurantPage() {
   const [catTab, setCatTab] = useState('ทั้งหมด')
   const [cart, setCart]     = useState([])
   const [user, setUser]     = useState(null)
-  const [showReviewForm, setShowReviewForm] = useState(false)
-  const [reviewText, setReviewText]         = useState('')
-  const [reviewRating, setReviewRating]     = useState(5)
   const [showDropdown, setShowDropdown]     = useState(false)
+  const [shop, setShop] = useState(null)
+  const [menus_raw, setMenusRaw] = useState([])
+  const [reviews, setReviews]     = useState([])
+  const [loading, setLoading]     = useState(true)
 
-  const shop   = MOCK_SHOP
-  const cats   = ['ทั้งหมด', ...new Set(MOCK_MENUS.map(m => m.category))]
-  const menus  = catTab === 'ทั้งหมด' ? MOCK_MENUS : MOCK_MENUS.filter(m => m.category === catTab)
-  const totalItems = cart.reduce((s, c) => s + c.qty, 0)
-  const totalPrice = cart.reduce((s, c) => s + c.price * c.qty, 0)
+  // Review Form States
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewNote, setReviewNote]         = useState('')
+  const [reviewScore, setReviewScore]       = useState(5)
+  const [reviewFoodId, setReviewFoodId]     = useState(0)
+  const [reviewImages, setReviewImages]     = useState([]) // up to 3 files
+  const [submitting, setSubmitting]         = useState(false)
+
+  const cats   = ['ทั้งหมด', ...new Set(menus_raw.map(m => m.category))]
+  const menus  = catTab === 'ทั้งหมด' ? menus_raw : menus_raw.filter(m => m.category === catTab)
+  const totalItems = (cart || []).reduce((s, c) => s + (Number(c.qty) || 0), 0)
+  const totalPrice = (cart || []).reduce((s, c) => {
+    const p = parseFloat(c.price) || 0
+    const q = Number(c.qty) || 0
+    return s + (p * q)
+  }, 0)
 
   useEffect(() => {
+    const u = localStorage.getItem('bs_user')
+    if (!u) {
+      router.replace('/login')
+      return
+    }
+    setUser(JSON.parse(u))
+
     const saved = JSON.parse(localStorage.getItem('bs_cart') || '[]')
     setCart(saved)
-    const u = localStorage.getItem('bs_user')
-    if (u) setUser(JSON.parse(u))
-  }, [])
+
+    if (shopId) {
+      console.log('Fetching details for shop:', shopId);
+      fetch(`http://localhost/bitesync/api/home/restaurant_detail.php?id=${shopId}`)
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+          return r.json();
+        })
+        .then(d => { 
+          console.log('API Response:', d);
+          if (d.success) {
+            setShop(d.data);
+            setMenusRaw(d.menus || []);
+            setReviews(d.reviews || []);
+            if (d.menus && d.menus.length > 0) setReviewFoodId(d.menus[0].id);
+          } else {
+            console.error('API Error:', d.message);
+          }
+        })
+        .catch(err => console.error('Fetch Error:', err))
+        .finally(() => setLoading(false))
+    }
+  }, [shopId, router])
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!user) { router.push('/login'); return; }
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append('usrId',  user.id);
+      form.append('foodId', reviewFoodId);
+      form.append('score',  reviewScore);
+      form.append('text',   reviewNote);
+      reviewImages.slice(0, 3).forEach((f, i) => form.append(`img${i+1}`, f));
+
+      const res = await fetch('http://localhost/bitesync/api/home/submit_review.php', {
+        method: 'POST',
+        body: form
+      });
+      const d = await res.json();
+      if (d.success) {
+        setShowReviewForm(false);
+        setReviewNote('');
+        setReviewScore(5);
+        setReviewImages([]);
+        // Refresh reviews
+        const res2 = await fetch(`http://localhost/bitesync/api/home/restaurant_detail.php?id=${shopId}`);
+        const d2 = await res2.json();
+        if (d2.success) setReviews(d2.reviews || []);
+      } else {
+        alert(d.message);
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการส่งรีวิว');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   function addToCart(menu) {
     setCart(prev => {
@@ -70,121 +125,109 @@ export default function RestaurantPage() {
     return cart.find(c => c.id === id)?.qty || 0
   }
 
+  if (loading) return <div className={styles.loading}>กำลังโหลด...</div>
+  if (!shop) return (
+    <div className={styles.notFound}>
+      <h2>ไม่พบร้านอาหาร</h2>
+      <button onClick={() => router.push('/home')} className={styles.backBtn}>กลับหน้าหลัก</button>
+    </div>
+  )
+
   return (
     <div className={styles.page}>
-      {/* Back nav */}
-      <header className={styles.nav}>
-        <div className={styles.navInner}>
+      {/* ── Navbar ── */}
+      <Navbar />
+
+      <div className={styles.actionBar}>
+        <div className={styles.actionBarInner}>
           <button onClick={() => router.push('/home')} className={styles.backBtn}>
             <i className="fa-solid fa-arrow-left" /> กลับ
           </button>
-          <div className={styles.logo} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
-            <div className={styles.logoMark}><i className="fa-solid fa-leaf" style={{color: 'white', fontSize: '14px'}} /></div>
-            <span className={styles.logoTxt}>Bite<em>Sync</em></span>
-          </div>
-          <div className={styles.navRight}>
-            <div className={styles.cartBtn} onClick={() => router.push('/checkout')}>
-              <i className="fa-solid fa-basket-shopping" />
-              {totalItems > 0 && <span className={styles.cartDot}>{totalItems}</span>}
-            </div>
-            {user ? (
-              <div className={styles.userNavWrap}>
-                <div className={styles.userAvatarBtn} onClick={() => setShowDropdown(!showDropdown)}>
-                  <div className={styles.navAvatarCircle}>{(user.name || 'U')[0].toUpperCase()}</div>
-                  <i className={`fa-solid fa-chevron-down ${showDropdown ? styles.rotate : ''}`} />
-                </div>
-                {showDropdown && (
-                  <div className={`${styles.navDropdown} glass`}>
-                    <div className={styles.dropdownInfo}>
-                      <span className={styles.dropdownName}>{user.name}</span>
-                      <span className={styles.dropdownRole}>{user.role || 'ลูกค้าระดับ VIP'}</span>
-                    </div>
-                    <div className={styles.dropdownDivider} />
-                    <div className={styles.dropdownItem} onClick={() => router.push('/profile')}>
-                      <i className="fa-regular fa-circle-user" /> โปรไฟล์ของฉัน
-                    </div>
-                    <div className={styles.dropdownItem} onClick={() => router.push('/home')}>
-                      <i className="fa-solid fa-utensils" /> สั่งอาหาร
-                    </div>
-                    <div className={styles.dropdownDivider} />
-                    <button onClick={() => {
-                      localStorage.removeItem('bs_user');
-                      localStorage.removeItem('bs_token');
-                      window.location.href = '/';
-                    }} className={`${styles.dropdownItem} ${styles.logout}`}>
-                      <i className="fa-solid fa-arrow-right-from-bracket" /> ออกจากระบบ
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button onClick={() => router.push('/login')} className={styles.loginBtn}>เข้าสู่ระบบ</button>
-            )}
-          </div>
         </div>
-      </header>
+      </div>
 
-      {/* Shop hero */}
-      <div className={styles.shopHero}>
-        <img src={shop.img} alt={shop.name} className={styles.shopHeroImg}/>
-        <div className={styles.shopHeroOverlay}/>
-        <div className={styles.shopHeroInfo}>
-          <h1 className={styles.shopName}>{shop.name}</h1>
-          <div className={styles.shopMeta}>
-            <span>⭐ {shop.rating} ({shop.reviews} รีวิว)</span>
-            <span>·</span>
-            <span>🕐 {shop.deliveryTime} นาที</span>
-            <span>·</span>
-            <span>ค่าส่ง {shop.deliveryFee} ฿</span>
+      {/* ── Hero ── */}
+      <div className={styles.hero}>
+        <img src={shop.banner} alt={shop.name} className={styles.heroImg} />
+        <div className={styles.heroOverlay} />
+        <div className={styles.heroInfo}>
+          <div className={styles.shopMetaTop}>
+            <img src={shop.img} alt="Logo" className={styles.heroLogo} />
+            <h1 className={styles.shopName}>{shop.name}</h1>
           </div>
-          <div className={styles.shopAddr}>📍 {shop.address}</div>
-          <span className={`${styles.openBadge} ${shop.open ? styles.openBadgeOpen : styles.openBadgeClosed}`}>
-            {shop.open ? '● เปิดอยู่' : '● ปิดแล้ว'}
-          </span>
+          <div className={styles.shopMeta}>
+            {shop.reviews > 0 ? (
+              <>
+                <span>⭐ {Number(shop.rating).toFixed(1)}</span>
+                <span>·</span>
+                <span>({shop.reviews} รีวิว)</span>
+                <span>·</span>
+              </>
+            ) : (
+              <>
+                <span>⭐ ยังไม่มีรีวิว</span>
+                <span>·</span>
+              </>
+            )}
+            <span>🕐 {shop.deliveryTime || 30} นาที</span>
+            <span>·</span>
+            <span>ค่าส่ง ฿{shop.deliveryFee || 15}</span>
+          </div>
         </div>
       </div>
 
       <div className={styles.body}>
-        {/* Tabs */}
-        <div className={styles.tabs}>
-          {['Menu','Reviews'].map(t => (
-            <button key={t} onClick={() => setTab(t)} className={`${styles.tabBtn} ${tab===t?styles.tabBtnOn:''}`}>{t}</button>
-          ))}
+        {/* ── Tabs (Menu / Reviews) ── */}
+        <div className={styles.mainTabs}>
+          <button 
+            onClick={() => setTab('Menu')} 
+            className={`${styles.tabBtn} ${tab === 'Menu' ? styles.tabBtnActive : ''}`}
+          >
+            📋 เมนูอาหาร
+          </button>
+          <button 
+            onClick={() => setTab('Reviews')} 
+            className={`${styles.tabBtn} ${tab === 'Reviews' ? styles.tabBtnActive : ''}`}
+          >
+            ⭐ รีวิว ({reviews.length})
+          </button>
         </div>
 
         {tab === 'Menu' && (
-          <div className={styles.menuSection}>
-            {/* Category tabs */}
+          <>
+            {/* ── Categories ── */}
             <div className={styles.catTabs}>
               {cats.map(c => (
-                <button key={c} onClick={() => setCatTab(c)} className={`${styles.catTab} ${catTab===c?styles.catTabOn:''}`}>{c}</button>
+                <button 
+                  key={c} 
+                  onClick={() => setCatTab(c)} 
+                  className={`${styles.catTab} ${catTab === c ? styles.catTabActive : ''}`}
+                >
+                  {c}
+                </button>
               ))}
             </div>
 
-            {/* Menu grid */}
+            {/* ── Menu Grid ── */}
             <div className={styles.menuGrid}>
               {menus.map(m => {
                 const qty = getQty(m.id)
                 return (
                   <div key={m.id} className={styles.menuCard} onClick={() => router.push(`/food/${m.id}`)}>
                     <div className={styles.menuImgWrap}>
-                      <img src={m.img} alt={m.name} className={styles.menuImg}/>
+                      <img src={m.img} alt={m.name} className={styles.menuImg} />
+                      {qty > 0 && <div className={styles.qtyBadge}>x{qty}</div>}
                     </div>
                     <div className={styles.menuBody}>
                       <div className={styles.menuName}>{m.name}</div>
-                      <div className={styles.menuDesc}>{m.desc}</div>
-                      <div className={styles.menuMeta}>
-                        <span>⭐ {m.rating}</span>
-                        <span>·</span>
-                        <span>ขายแล้ว {m.sold}</span>
-                      </div>
+                      <div className={styles.menuDesc}>{m.desc || 'เมนูแนะนำยอดฮิต'}</div>
                       <div className={styles.menuFoot}>
-                        <span className={styles.menuPrice}>{m.price} ฿</span>
-                        <button
-                          onClick={e => { e.stopPropagation(); addToCart(m) }}
+                        <span className={styles.menuPrice}>฿{m.price}</span>
+                        <button 
                           className={styles.addBtn}
+                          onClick={(e) => { e.stopPropagation(); addToCart(m); }}
                         >
-                          {qty > 0 ? `+${qty}` : '+'}
+                          +
                         </button>
                       </div>
                     </div>
@@ -192,68 +235,152 @@ export default function RestaurantPage() {
                 )
               })}
             </div>
-          </div>
+          </>
         )}
 
         {tab === 'Reviews' && (
-          <div className={styles.reviewSection}>
-            {/* Rating summary */}
-            <div className={styles.ratingBox}>
-              <div className={styles.ratingBig}>{shop.rating}</div>
-              <div>
-                <div className={styles.stars}>{'⭐'.repeat(Math.round(shop.rating))}</div>
-                <div className={styles.ratingCount}>{shop.reviews} รีวิว</div>
-              </div>
-              <button onClick={() => setShowReviewForm(v => !v)} className={styles.btnAddReview}>
+          <div className={styles.reviewsList}>
+            <div className={styles.reviewsHdrRow}>
+              <h3 className={styles.revSectionTitle}>ความเห็นจากลูกค้า ({reviews.length})</h3>
+              <button 
+                className={styles.writeRevBtn}
+                onClick={() => setShowReviewForm(true)}
+              >
                 + เขียนรีวิว
               </button>
             </div>
 
-            {/* Review form */}
-            {showReviewForm && (
-              <div className={styles.reviewForm}>
-                <h3 className={styles.reviewFormTitle}>Food Review</h3>
-                <div className={styles.starRow}>
-                  {[1,2,3,4,5].map(s => (
-                    <span key={s} onClick={() => setReviewRating(s)} className={`${styles.starBtn} ${s<=reviewRating?styles.starBtnOn:''}`}>★</span>
-                  ))}
-                </div>
-                <input placeholder="ชื่อของคุณ" className={styles.reviewInp}/>
-                <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="เล่าประสบการณ์ของคุณ..." rows={3} className={`${styles.reviewInp} ${styles.reviewTa}`}/>
-                <div className={styles.uploadRow}>
-                  <button className={styles.uploadBtn}>📷 อัปโหลดรูป</button>
-                </div>
-                <button className={styles.submitReviewBtn}>ส่งรีวิว</button>
+            {reviews.length === 0 ? (
+              <div className={styles.emptyReviews}>
+                <span>📝</span>
+                <p>ยังไม่มีรีวิวสำหรับร้านนี้ เป็นคนแรกที่รีวิวกันเถอะ!</p>
               </div>
-            )}
-
-            {/* Review list */}
-            <div className={styles.reviewList}>
-              {MOCK_REVIEWS.map(r => (
-                <div key={r.id} className={styles.reviewCard}>
-                  <div className={styles.reviewTop}>
-                    <div className={styles.reviewAvatar}>{r.avatar}</div>
-                    <div className={styles.reviewInfo}>
-                      <div className={styles.reviewUser}>{r.user}</div>
-                      <div className={styles.reviewStars}>{'⭐'.repeat(r.rating)}</div>
+            ) : reviews.map(r => (
+              <div key={r.ReviewId} className={styles.reviewCard}>
+                <div className={styles.revHdr}>
+                  <div className={styles.revUser}>
+                    <div className={styles.revAvatar}>{r.userName ? r.userName[0] : '?'}</div>
+                    <div>
+                      <div className={styles.revName}>{r.userName || 'Anonymous'}</div>
+                      <div className={styles.revDate}>{new Date(r.ReviewAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                     </div>
-                    <span className={styles.reviewDate}>{r.date}</span>
                   </div>
-                  <p className={styles.reviewComment}>{r.comment}</p>
-                  {r.img && <img src={r.img} className={styles.reviewImg}/>}
+                  <div className={styles.revStars}>
+                    {[...Array(5)].map((_, i) => (
+                      <i key={i} className={`fa-solid fa-star ${i < r.ReviewScore ? styles.starActive : styles.starDim}`} />
+                    ))}
+                  </div>
                 </div>
-              ))}
+                <div className={styles.revFood}>
+                  <i className="fa-solid fa-bowl-food" /> สั่งเมนู: {r.FoodName}
+                </div>
+                <p className={styles.revText}>{r.ReviewText}</p>
+                {(r.ReviewImg1 || r.ReviewImg2 || r.ReviewImg3) && (
+                  <div className={styles.revImgs}>
+                    {[r.ReviewImg1, r.ReviewImg2, r.ReviewImg3].filter(Boolean).map((img, i) => (
+                      <img key={i} src={`/${img}`} alt={`review-img-${i}`} className={styles.revImg} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Review Modal ── */}
+        {showReviewForm && (
+          <div className={styles.modalOverlay} onClick={() => setShowReviewForm(false)}>
+            <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>เขียนรีวิวให้ร้านอาหาร</h3>
+                <button className={styles.closeBtn} onClick={() => setShowReviewForm(false)}>×</button>
+              </div>
+              <form onSubmit={handleSubmitReview} className={styles.reviewForm}>
+                <div className={styles.formGroup}>
+                  <label>เลือกอาหารที่อยากรีวิว</label>
+                  <select 
+                    value={reviewFoodId} 
+                    onChange={e => setReviewFoodId(e.target.value)}
+                    className={styles.revSelect}
+                  >
+                    {menus_raw.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>ความพึงพอใจ</label>
+                  <div className={styles.scorePicker}>
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <button 
+                        key={s} 
+                        type="button"
+                        className={`${styles.scoreBtn} ${reviewScore >= s ? styles.scoreBtnActive : ''}`}
+                        onClick={() => setReviewScore(s)}
+                      >
+                        ⭐
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>แชร์ความรู้สึกของคุณ</label>
+                  <textarea 
+                    value={reviewNote}
+                    onChange={e => setReviewNote(e.target.value)}
+                    placeholder="เล่าความรู้สึกหลังจากทานอาหาร..."
+                    className={styles.revTextArea}
+                    required
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>เพิ่มรูปภาพ (ไม่เกิน 3 รูป)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={e => {
+                      const files = Array.from(e.target.files).slice(0, 3);
+                      setReviewImages(files);
+                    }}
+                    className={styles.imgUploadInput}
+                  />
+                  {reviewImages.length > 0 && (
+                    <div className={styles.imgPreviewRow}>
+                      {reviewImages.map((f, i) => (
+                        <div key={i} className={styles.imgPreviewWrap}>
+                          <img src={URL.createObjectURL(f)} alt={`preview-${i}`} className={styles.imgPreview} />
+                          <button
+                            type="button"
+                            className={styles.imgRemoveBtn}
+                            onClick={() => setReviewImages(prev => prev.filter((_, j) => j !== i))}
+                          >×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button type="submit" className={styles.submitRevBtn} disabled={submitting}>
+                  {submitting ? 'กำลังส่ง...' : 'ส่งรีวิว'}
+                </button>
+              </form>
             </div>
           </div>
         )}
       </div>
 
-      {/* Floating cart bar */}
+      {/* ── Cart Bar ── */}
       {totalItems > 0 && (
         <div className={styles.cartBar} onClick={() => router.push('/checkout')}>
-          <span className={styles.cartBarCount}>{totalItems}</span>
-          <span className={styles.cartBarTxt}>ดูตะกร้า</span>
-          <span className={styles.cartBarPrice}>{totalPrice} ฿</span>
+          <div className={styles.cartBarLeft}>
+            <div className={styles.cartCount}>{totalItems}</div>
+            <span className={styles.cartBarTxt}>ดูตะกร้าของฉัน</span>
+          </div>
+          <span className={styles.cartBarPrice}>฿{Math.round(totalPrice)}</span>
         </div>
       )}
     </div>

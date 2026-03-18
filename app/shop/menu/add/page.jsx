@@ -12,6 +12,7 @@ export default function AddMenuPage() {
   const [preview, setPreview] = useState(null)
   const [imgFile, setImgFile] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [prepTime, setPrepTime]   = useState(30)
   const [noCats, setNoCats]   = useState(false)
   const [toast, setToast]     = useState(null)
 
@@ -21,12 +22,13 @@ export default function AddMenuPage() {
 
   async function fetchCats() {
     try {
-      const res  = await fetch('http://localhost/bitesync/api/shop/categories.php',{headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`}})
+      const u = JSON.parse(localStorage.getItem('bs_user'))
+      const res  = await fetch(`http://localhost/bitesync/api/shop/categories.php?usrId=${u.id}`,{headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`}})
       const data = await res.json()
       if(data.success&&data.data.length>0) setCats(data.data)
       else setNoCats(true)
     } catch {
-      setCats([{CatId:1,CatName:'Cake'},{CatId:2,CatName:'Ice Cream'},{CatId:3,CatName:'Toast'},{CatId:4,CatName:'Drinks'}])
+      toast_('ไม่สามารถโหลดข้อมูลหมวดหมู่ได้', 'err')
     }
   }
 
@@ -51,6 +53,9 @@ export default function AddMenuPage() {
       fd.append('price',form.price); fd.append('description',form.description)
       fd.append('status',form.status)
       fd.append('addons',JSON.stringify(addons.filter(a=>a.name.trim())))
+      const u=JSON.parse(localStorage.getItem('bs_user'))
+      fd.append('usrId', u.id)
+      fd.append('prepTime', prepTime)
       if(imgFile) fd.append('image',imgFile)
       const res  = await fetch('http://localhost/bitesync/api/shop/menu.php',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`},body:fd})
       const data = await res.json()
@@ -91,10 +96,16 @@ export default function AddMenuPage() {
                 </select>
               </div>
               <div>
-                <h2 className={styles.cardTitle} style={{marginTop:14}}>Price</h2>
-                <div className={styles.priceWrap}>
-                  <input type="number" value={form.price} onChange={e=>set('price',e.target.value)} placeholder="0" className={styles.inp}/>
-                  <span className={styles.priceBaht}>THB</span>
+                <h2 className={styles.cardTitle} style={{marginTop:14}}>Price & Time</h2>
+                <div style={{display:'flex', gap:8}}>
+                  <div className={styles.priceWrap} style={{flex:1}}>
+                    <input type="number" value={form.price} onChange={e=>set('price',e.target.value)} placeholder="Price" className={styles.inp}/>
+                    <span className={styles.priceBaht}>THB</span>
+                  </div>
+                  <div className={styles.priceWrap} style={{flex:1}}>
+                    <input type="number" value={prepTime} onChange={e=>setPrepTime(e.target.value)} placeholder="Mins" className={styles.inp}/>
+                    <span className={styles.priceBaht}>min</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -102,17 +113,6 @@ export default function AddMenuPage() {
 
             <h2 className={styles.cardTitle} style={{marginTop:14}}>Description</h2>
             <textarea value={form.description} onChange={e=>set('description',e.target.value)} placeholder="Describe your menu..." rows={3} className={`${styles.inp} ${styles.ta}`}/>
-              <h2 className={styles.cardTitle} style={{marginTop:14}}>Cooking Time</h2>
-<div className={styles.priceWrap}>
-  <input
-    type="number"
-    value={form.cookTime}
-    onChange={e=>set('cookTime',e.target.value)}
-    placeholder="0"
-    className={styles.inp}
-  />
-  <span className={styles.priceBaht}>min</span>
-</div>
           </div>
 
           {/* Upload Image */}

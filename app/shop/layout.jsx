@@ -21,15 +21,27 @@ export default function ShopLayout({ children }) {
   const [profileOpen, setProfileOpen] = useState(false)
 
   
-   useEffect(() => {
-  const demoUser = {
-    name: "Demo Restaurant",
-    role: "restaurant"
-  }
+  const [shop, setShop] = useState({ name: 'กำลังโหลด...', id: null, logo: null })
 
-  setUser(demoUser)
-  setChecking(false)
-}, [])
+  useEffect(() => {
+    const savedUser = localStorage.getItem('bs_user')
+    if (savedUser) {
+      const u = JSON.parse(savedUser)
+      setUser(u)
+      // Fetch Shop Info
+      fetch(`http://localhost/bitesync/api/shop/get_shop_info.php?usrId=${u.id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) setShop({ name: d.data.ShopName, id: d.data.ShopId, logo: d.data.ShopLogoPath })
+          else setShop({ name: u.name, id: null, logo: null })
+        })
+        .catch(() => setShop({ name: u.name, id: null, logo: null }))
+    } else {
+      setUser({ name: "ร้านค้า", role: "restaurant" })
+      setShop({ name: "ร้านค้า", id: null, logo: null })
+    }
+    setChecking(false)
+  }, [])
 
   function logout() {
     localStorage.removeItem('bs_token')
@@ -74,10 +86,14 @@ export default function ShopLayout({ children }) {
 
         <div className={styles.sideBottom}>
           <div className={styles.userBtn} onClick={() => setProfileOpen(v => !v)}>
-            <div className={styles.userAvatar}>{(user?.name || 'R')[0].toUpperCase()}</div>
+            {shop.logo ? (
+              <img src={shop.logo} className={styles.userAvatar} style={{objectFit:'cover'}} alt="Logo" />
+            ) : (
+              <div className={styles.userAvatar}>{(user?.name || 'R')[0].toUpperCase()}</div>
+            )}
             <div className={styles.userInfo}>
-              <span className={styles.userName}>{user?.name || 'ร้านค้า'}</span>
-              <span className={styles.userRole}>Restaurant</span>
+              <span className={styles.userName}>{shop.name}</span>
+              <span className={styles.userRole}>{user?.role || 'Restaurant'}</span>
             </div>
             <span className={styles.userChev}>{profileOpen ? '▲' : '▼'}</span>
           </div>
@@ -100,7 +116,11 @@ export default function ShopLayout({ children }) {
             <input placeholder="Search..." className={styles.searchInput}/>
           </div>
           <div className={styles.topRight}>
-            <div className={styles.topAvatar}>{(user?.name||'R')[0].toUpperCase()}</div>
+            {shop.logo ? (
+              <img src={shop.logo} className={styles.topAvatar} style={{objectFit:'cover'}} alt="Logo" />
+            ) : (
+              <div className={styles.topAvatar}>{(user?.name||'R')[0].toUpperCase()}</div>
+            )}
           </div>
         </header>
         <main className={styles.content}>{children}</main>

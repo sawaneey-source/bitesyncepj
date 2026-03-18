@@ -100,11 +100,29 @@
 /* ── Add-ons ── */
 .addonsSection { margin-bottom:20px; }
 .addonsTitle { font-family:var(--fp); font-size:14px; font-weight:700; color:var(--dark); margin:0 0 11px; }
-.addonRow { display:flex; align-items:center; gap:11px; padding:11px 13px; border-radius:var(--r-s); border:1.5px solid var(--gray-light); background:var(--bg); margin-bottom:8px; cursor:pointer; transition:all var(--t); }
-.addonRow:hover { border-color:var(--primary-light); background:var(--primary-pale); }
+.addonRow { 
+  display:flex; align-items:center; justify-content: space-between; gap:11px; padding:12px 16px; 
+  border-radius:var(--r-m); border:1.5px solid var(--gray-light); background:var(--bg); 
+  margin-bottom:10px; transition:all var(--t); 
+}
 .addonRowOn { border-color:var(--primary)!important; background:var(--primary-pale)!important; }
-.addonName   { flex:1; font-size:13.5px; color:var(--text); }
-.addonPrice2 { font-size:13px; font-weight:700; color:var(--primary); }
+
+.addonLeft { display: flex; align-items: center; gap: 12px; flex: 1; cursor: pointer; }
+.check {
+  width: 20px; height: 20px; border: 2px solid var(--gray-mid); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff;
+  transition: all var(--t);
+}
+.checkOn { background: var(--primary); border-color: var(--primary); }
+
+.addonRight { display: flex; align-items: center; gap: 15px; }
+.addonName   { font-size:14px; color:var(--text); font-weight: 500; }
+.addonPrice2 { font-size:14px; font-weight: 700; color:var(--primary); min-width: 50px; text-align: right; }
+
+.addonQty { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 20px; padding: 2px 4px; border: 1px solid var(--gray-light); }
+.aQtyBtn { width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--bg); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+.aQtyBtn:hover { background: var(--primary-pale); color: var(--primary); }
+.aQtyNum { font-size: 13px; font-weight: 800; min-width: 14px; text-align: center; }
 
 /* ── Quantity ── */
 .qtySection { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding:14px 0; border-top:1px solid var(--gray-light); border-bottom:1px solid var(--gray-light); }
@@ -130,3 +148,24 @@
 .cartBarCount { background:var(--accent); color:var(--dark); border-radius:50%; width:26px; height:26px; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .cartBarTxt   { flex:1; font-size:14px; font-weight:700; font-family:var(--fp); }
 .cartBarPrice { font-family:var(--fp); font-size:16px; font-weight:800; }
+.loading, .notFound { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; gap: 20px; color: #666; } .notFound h2 { color: #333; }
+
+/* ── Reviews Section ── */
+.reviewsSection { background: var(--bg); padding: 32px 24px 80px; }
+.reviewsInner { max-width: 1040px; margin: 0 auto; }
+.revSectionTitle { font-family: var(--fp); font-size: 18px; font-weight: 800; color: var(--dark); margin: 0 0 20px; }
+.reviewsList { display: flex; flex-direction: column; gap: 16px; }
+.reviewCard { background: var(--surface); padding: 20px; border-radius: var(--r-l); box-shadow: var(--sh-1); border: 1px solid var(--gray-light); }
+.revHdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.revUser { display: flex; align-items: center; gap: 12px; }
+.revAvatar { width: 40px; height: 40px; background: var(--primary-pale); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; }
+.revName { font-weight: 700; color: var(--dark); font-size: 14.5px; }
+.revDate { font-size: 11px; color: var(--gray-mid); margin-top: 2px; }
+.revStars { display: flex; gap: 3px; font-size: 13px; }
+.starActive { color: #f0c419; }
+.starDim { color: var(--gray-light); }
+.revText { font-size: 14px; color: var(--text); line-height: 1.6; margin: 0 0 10px; }
+.revImgs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.revImg { width: 90px; height: 90px; object-fit: cover; border-radius: var(--r-s); border: 1px solid var(--gray-light); cursor: pointer; transition: transform var(--t); }
+.revImg:hover { transform: scale(1.05); }
+.loading, .notFound { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; gap: 20px; color: #666; } .notFound h2 { color: #333; } .backBtn { padding: 10px 20px; background: #00b14f; color: white; border: none; border-radius: 8px; cursor: pointer; }

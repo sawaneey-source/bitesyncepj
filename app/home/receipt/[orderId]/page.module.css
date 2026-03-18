@@ -1,0 +1,81 @@
+.page { min-height:100vh; background:#f4f7f4; font-family:'Sarabun',sans-serif; }
+/* ── Action Bar ── */
+.actionBar {
+  background: #fff;
+  border-bottom: 1px solid #e8eee8;
+}
+.actionBarInner {
+  max-width: 600px; margin: 0 auto; padding: 12px 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.backBtn {
+  border: 1.5px solid #dde8dd; border-radius: 9px;
+  padding: 6px 14px; background: #fff; font-size: 13.5px;
+  cursor: pointer; font-family: 'Sarabun', sans-serif; font-weight: 700;
+  display: flex; align-items: center; gap: 8px; color: #374137;
+  transition: all 0.2s;
+}
+.backBtn:hover { border-color: #00b14f; color: #00b14f; transform: translateX(-3px); }
+.paidBadge { margin-left:auto; background:#e8f5e9; color:#2a6129; border-radius:18px; padding:5px 12px; font-size:12.5px; font-weight:700; }
+
+.body { max-width:520px; margin:0 auto; padding:24px 20px 40px; }
+.receiptCard { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.1); }
+
+/* Header */
+.rcptHdr { background:linear-gradient(135deg,#1e4d1e,#2a6129); padding:24px; text-align:center; }
+.rcptLogoRow { display:flex; align-items:center; justify-content:center; gap:7px; margin-bottom:10px; }
+.rcptLogoMark { width:26px; height:26px; background:#f0c419; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:13px; }
+.rcptLogoTxt { font-family:'Prompt',sans-serif; font-weight:800; font-size:16px; color:#fff; }
+.rcptLogoTxt em { color:#f0c419; font-style:normal; }
+.rcptTitle { font-family:'Prompt',sans-serif; font-size:20px; font-weight:900; color:#fff; margin:0; }
+
+/* Meta */
+.metaGrid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+.metaBox { padding:14px 18px; border-bottom:1px solid #f0f4f0; border-right:1px solid #f0f4f0; }
+.metaBox:nth-child(even) { border-right:none; }
+.metaLabel { font-size:11px; color:#aaa; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+.metaVal { font-size:13.5px; font-weight:700; color:#1a1f1a; }
+.metaValGreen { color:#2a6129; }
+
+.divider { height:1.5px; background:#f4f7f4; }
+
+/* Info */
+.infoGrid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+.infoBox { padding:14px 18px; border-bottom:1px solid #f0f4f0; border-right:1px solid #f0f4f0; }
+.infoBox:nth-child(even) { border-right:none; }
+.infoBoxFull { grid-column:1/-1; border-right:none; }
+.infoTitle { font-size:11.5px; color:#aaa; font-weight:700; margin-bottom:4px; }
+.infoName  { font-size:14px; font-weight:700; color:#1a1f1a; margin-bottom:2px; }
+.infoSub   { font-size:12.5px; color:#6b7280; }
+
+/* Items */
+.itemsSection { padding:16px 18px; }
+.itemsTitle { font-family:'Prompt',sans-serif; font-size:13.5px; font-weight:700; color:#1a1f1a; margin-bottom:10px; }
+.item { display:flex; align-items:flex-start; gap:8px; padding:10px 0; border-bottom:1px solid #f4f7f4; font-size:13.5px; }
+.itemMain { flex:1; display:flex; flex-direction:column; text-align:left; }
+.itemName  { color:#374137; font-weight:600; }
+.itemAddons { font-size:11px; color:#6b7280; opacity:0.8; margin-top:2px; }
+.itemQty   { color:#aaa; font-size:12px; min-width:30px; text-align:right; }
+.itemPrice { font-weight:700; color:#1a1f1a; min-width:70px; text-align:right; }
+
+/* Summary */
+.summary { padding:0 18px 16px; }
+.summRow { display:flex; justify-content:space-between; font-size:13.5px; color:#374137; padding:5px 0; }
+.summTotal { font-family:'Prompt',sans-serif; font-size:18px; font-weight:900; color:#2a6129; border-top:2px solid #f0f4f0; padding-top:10px; margin-top:4px; }
+
+/* Barcode */
+.barcode { padding:16px 18px 8px; text-align:center; border-top:2px dashed #f0f4f0; }
+.barcodeId { font-size:11px; color:#aaa; margin-top:4px; letter-spacing:2px; }
+
+/* Actions */
+.actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px 18px 20px; }
+.btnTrack { grid-column:1/-1; background:linear-gradient(135deg,#1e4d1e,#2a6129); color:#fff; border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:'Sarabun',sans-serif; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(42,97,41,.2); }
+.btnPrint { background:#fff; color:#374137; border:1.5px solid #dde8dd; border-radius:10px; padding:11px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Sarabun',sans-serif; }
+.btnHome  { background:#f4f7f4; color:#374137; border:1.5px solid #dde8dd; border-radius:10px; padding:11px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Sarabun',sans-serif; }
+
+@media print {
+  .nav, .actions { display:none !important; }
+  .page { background:#fff; }
+  .receiptCard { box-shadow:none; border-radius:0; }
+  .body { padding:0; max-width:100%; }
+}

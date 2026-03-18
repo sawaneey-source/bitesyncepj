@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+import Logo from '@/components/Logo'
 
 export default function CheckoutPage() {
   const router  = useRouter()
@@ -13,6 +14,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState(null)
   const [user, setUser]       = useState(null)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [lastOrder, setLastOrder]       = useState(null)
 
   useEffect(() => {
     setCart(JSON.parse(localStorage.getItem('bs_cart') || '[]'))
@@ -20,11 +22,12 @@ export default function CheckoutPage() {
     setNote(localStorage.getItem('bs_order_note') || '')
     const u = localStorage.getItem('bs_user')
     if (u) setUser(JSON.parse(u))
+    setLastOrder(localStorage.getItem('bs_last_order') || null)
   }, [])
 
   function changeQty(index, delta) {
     const next = [...cart]
-    next[index].qty = Math.max(1, next[index].qty + delta)
+    next[index].qty = Math.max(1, Number(next[index].qty) + delta)
     setCart(next)
     localStorage.setItem('bs_cart', JSON.stringify(next))
   }
@@ -35,9 +38,9 @@ export default function CheckoutPage() {
     localStorage.setItem('bs_cart', JSON.stringify(next))
   }
 
-  const subtotal    = cart.reduce((s, c) => s + c.price * c.qty, 0)
+  const subtotal = (cart || []).reduce((s, c) => s + Math.round((parseFloat(c.price || 0) * Number(c.qty || 0))), 0)
   const deliveryFee = 15
-  const total       = subtotal + deliveryFee
+  const total = Math.round(subtotal + deliveryFee)
 
   async function placeOrder() {
     setLoading(true)
@@ -76,6 +79,41 @@ export default function CheckoutPage() {
         body: JSON.stringify({ orderId, method: 'qr', amount: total })
       })
     } catch {}
+    const history = JSON.parse(localStorage.getItem('bs_history') || '[]')
+    const newOrder = {
+      id: orderId,
+      date: new Date().toLocaleString('th-TH'),
+      items: [...cart],
+      subtotal,
+      deliveryFee,
+      total,
+      // Standard structure
+      customer: {
+        name: user?.name || 'Customer',
+        phone: user?.phone || '08x-xxx-xxxx',
+        address: address || 'No address',
+        lat: 7.0085, lng: 100.4734
+      },
+      shop: {
+        id: cart[0]?.ShopId || cart[0]?.shopId || 1,
+        name: cart[0]?.shopName || 'BiteSync Shop',
+        lat: 7.0042, lng: 100.4651
+      },
+      rider: { 
+        name: 'Aek (BiteSync)', 
+        phone: '096-456-9088', 
+        vehicle: 'Honda PCX', 
+        plate: 'กข-1234',
+        lat: 7.0067, lng: 100.4698
+      },
+      paymentMethod: 'QR Code / PromptPay',
+      status: 'กำลังเตรียมอาหาร',
+      currentStep: 1,
+      estimatedTime: '20-30 min'
+    }
+    history.unshift(newOrder)
+    localStorage.setItem('bs_history', JSON.stringify(history))
+
     localStorage.removeItem('bs_cart')
     localStorage.removeItem('bs_order_address')
     localStorage.removeItem('bs_order_note')
@@ -92,8 +130,7 @@ export default function CheckoutPage() {
             <i className="fa-solid fa-arrow-left" /> กลับ
           </button>
           <div className={styles.logo} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
-            <div className={styles.logoMark}><i className="fa-solid fa-leaf" style={{color: 'white', fontSize: '14px'}} /></div>
-            <span className={styles.logoTxt}>Bite<em>Sync</em></span>
+            <Logo size="small" />
           </div>
           <span className={styles.navTitle} style={{marginRight: 20}}>{step === 1 ? 'Checkout' : 'ชำระเงิน'}</span>
           <div className={styles.navRight}>
@@ -113,6 +150,11 @@ export default function CheckoutPage() {
                     <div className={styles.dropdownItem} onClick={() => router.push('/profile')}>
                       <i className="fa-regular fa-circle-user" /> โปรไฟล์ของฉัน
                     </div>
+                    {lastOrder && (
+                      <div className={styles.dropdownItem} onClick={() => router.push(`/home/track/${lastOrder}`)}>
+                        <i className="fa-solid fa-motorcycle" /> ติดตามออเดอร์
+                      </div>
+                    )}
                     <div className={styles.dropdownItem} onClick={() => router.push('/home')}>
                       <i className="fa-solid fa-utensils" /> สั่งอาหาร
                     </div>
@@ -138,9 +180,9 @@ export default function CheckoutPage() {
       <div className={styles.steps}>
         <div className={`${styles.stepItem} ${step >= 1 ? styles.stepOn : ''}`}>
           <div className={styles.stepCircle}>1</div>
-          <span>ตรวจสอบออเดอร์</span>
+          <span>ตรวจสอบ</span>
         </div>
-        <div className={styles.stepLine}/>
+        <div className={`${styles.stepLine} ${step >= 2 ? styles.stepLineOn : ''}`}/>
         <div className={`${styles.stepItem} ${step >= 2 ? styles.stepOn : ''}`}>
           <div className={styles.stepCircle}>2</div>
           <span>ชำระเงิน</span>
@@ -176,8 +218,10 @@ export default function CheckoutPage() {
                     <img src={item.img} className={styles.orderImg}/>
                     <div className={styles.orderInfo}>
                       <div className={styles.orderName}>{item.name}</div>
-                      {item.addons?.length > 0 && (
-                        <div className={styles.orderAddons}>{item.addons.map(a=>a.name).join(', ')}</div>
+                      {item.addons && item.addons.length > 0 && (
+                        <div className={styles.orderAddons}>
+                          {(item.addons || []).map(a => `${a.name} x${a.qty || 1}`).join(', ')}
+                        </div>
                       )}
                     </div>
                     
@@ -187,7 +231,9 @@ export default function CheckoutPage() {
                       <button className={styles.qtyBtn} onClick={() => changeQty(idx, 1)}>+</button>
                     </div>
 
-                    <div className={styles.orderPrice}>{item.price * item.qty} ฿</div>
+                    <div className={styles.orderPrice}>
+                      {Math.round(parseFloat(item.price) * Number(item.qty)).toLocaleString()} ฿
+                    </div>
                     
                     <button className={styles.removeBtn} onClick={() => removeItem(idx)}>🗑️</button>
                   </div>
@@ -211,14 +257,14 @@ export default function CheckoutPage() {
             <div className={styles.right}>
               <div className={styles.summaryCard}>
                 <h2 className={styles.cardTitle}>สรุปออเดอร์</h2>
-                <div className={styles.summaryRow}><span>ยอดรวม</span><span>{subtotal} ฿</span></div>
-                <div className={styles.summaryRow}><span>ค่าจัดส่ง</span><span>{deliveryFee} ฿</span></div>
+                <div className={styles.summaryRow}><span>ยอดรวม</span><span>{Math.round(subtotal).toLocaleString()} ฿</span></div>
+                <div className={styles.summaryRow}><span>ค่าจัดส่ง</span><span>{deliveryFee.toLocaleString()} ฿</span></div>
                 <div className={styles.divider}/>
                 <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
-                  <span>ทั้งหมด</span><span>{total} ฿</span>
+                  <span>ทั้งหมด</span><span>{Math.round(total).toLocaleString()} ฿</span>
                 </div>
                 <button onClick={placeOrder} disabled={loading} className={styles.payBtn}>
-                  {loading ? '⏳ กำลังดำเนินการ...' : `ยืนยันออเดอร์ — ${total} ฿`}
+                  {loading ? '⏳ กำลังดำเนินการ...' : `ยืนยันออเดอร์ — ${Math.round(total).toLocaleString()} ฿`}
                 </button>
               </div>
             </div>
@@ -230,7 +276,7 @@ export default function CheckoutPage() {
             <div className={styles.paymentCard}>
               <h2 className={styles.payTitle}>Complete Your Payment</h2>
               <div className={styles.orderIdRow}>Order: <strong>{orderId}</strong></div>
-              <div className={styles.totalBig}>{total} ฿</div>
+              <div className={styles.totalBig}>{Math.round(total).toLocaleString()} ฿</div>
 
               {/* QR Code placeholder */}
               <div className={styles.qrWrap}>

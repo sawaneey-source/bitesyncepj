@@ -10,6 +10,7 @@ const ROLES = [
   { value:'rider',      label:'ไรเดอร์',      icon:'fa-motorcycle' },
 ]
 
+
 function strengthScore(pw) {
   let s = 0
   if (pw.length >= 6) s++
@@ -136,6 +137,7 @@ export default function RegisterPage() {
                   value={phone} onChange={e => setPhone(e.target.value)}/>
               </div>
             </div>
+
 
             {/* รหัสผ่าน */}
             <div className={styles.fieldGroup}>

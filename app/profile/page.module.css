@@ -200,6 +200,25 @@
 .loadingPage { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
 .loader { font-size: 40px; animation: pulse 1.5s infinite; }
 
+.historyList { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
+.historyItem { 
+  background: #fdfdfd; border: 1.5px solid #eef2ee; border-radius: var(--r-m); 
+  padding: 24px; transition: all var(--t);
+}
+.historyItem:hover { border-color: var(--primary-light); transform: translateY(-2px); box-shadow: var(--sh-1); }
+.histHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.histShop { font-weight: 800; font-size: 16px; color: var(--dark); font-family: var(--fp); }
+.histDate { font-size: 12px; color: var(--gray-mid); margin-top: 2px; }
+.histPrice { font-weight: 800; color: var(--primary); font-size: 17px; }
+.histItems { font-size: 14px; color: var(--text); opacity: 0.75; margin-bottom: 16px; line-height: 1.5; }
+.histFooter { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #eef2ee; padding-top: 16px; }
+.histStatus { font-size: 13px; font-weight: 700; color: var(--primary); }
+.viewBtn { 
+  background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary-pale); 
+  border-radius: var(--r-l); padding: 7px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all var(--t); 
+}
+.viewBtn:hover { background: var(--primary-pale); border-color: var(--primary-light); }
+
 @media (max-width: 768px) {
   .infoGrid { grid-template-columns: 1fr; }
   .header { padding: 0 24px 24px; flex-direction: column; align-items: center; text-align: center; }

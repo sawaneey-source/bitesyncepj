@@ -25,10 +25,11 @@ export default function MenuPage() {
 
   async function fetchData() {
     try {
+      const u = JSON.parse(localStorage.getItem('bs_user'))
       const tk = localStorage.getItem('bs_token')
       const [rc,rm] = await Promise.all([
-        fetch('http://localhost/bitesync/api/shop/categories.php',{headers:{Authorization:`Bearer ${tk}`}}),
-        fetch('http://localhost/bitesync/api/shop/menu.php',{headers:{Authorization:`Bearer ${tk}`}}),
+        fetch(`http://localhost/bitesync/api/shop/categories.php?usrId=${u.id}`,{headers:{Authorization:`Bearer ${tk}`}}),
+        fetch(`http://localhost/bitesync/api/shop/menu.php?usrId=${u.id}`,{headers:{Authorization:`Bearer ${tk}`}}),
       ])
       const dc=await rc.json(), dm=await rm.json()
       if(dc.success) setCats(['All',...dc.data.map(c=>c.CatName)])
@@ -37,11 +38,16 @@ export default function MenuPage() {
   }
 
   async function del(id) {
-    try { await fetch(`http://localhost/bitesync/api/shop/menu.php?id=${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`}}) } catch {}
-    setMenus(p=>p.filter(m=>m.FodId!==id)); setDelId(null); toast_('ลบเมนูแล้ว','err')
+    try { 
+      const u = JSON.parse(localStorage.getItem('bs_user'))
+      await fetch(`http://localhost/bitesync/api/shop/menu.php?id=${id}&usrId=${u.id}`,{method:'DELETE',headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`}}) 
+    } catch {}
+    setMenus(p=>p.filter(m=>m.id!==id)); setDelId(null); toast_('ลบเมนูแล้ว','err')
   }
 
-  const list = tab==='All' ? menus : menus.filter(m=>m.FodCategory===tab)
+  const list = tab==='All' ? menus : menus.filter(m=>m.category===tab)
+
+  const getImg = (p) => p ? (p.startsWith('http') ? p : `http://localhost/bitesync/public${p}`) : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80'
 
   return (
     <div>
@@ -77,20 +83,23 @@ export default function MenuPage() {
           <span>Add Menu</span>
         </div>
         {list.map(m=>(
-          <div key={m.FodId} className={styles.menuCard}>
+          <div key={m.id} className={styles.menuCard}>
             <div className={styles.imgWrap}>
-              <img src={m.img||m.FodFtpId} alt={m.FodName} className={styles.img}/>
-              <span className={`${styles.sTag} ${m.FodStatus==='available'?styles.sTagOn:styles.sTagOff}`}>
-                {m.FodStatus==='available'?'Available':'Out of stock'}
+              <img src={getImg(m.image)} alt={m.name} className={styles.img}/>
+              <span className={`${styles.sTag} ${m.status==='available'?styles.sTagOn:styles.sTagOff}`}>
+                {m.status==='available'?'Available':'Out of stock'}
               </span>
             </div>
             <div className={styles.body}>
-              <div className={styles.mName}>{m.FodName}</div>
-              <div className={styles.mCat}>{m.FodCategory}</div>
-              <div className={styles.mPrice}>{m.FodPrice} THB</div>
+              <div className={styles.mName}>{m.name}</div>
+              <div className={styles.mCat}>{m.category}</div>
+              <div className={styles.mPrice}>
+                {m.price} THB
+                {m.prepTime > 0 && <span style={{fontSize:'12px', color:'#777', marginLeft:'8px'}}>⏱️ {m.prepTime} นาที</span>}
+              </div>
               <div className={styles.mBtns}>
-                <button onClick={()=>router.push(`/shop/menu/edit/${m.FodId}`)} className={styles.btnEdit}>✏️ Edit</button>
-                <button onClick={()=>setDelId(m.FodId)} className={styles.btnDelSm}>🗑️</button>
+                <button onClick={()=>router.push(`/shop/menu/edit/${m.id}`)} className={styles.btnEdit}>✏️ Edit</button>
+                <button onClick={()=>setDelId(m.id)} className={styles.btnDelSm}>🗑️</button>
               </div>
             </div>
           </div>

@@ -44,6 +44,8 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("sssss",$role,$fullName,$email,$phone,$hash);
 
 if($stmt->execute()){
+    $usrId = $conn->insert_id;
+
     echo json_encode(["success"=>true]);
 }else{
     echo json_encode([

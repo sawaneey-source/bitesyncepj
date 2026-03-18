@@ -1,8 +1,12 @@
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import HeroSection from '@/components/HeroSection'
 import FaqSection from '@/components/FaqSection'
 import styles from './home.module.css'
+import Logo from '@/components/Logo'
 
 const FOOD_PHOTOS = [
   'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&q=80',
@@ -19,6 +23,13 @@ const STATS = [
 ]
 
 export default function HomePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const u = localStorage.getItem('bs_user')
+    if (u) router.replace('/home')
+  }, [router])
+
   return (
     <div>
       <Navbar />
@@ -69,8 +80,7 @@ export default function HomePage() {
         <div className={styles.footerGrid}>
           <div>
             <div className={styles.footerLogo}>
-              <span className={styles.fLogoIcon}>🍃</span>
-              <span className={styles.fLogoTxt}>Bite<span>Sync</span></span>
+              <Logo size="medium" />
             </div>
             <p className={styles.footerDesc}>รับดีลพิเศษในกล่องจดหมาย</p>
             <div className={styles.emailRow}>
