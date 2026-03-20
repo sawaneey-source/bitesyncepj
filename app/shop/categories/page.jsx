@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 
 export default function CategoriesPage() {
@@ -7,8 +8,10 @@ export default function CategoriesPage() {
   const [newName, setNew]   = useState('')
   const [editId, setEditId] = useState(null)
   const [editVal, setEditVal] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [adding, setAdding]   = useState(false)
   const [toast, setToast]   = useState(null)
+  const q = useSearchParams().get('q') || ''
 
   useEffect(() => { load() }, [])
 
@@ -16,18 +19,21 @@ export default function CategoriesPage() {
 
   async function load() {
     try {
+      setLoading(true)
       const u = JSON.parse(localStorage.getItem('bs_user'))
       const res  = await fetch(`http://localhost/bitesync/api/shop/categories.php?usrId=${u.id}`, { headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`} })
       const data = await res.json()
       if (data.success) setCats(data.data)
     } catch {
       toast_('ไม่สามารถโหลดข้อมูลได้', 'err')
+    } finally {
+      setLoading(false)
     }
   }
 
   async function add() {
     if (!newName.trim()) return
-    setLoading(true)
+    setAdding(true)
     try {
       const u = JSON.parse(localStorage.getItem('bs_user'))
       const res  = await fetch(`http://localhost/bitesync/api/shop/categories.php?usrId=${u.id}`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('bs_token')}`},body:JSON.stringify({name:newName.trim()})})
@@ -36,7 +42,7 @@ export default function CategoriesPage() {
     } catch {
       toast_('เพิ่มหมวดหมู่ไม่สำเร็จ', 'err')
     }
-    setNew(''); toast_('เพิ่มหมวดหมู่แล้ว!'); setLoading(false)
+    setNew(''); toast_('เพิ่มหมวดหมู่แล้ว!'); setAdding(false)
   }
 
   async function saveEdit(id) {
@@ -72,6 +78,8 @@ export default function CategoriesPage() {
     setCats(p=>p.filter(c=>c.CatId!==id)); toast_('ลบแล้ว','err')
   }
 
+  if (loading) return <div style={{ minHeight: '80vh' }}></div>
+
   return (
     <div>
       {toast && <div className={`${styles.toast} ${toast.type==='err'?styles.toastErr:styles.toastOk}`}>{toast.type==='err'?'🗑️':'✅'} {toast.msg}</div>}
@@ -90,7 +98,7 @@ export default function CategoriesPage() {
       <div className={styles.card}>
         {cats.length===0?(
           <div className={styles.empty}><span>📂</span><span>ยังไม่มีหมวดหมู่</span></div>
-        ):cats.map(c=>(
+        ):cats.filter(c => c.CatName?.toLowerCase().includes(q.toLowerCase())).map(c=>(
           <div key={c.CatId} className={styles.row}>
             {editId===c.CatId?(
               <>

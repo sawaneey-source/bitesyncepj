@@ -49,7 +49,7 @@ export default function RidersPage() {
   const [selected, setSelected] = useState(null)
   const [toast, setToast] = useState(null)
 
-  useEffect(() => { fetchActiveJobs() }, [])
+  // useEffect(() => { fetchActiveJobs() }, [])
 
   function showToast(msg, type = 'ok') { setToast({ msg, type }); setTimeout(() => setToast(null), 2400) }
 

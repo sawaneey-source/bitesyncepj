@@ -17,10 +17,12 @@
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .priceWrap{position:relative;}
 .priceBaht{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:#6b7280;font-weight:700;}
-.uploadRow{display:flex;align-items:center;gap:9px;}
-.btnFile{border:1.5px solid #dde8dd;border-radius:9px;padding:8px 14px;background:#f6f9f6;cursor:pointer;font-size:13px;font-weight:600;font-family:'Sarabun',sans-serif;}
-.btnUpload{border:1.5px solid #2a6129;border-radius:9px;padding:8px 14px;background:#e8f5e9;cursor:pointer;font-size:13px;font-weight:700;font-family:'Sarabun',sans-serif;color:#2a6129;}
-.uploadHint{font-size:12px;color:#aaa;}
+.uploadRow{display:flex;align-items:center;gap:12px;}
+.btnFile{padding:8px 16px;border-radius:9px;border:1.5px solid #dde8dd;background:#fff;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;}
+.btnRemoveImg { padding:8px 16px; border-radius:9px; border:1.5px solid #ffdde0; background:#fff5f5; color:#e53935; font-size:13.5px; font-weight:700; cursor:pointer; font-family:'Sarabun',sans-serif; transition:0.2s; }
+.btnRemoveImg:hover { background:#ffebee; border-color:#e53935; }
+.uploadHint{font-size:11.5px;color:#bbb;margin-left:auto;}
+.oCust{font-size:13.5px;font-weight:600;color:#374137;margin-bottom:2px;}
 .addonRow{display:flex;align-items:center;gap:7px;margin-bottom:9px;}
 .addonInp{flex:1;}
 .addonPlus{font-size:14px;color:#2a6129;font-weight:700;flex-shrink:0;}
@@ -28,14 +30,33 @@
 .addonBaht{font-size:12.5px;color:#6b7280;font-weight:700;flex-shrink:0;}
 .addonRm{width:28px;height:36px;border-radius:7px;border:1.5px solid #fcc;background:#fff5f5;color:#e53935;cursor:pointer;font-size:12px;flex-shrink:0;}
 .btnAddAddon{width:100%;border:1.5px dashed #b8d8b8;border-radius:9px;padding:8px;background:#f8fdf8;color:#2a6129;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;margin-top:3px;}
-.previewCard{background:#f0f4f0;border-radius:14px;height:175px;cursor:pointer;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;}
+.previewCard{
+  width:100%;height:180px;border-radius:18px;overflow:hidden;position:relative;
+  background:#f6f9f6;border:2px dashed #dde8dd;display:flex;align-items:center;justify-content:center;
+  transition:.2s;
+}
+.previewActive{cursor:pointer;border-style:solid;border-color:#e8f5e9;}
 .previewImg{width:100%;height:100%;object-fit:cover;}
-.previewOver{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.4);color:#fff;font-size:12px;text-align:center;padding:6px;}
+.previewOver{position:absolute;inset:0;background:rgba(0,0,0,0.4);color:#fff;display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s;font-weight:700;font-size:14px;}
+.previewActive:hover .previewOver{opacity:1;}
 .previewEmpty{display:flex;flex-direction:column;align-items:center;gap:7px;color:#bbb;font-size:13px;}
 .previewEmpty span:first-child{font-size:34px;}
 .radio{display:flex;align-items:center;gap:9px;margin-bottom:9px;cursor:pointer;padding:9px 11px;border-radius:9px;border:1.5px solid #dde8dd;background:#f6f9f6;transition:.18s;font-size:13.5px;font-weight:600;color:#374137;}
 .radioOn{border-color:#2a6129!important;background:#e8f5e9!important;color:#2a6129!important;}
-.btnSave{width:100%;background:#2a6129;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14.5px;font-weight:800;cursor:pointer;font-family:'Prompt',sans-serif;box-shadow:0 4px 14px rgba(42,97,41,.28);transition:.18s;}
-.btnSave:hover:not(:disabled){background:#347d32;}
-.btnSave:disabled{opacity:.65;cursor:not-allowed;}
+.btnSave{width:100%;padding:14px;border-radius:12px;border:none;background:#2a6129;color:#fff;font-weight:700;font-size:16px;cursor:pointer;margin-bottom:12px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btnSave:hover{background:#1e461d;transform:translateY(-2px);box-shadow:0 4px 12px rgba(42,97,41,0.25);}
+.btnSave:disabled{background:#ccc;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* Cropper Modal */
+.cropOverlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
+.cropModal { background:#fff; border-radius:18px; width:100%; max-width:600px; display:flex; flex-direction:column; overflow:hidden; }
+.cropHdr { padding:16px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+.cropTitle { font-weight:700; font-size:18px; margin:0; }
+.cropArea { position:relative; width:100%; height:400px; background:#333; }
+.cropCtrls { padding:20px; display:flex; flex-direction:column; gap:16px; }
+.zoomRow { display:flex; align-items:center; gap:12px; }
+.zoomInp { flex:1; accent-color:#2a6129; }
+.cropBtns { display:flex; gap:12px; }
+.btnCropDone { flex:2; padding:12px; background:#2a6129; color:#fff; border:none; border-radius:10px; font-weight:700; cursor:pointer; }
+.btnCropCan { flex:1; padding:12px; background:#f5f5f5; color:#666; border:none; border-radius:10px; font-weight:700; cursor:pointer; }
 .btnBack{width:100%;background:#fff;color:#6b7280;border:1.5px solid #dde8dd;border-radius:12px;padding:11px;font-size:13.5px;cursor:pointer;font-family:'Sarabun',sans-serif;margin-top:0;}

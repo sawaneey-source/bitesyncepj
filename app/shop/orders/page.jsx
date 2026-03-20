@@ -29,7 +29,7 @@ export default function OrdersPage() {
   const [openId, setOpenId] = useState(null)
   const [toast, setToast]   = useState(null)
 
-  useEffect(() => { fetchOrders() }, [])
+  // useEffect(() => { fetchOrders() }, [])
   function toast_(msg,type='ok'){ setToast({msg,type}); setTimeout(()=>setToast(null),2400) }
 
   async function fetchOrders() {
@@ -59,7 +59,9 @@ export default function OrdersPage() {
 
       <div className={styles.hdr}>
         <h1 className={styles.title}>Orders</h1>
-        <button onClick={fetchOrders} className={styles.refreshBtn}>🔄 Refresh</button>
+        <button onClick={fetchOrders} className={styles.refreshBtn}>
+          <i className="fa-solid fa-rotate" /> รีเฟรช
+        </button>
       </div>
 
       <div className={styles.tabs}>

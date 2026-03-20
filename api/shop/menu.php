@@ -60,10 +60,13 @@ if ($method === 'GET') {
     $name = $_POST['name'] ?? '';
     $catName = $_POST['category'] ?? '';
     $price = $_POST['price'] ?? 0;
-    $desc = $_POST['description'] ?? '';
+    $desc = $_POST['description'] ?? null;
+    if ($desc === '' || $desc === 'null') $desc = null;
     $statusText = $_POST['status'] ?? 'available';
     $status = ($statusText === 'available') ? 1 : 0;
-    $prepTime = $_POST['prepTime'] ?? 30; // Added FoodPrepTime
+    $prepTime = $_POST['prepTime'] ?? 30;
+    $id = $_POST['id'] ?? $_GET['id'] ?? null;
+    $removeImage = ($_POST['removeImage'] ?? 'false') === 'true';
 
     // Find CatId from CatName
     $catId = 0;
@@ -89,31 +92,66 @@ if ($method === 'GET') {
 
     $addons = $_POST['addons'] ?? '[]';
 
-    $sql = "INSERT INTO tbl_food (FoodName, CatId, FoodPrice, FoodDetail, FoodStatus, FoodImagePath, ShopId, FoodPrepTime) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)"; // Added FoodPrepTime
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sidsisii", $name, $catId, $price, $desc, $status, $imgPath, $shopId, $prepTime); // Added 'i' for FoodPrepTime
-    
-    if($stmt->execute()){
-        $foodId = $conn->insert_id;
-
-        // Handle Addons
-        $addons_arr = json_decode($addons, true);
-        if (is_array($addons_arr)) {
-            $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, 1)");
-            foreach ($addons_arr as $a) {
-                $aname = $a['name'] ?? '';
-                $aprice = $a['price'] ?? 0;
-                if ($aname) {
-                    $stmt_a->bind_param("isd", $foodId, $aname, $aprice);
-                    $stmt_a->execute();
-                }
-            }
+    if ($id) {
+        $sql = "UPDATE tbl_food SET FoodName=?, CatId=?, FoodPrice=?, FoodDetail=?, FoodStatus=?, FoodPrepTime=?";
+        if ($removeImage) {
+            $sql .= ", FoodImagePath=''";
+        } elseif ($imgPath) {
+            $sql .= ", FoodImagePath=?";
+        }
+        $sql .= " WHERE FoodId=? AND ShopId=?";
+        
+        $stmt = $conn->prepare($sql);
+        if (!$removeImage && $imgPath) {
+            $stmt->bind_param("sidsiisii", $name, $catId, $price, $desc, $status, $prepTime, $imgPath, $id, $shopId);
+        } else {
+            $stmt->bind_param("sidsiiii", $name, $catId, $price, $desc, $status, $prepTime, $id, $shopId);
         }
         
-        echo json_encode(["success"=>true, "message"=>"Menu saved with addons"]);
+        if ($stmt->execute()) {
+            // Update Addons
+            $conn->query("DELETE FROM tbl_addon WHERE FoodId = $id");
+            $addons_arr = json_decode($addons, true);
+            if (is_array($addons_arr)) {
+                $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, 1)");
+                foreach ($addons_arr as $a) {
+                    $aname = $a['name'] ?? '';
+                    $aprice = $a['price'] ?? 0;
+                    if ($aname) {
+                        $stmt_a->bind_param("isd", $id, $aname, $aprice);
+                        $stmt_a->execute();
+                    }
+                }
+            }
+            echo json_encode(["success"=>true, "message"=>"Menu updated"]);
+        } else {
+            echo json_encode(["success"=>false, "message"=>$conn->error]);
+        }
     } else {
-        echo json_encode(["success"=>false, "message"=>$conn->error]);
+        $sql = "INSERT INTO tbl_food (FoodName, CatId, FoodPrice, FoodDetail, FoodStatus, FoodImagePath, ShopId, FoodPrepTime) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sidsisii", $name, $catId, $price, $desc, $status, $imgPath, $shopId, $prepTime);
+        
+        if($stmt->execute()){
+            $foodId = $conn->insert_id;
+            // Handle Addons
+            $addons_arr = json_decode($addons, true);
+            if (is_array($addons_arr)) {
+                $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, 1)");
+                foreach ($addons_arr as $a) {
+                    $aname = $a['name'] ?? '';
+                    $aprice = $a['price'] ?? 0;
+                    if ($aname) {
+                        $stmt_a->bind_param("isd", $foodId, $aname, $aprice);
+                        $stmt_a->execute();
+                    }
+                }
+            }
+            echo json_encode(["success"=>true, "message"=>"Menu saved with addons"]);
+        } else {
+            echo json_encode(["success"=>false, "message"=>$conn->error]);
+        }
     }
 
 } elseif ($method === 'PUT') {
@@ -125,7 +163,8 @@ if ($method === 'GET') {
 
     $name = $in['name'] ?? '';
     $price = $in['price'] ?? 0;
-    $desc = $in['description'] ?? '';
+    $desc = $in['description'] ?? null;
+    if ($desc === '' || $desc === 'null') $desc = null;
     $statusText = $in['status'] ?? 'available';
     $status = ($statusText === 'available') ? 1 : 0;
     $catName = $in['category'] ?? '';

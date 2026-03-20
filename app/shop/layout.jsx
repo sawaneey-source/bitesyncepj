@@ -1,15 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import styles from './layout.module.css'
 
 const NAV = [
-  { href: '/shop', icon: '🏠', label: 'Dashboard' },
-  { href: '/shop/orders', icon: '📋', label: 'Order' },
-  { href: '/shop/categories', icon: '🗂️', label: 'Categories' },
-  { href: '/shop/menu', icon: '🍽️', label: 'Menu' },
-  { href: '/shop/riders',  icon: '🛵', label: 'Rider' },
+  { href: '/shop', icon: '🏠', label: 'ภาพรวม' },
+  { href: '/shop/orders', icon: '📋', label: 'รายการสั่งซื้อ' },
+  { href: '/shop/categories', icon: '🗂️', label: 'หมวดหมู่เมนู' },
+  { href: '/shop/menu', icon: '🍽️', label: 'จัดการเมนู' },
+  { href: '/shop/reviews', icon: '⭐', label: 'การรีวิว' },
+  { href: '/shop/riders',  icon: '🛵', label: 'ไรเดอร์' },
 ]
 
 
@@ -19,6 +20,8 @@ export default function ShopLayout({ children }) {
   const [user, setUser]       = useState(null)
   const [checking, setChecking] = useState(true)
   const [profileOpen, setProfileOpen] = useState(false)
+  const searchParams = useSearchParams()
+  const [searchValue, setSearchValue] = useState(searchParams.get('q') || '')
 
   
   const [shop, setShop] = useState({ name: 'กำลังโหลด...', id: null, logo: null })
@@ -42,6 +45,24 @@ export default function ShopLayout({ children }) {
     }
     setChecking(false)
   }, [])
+
+  useEffect(() => {
+    const s = searchParams.get('q') || ''
+    if (s !== searchValue) setSearchValue(s)
+  }, [searchParams])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const current = searchParams.get('q') || ''
+      if (searchValue !== current) {
+        const params = new URLSearchParams(searchParams.toString())
+        if (searchValue) params.set('q', searchValue)
+        else params.delete('q')
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+      }
+    }, 400)
+    return () => clearTimeout(timeout)
+  }, [searchValue, pathname, router, searchParams])
 
   function logout() {
     localStorage.removeItem('bs_token')
@@ -67,13 +88,13 @@ export default function ShopLayout({ children }) {
             <span className={styles.logoText}>Bite<em>Sync</em></span>
           </div>
           <div className={styles.storeTag}>
-            <span>🏪</span><span>Store</span>
+            <span>🏪</span><span>ร้านค้า</span>
           </div>
         </div>
 
         <nav className={styles.nav}>
           {NAV.map(n => {
-            const active = pathname.startsWith(n.href)
+            const active = n.href === '/shop' ? pathname === '/shop' : pathname.startsWith(n.href)
             return (
               <Link key={n.href} href={n.href} className={`${styles.navLink} ${active ? styles.navActive : ''}`}>
                 <span className={styles.navIcon}>{n.icon}</span>
@@ -108,22 +129,18 @@ export default function ShopLayout({ children }) {
 
       <div className={styles.main}>
         <header className={styles.topbar}>
-          <select className={styles.catSelect}>
-            <option>All Categories</option>
-          </select>
           <div className={styles.searchBox}>
             <span>🔍</span>
-            <input placeholder="Search..." className={styles.searchInput}/>
+            <input 
+              placeholder="ค้นหา..." 
+              className={styles.searchInput}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+            />
           </div>
-          <div className={styles.topRight}>
-            {shop.logo ? (
-              <img src={shop.logo} className={styles.topAvatar} style={{objectFit:'cover'}} alt="Logo" />
-            ) : (
-              <div className={styles.topAvatar}>{(user?.name||'R')[0].toUpperCase()}</div>
-            )}
-          </div>
+
         </header>
-        <main className={styles.content}>{children}</main>
+        <main key={pathname} className={styles.content}>{children}</main>
       </div>
     </div>
   )

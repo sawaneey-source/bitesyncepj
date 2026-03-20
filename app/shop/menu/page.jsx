@@ -1,23 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 
-const MOCK = [
-  { FodId:1, FodName:'White Cherry',  FodPrice:80,  FodCategory:'Cake',    FodStatus:'available', img:'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=300&q=80' },
-  { FodId:2, FodName:'Chip Cookies',  FodPrice:65,  FodCategory:'Cake',    FodStatus:'available', img:'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=300&q=80' },
-  { FodId:3, FodName:'Coconut Flan',  FodPrice:90,  FodCategory:'Toast',   FodStatus:'available', img:'https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=300&q=80' },
-  { FodId:4, FodName:'Lava Flan',     FodPrice:90,  FodCategory:'Cake',    FodStatus:'available', img:'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=300&q=80' },
-  { FodId:5, FodName:'Banana Cook',   FodPrice:65,  FodCategory:'Toast',   FodStatus:'out_of_stock', img:'https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?w=300&q=80' },
-]
 
 export default function MenuPage() {
   const router = useRouter()
-  const [menus, setMenus] = useState(MOCK)
+  const [menus, setMenus] = useState([])
+  const [loading, setLoading] = useState(true)
   const [cats, setCats]   = useState(['All','Cake','Ice Cream','Waffles','Toast','Drinks'])
   const [tab, setTab]     = useState('All')
   const [delId, setDelId] = useState(null)
   const [toast, setToast] = useState(null)
+  const q = useSearchParams().get('q') || ''
 
   useEffect(() => { fetchData() }, [])
 
@@ -25,6 +20,7 @@ export default function MenuPage() {
 
   async function fetchData() {
     try {
+      setLoading(true)
       const u = JSON.parse(localStorage.getItem('bs_user'))
       const tk = localStorage.getItem('bs_token')
       const [rc,rm] = await Promise.all([
@@ -34,7 +30,9 @@ export default function MenuPage() {
       const dc=await rc.json(), dm=await rm.json()
       if(dc.success) setCats(['All',...dc.data.map(c=>c.CatName)])
       if(dm.success) setMenus(dm.data)
-    } catch {}
+    } catch {} finally {
+      setLoading(false)
+    }
   }
 
   async function del(id) {
@@ -45,9 +43,15 @@ export default function MenuPage() {
     setMenus(p=>p.filter(m=>m.id!==id)); setDelId(null); toast_('ลบเมนูแล้ว','err')
   }
 
-  const list = tab==='All' ? menus : menus.filter(m=>m.category===tab)
+  let list = tab==='All' ? menus : menus.filter(m=>m.category===tab)
+  if (q) {
+    const lowQ = q.toLowerCase()
+    list = list.filter(m => m.name?.toLowerCase().includes(lowQ))
+  }
 
   const getImg = (p) => p ? (p.startsWith('http') ? p : `http://localhost/bitesync/public${p}`) : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80'
+
+  if (loading) return <div style={{ minHeight: '80vh' }}></div>
 
   return (
     <div>
@@ -69,7 +73,6 @@ export default function MenuPage() {
 
       <div className={styles.hdr}>
         <h1 className={styles.title}>Menu</h1>
-        <button onClick={()=>router.push('/shop/menu/add')} className={styles.addBtn}>+ Add New Menu</button>
       </div>
 
       <div className={styles.tabs}>

@@ -3,7 +3,13 @@
 @keyframes si{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
 .hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
 .title{font-family:'Prompt',sans-serif;font-size:22px;font-weight:800;color:#1a1f1a;margin:0;}
-.refreshBtn{border:1.5px solid #dde8dd;border-radius:9px;padding:7px 14px;background:#fff;font-size:13px;cursor:pointer;font-family:'Sarabun',sans-serif;}
+.refreshBtn{
+  display:flex;align-items:center;gap:8px;
+  background:#fff;border:1.5px solid #dde8dd;border-radius:30px;
+  padding:8px 20px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;
+  font-family:'Sarabun',sans-serif;
+}
+.refreshBtn:hover{border-color:#2a6129;color:#2a6129;background:#f0f4f0;}
 .tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
 .tab{padding:5px 13px;border-radius:18px;border:1.5px solid #dde8dd;background:#fff;color:#374137;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif;transition:.18s;display:flex;align-items:center;gap:5px;}
 .tab:hover{border-color:#2a6129;color:#2a6129;}

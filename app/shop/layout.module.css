@@ -58,4 +58,9 @@
 .cartWrap  { position:relative; cursor:pointer; font-size:20px; }
 .cartDot   { position:absolute; top:-4px; right:-5px; background:#e53935; color:#fff; border-radius:50%; width:15px; height:15px; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; }
 .topAvatar { width:30px; height:30px; border-radius:50%; background:#f0c419; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#1a1f1a; cursor:pointer; }
-.content   { flex:1; padding:26px 26px; overflow-y:auto; }
+.content   { flex:1; padding:26px 26px; overflow-y:auto; animation: fadeIn 0.4s ease-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

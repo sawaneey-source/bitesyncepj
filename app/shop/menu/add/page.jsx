@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Cropper from 'react-easy-crop'
+import { getCroppedImg } from '../cropHelper'
 import styles from './page.module.css'
 
 export default function AddMenuPage() {
@@ -11,10 +13,18 @@ export default function AddMenuPage() {
   const [cats, setCats]     = useState([])
   const [preview, setPreview] = useState(null)
   const [imgFile, setImgFile] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving]   = useState(false)
   const [prepTime, setPrepTime]   = useState(30)
   const [noCats, setNoCats]   = useState(false)
   const [toast, setToast]     = useState(null)
+  const [originalImg, setOriginalImg] = useState(null)
+  
+  // Cropper State
+  const [imageToCrop, setImageToCrop] = useState(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
 
   useEffect(() => { fetchCats() }, [])
 
@@ -29,12 +39,44 @@ export default function AddMenuPage() {
       else setNoCats(true)
     } catch {
       toast_('ไม่สามารถโหลดข้อมูลหมวดหมู่ได้', 'err')
+    } finally {
+      setLoading(false)
     }
   }
 
   function onImg(e) {
     const f=e.target.files?.[0]; if(!f) return
-    setImgFile(f); setPreview(URL.createObjectURL(f))
+    const url = URL.createObjectURL(f)
+    setOriginalImg(url)
+    setImageToCrop(url)
+  }
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels)
+  }
+
+  const confirmCrop = async () => {
+    if (!croppedAreaPixels) return
+    try {
+      const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels)
+      const croppedUrl = URL.createObjectURL(croppedBlob)
+      setPreview(croppedUrl)
+      
+      // Convert Blob to File to keep it compatible with FormData
+      const file = new File([croppedBlob], 'menu_item.jpg', { type: 'image/jpeg' })
+      setImgFile(file)
+      setImageToCrop(null)
+    } catch (e) {
+      console.error(e)
+      toast_(`เกิดข้อผิดพลาด: ${e.message || 'ไม่สามารถครอบรูปได้'}`, 'err')
+    }
+  }
+
+  const removeImg = () => {
+    setImgFile(null)
+    setPreview(null)
+    setOriginalImg(null)
+    if (fileRef.current) fileRef.current.value = ''
   }
 
   const addAddon    = ()           => setAddons(p=>[...p,{name:'',price:''}])
@@ -46,7 +88,7 @@ export default function AddMenuPage() {
     if(!form.name.trim())         return toast_('กรุณากรอกชื่อเมนู','err')
     if(!form.category)            return toast_('กรุณาเลือกหมวดหมู่','err')
     if(!form.price||isNaN(+form.price)) return toast_('กรุณากรอกราคา','err')
-    setLoading(true)
+    setSaving(true)
     try {
       const fd=new FormData()
       fd.append('name',form.name.trim()); fd.append('category',form.category)
@@ -62,8 +104,10 @@ export default function AddMenuPage() {
       if(data.success){ toast_('เพิ่มเมนูสำเร็จ!'); setTimeout(()=>router.push('/shop/menu'),800) }
       else toast_(data.message||'เกิดข้อผิดพลาด','err')
     } catch { toast_('เกิดข้อผิดพลาด','err') }
-    setLoading(false)
+    setSaving(false)
   }
+
+  if (loading) return <div style={{ minHeight: '80vh' }}></div>
 
   return (
     <div>
@@ -120,7 +164,7 @@ export default function AddMenuPage() {
             <h2 className={styles.cardTitle}>Upload Image</h2>
             <div className={styles.uploadRow}>
               <button onClick={()=>fileRef.current?.click()} className={styles.btnFile}>📁 Choose File</button>
-              <button className={styles.btnUpload}>⬆️ Upload</button>
+              {preview && <button onClick={removeImg} className={styles.btnRemoveImg}>🗑️ Remove</button>}
               <span className={styles.uploadHint}>MAX 5 MB</span>
             </div>
             <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={onImg}/>
@@ -144,10 +188,11 @@ export default function AddMenuPage() {
 
         <div className={styles.right}>
           {/* Preview */}
-          <div className={styles.previewCard} onClick={()=>fileRef.current?.click()}>
+          <div className={`${styles.previewCard} ${preview ? styles.previewActive : ''}`} 
+               onClick={preview ? () => setImageToCrop(originalImg || preview) : null}>
             {preview
-              ? <><img src={preview} className={styles.previewImg}/><div className={styles.previewOver}>Click to change</div></>
-              : <div className={styles.previewEmpty}><span>🖼️</span><span>Click to upload</span></div>
+              ? <><img src={preview} className={styles.previewImg}/><div className={styles.previewOver}>✎ แก้ไขรูปภาพ</div></>
+              : <div className={styles.previewEmpty}><span>🖼️</span><span>ยังไม่มีรูปภาพ</span></div>
             }
           </div>
 
@@ -162,12 +207,54 @@ export default function AddMenuPage() {
             ))}
           </div>
 
-          <button onClick={save} disabled={loading||noCats} className={styles.btnSave}>
-            {loading?'⏳ Saving...':'Save Menu'}
+          <button onClick={save} disabled={saving||noCats} className={styles.btnSave}>
+            {saving?'⏳ Saving...':'Save Menu'}
           </button>
           <button onClick={()=>router.back()} className={styles.btnBack}>Cancel</button>
         </div>
       </div>
+
+      {/* Cropper Modal */}
+      {imageToCrop && (
+        <div className={styles.cropOverlay}>
+          <div className={styles.cropModal}>
+            <div className={styles.cropHdr}>
+              <h3 className={styles.cropTitle}>ปรับแต่งรูปภาพ</h3>
+              <button onClick={() => setImageToCrop(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer'}}>✕</button>
+            </div>
+            <div className={styles.cropArea}>
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={4 / 3}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+            <div className={styles.cropCtrls}>
+              <div className={styles.zoomRow}>
+                <span>ซูม</span>
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  aria-labelledby="Zoom"
+                  onChange={(e) => setZoom(e.target.value)}
+                  className={styles.zoomInp}
+                />
+              </div>
+              <div className={styles.cropBtns}>
+                <button onClick={() => setImageToCrop(null)} className={styles.btnCropCan}>ยกเลิก</button>
+                <button onClick={confirmCrop} className={styles.btnCropDone}>ตกลง (Crop)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
