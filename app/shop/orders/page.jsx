@@ -2,63 +2,85 @@
 import { useState, useEffect } from 'react'
 import styles from './page.module.css'
 
-const TABS = ['All','Pending','Preparing','Ready','Delivering','Completed','Cancelled']
+const TABS = ['ทั้งหมด','รอดำเนินการ','กำลังเตรียม','เสร็จแล้ว','กำลังส่ง','สำเร็จ','ยกเลิก']
+
+// Map Thai Tab to internal Status for logic
+const TAB_MAP = {
+  'ทั้งหมด': 'All',
+  'รอดำเนินการ': 'Pending',
+  'กำลังเตรียม': 'Preparing',
+  'เสร็จแล้ว': 'Ready',
+  'กำลังส่ง': 'Delivering',
+  'สำเร็จ': 'Completed',
+  'ยกเลิก': 'Cancelled'
+}
+
 const SS = {
-  'Pending':    {bg:'#fff9c4',color:'#856404',dot:'#f0c419'},
-  'Preparing':  {bg:'#fff3e0',color:'#e65100',dot:'#ff6d00'},
-  'Ready':      {bg:'#e8f5e9',color:'#2a6129',dot:'#4caf50'},
-  'Delivering': {bg:'#e3f2fd',color:'#1565c0',dot:'#1e88e5'},
-  'Completed':  {bg:'#ede7f6',color:'#6a1b9a',dot:'#9c27b0'},
-  'Cancelled':  {bg:'#fce4ec',color:'#b71c1c',dot:'#e53935'},
+  'Pending':    {bg:'#fff9c4',color:'#856404',dot:'#f0c419', lbl: 'รอดำเนินการ'},
+  'Preparing':  {bg:'#fff3e0',color:'#e65100',dot:'#ff6d00', lbl: 'กำลังเตรียม'},
+  'Ready':      {bg:'#e8f5e9',color:'#2a6129',dot:'#4caf50', lbl: 'ทำเสร็จแล้ว'},
+  'Delivering': {bg:'#e3f2fd',color:'#1565c0',dot:'#1e88e5', lbl: 'กำลังส่ง'},
+  'Completed':  {bg:'#ede7f6',color:'#6a1b9a',dot:'#9c27b0', lbl: 'สำเร็จแล้ว'},
+  'Cancelled':  {bg:'#fce4ec',color:'#b71c1c',dot:'#e53935', lbl: 'ยกเลิกแล้ว'},
 }
+
 const NEXT = {
-  'Pending':    {lbl:'Confirm Order',  next:'Preparing',  color:'#2a6129'},
-  'Preparing':  {lbl:'Mark Ready',     next:'Ready',      color:'#1565c0'},
-  'Ready':      {lbl:'Hand to Rider',  next:'Delivering', color:'#e65100'},
-  'Delivering': {lbl:'Mark Delivered', next:'Completed',  color:'#6a1b9a'},
+  'Pending':    {lbl:'ยืนยันออเดอร์',  next:'Preparing',  color:'#2a6129'},
+  'Preparing':  {lbl:'เตรียมเสร็จแล้ว (ค้นหาไรเดอร์)', next:'Ready', color:'#1565c0'},
+  // Note: Ready -> Delivering and Delivering -> Completed are now handled strictly by the Rider app.
 }
-const MOCK = [
-  {OdrId:'#1025',customer:'สมชาย',time:'5 min ago',status:'Pending',   total:145,items:'1x ส้มตำ, 2x ข้าวเหนียว',address:'123 ถ.กาญจนวนิช',phone:'081-234-5678',img:'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=100&q=70'},
-  {OdrId:'#1026',customer:'สมศรี', time:'12 min ago',status:'Preparing',total:280,items:'2x เค้กช็อก, 1x ชาไทย',  address:'56/2 ถ.เพชรเกษม',  phone:'082-345-6789',img:'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=100&q=70'},
-  {OdrId:'#1027',customer:'สมหมาย',time:'1 hr ago', status:'Completed', total:95, items:'1x วาฟเฟิล, 1x กาแฟ',    address:'8 ม.5 ต.คลองหอยโข่ง',phone:'083-456-7890',img:'https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=100&q=70'},
-]
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState(MOCK)
-  const [tab, setTab]       = useState('All')
+  const [orders, setOrders] = useState([])
+  const [tab, setTab]       = useState('ทั้งหมด')
   const [openId, setOpenId] = useState(null)
   const [toast, setToast]   = useState(null)
 
-  // useEffect(() => { fetchOrders() }, [])
+  useEffect(() => { 
+    fetchOrders()
+    const interval = setInterval(fetchOrders, 5000)
+    return () => clearInterval(interval)
+  }, [])
   function toast_(msg,type='ok'){ setToast({msg,type}); setTimeout(()=>setToast(null),2400) }
 
   async function fetchOrders() {
     try {
-      const res  = await fetch('http://localhost/bitesync/api/shop/orders.php',{headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`}})
+      const user = JSON.parse(localStorage.getItem('bs_user') || '{}')
+      const res  = await fetch(`http://localhost/bitesync/api/shop/orders.php?usrId=${user.id || 1}`,{headers:{Authorization:`Bearer ${localStorage.getItem('bs_token')}`}})
       const data = await res.json()
       if(data.success) setOrders(data.data)
-    } catch {}
+    } catch (e) {
+      console.error("Fetch orders failed:", e);
+    }
   }
 
   async function upStatus(id,next) {
-    try { await fetch(`http://localhost/bitesync/api/shop/orders.php?id=${id}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('bs_token')}`},body:JSON.stringify({status:next})}) } catch {}
-    setOrders(p=>p.map(o=>o.OdrId===id?{...o,status:next}:o)); toast_(`Updated to "${next}"`)
+    try { await fetch(`http://localhost/bitesync/api/shop/orders.php?id=${encodeURIComponent(id)}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('bs_token')}`},body:JSON.stringify({status:next})}) } catch {}
+    setOrders(p=>p.map(o=>o.OdrId===id?{...o,status:next}:o)); 
+    toast_(next === 'Cancelled' ? 'ยกเลิกออเดอร์เรียบร้อยแล้ว' : `อัปเดตเป็น "${SS[next]?.lbl || next}"`)
+    window.dispatchEvent(new Event('orderUpdate'))
   }
 
   async function cancel(id) {
-    if(!confirm('Cancel this order?')) return
-    setOrders(p=>p.map(o=>o.OdrId===id?{...o,status:'Cancelled'}:o)); toast_('Order cancelled','err')
+    if(!confirm('คุณต้องการยกเลิกออเดอร์นี้ใช่หรือไม่?')) return
+    await upStatus(id, 'Cancelled')
   }
 
-  const counts  = TABS.reduce((a,t)=>{a[t]=t==='All'?orders.length:orders.filter(o=>o.status===t).length;return a},{})
-  const filtered= tab==='All'?orders:orders.filter(o=>o.status===tab)
+  const currentStatusTab = TAB_MAP[tab] || 'All'
+  const counts  = TABS.reduce((a,t)=>{
+    const s = TAB_MAP[t]
+    a[t] = s === 'All' ? orders.length : orders.filter(o=>o.status===s).length;
+    return a
+  },{})
+
+  const filtered = currentStatusTab === 'All' ? orders : orders.filter(o=>o.status === currentStatusTab)
 
   return (
     <div>
       {toast && <div className={`${styles.toast} ${toast.type==='err'?styles.toastErr:styles.toastOk}`}>{toast.type==='err'?'❌':'✅'} {toast.msg}</div>}
 
       <div className={styles.hdr}>
-        <h1 className={styles.title}>Orders</h1>
+        <h1 className={styles.title}>รายการสั่งซื้อข้อมูล</h1>
         <button onClick={fetchOrders} className={styles.refreshBtn}>
           <i className="fa-solid fa-rotate" /> รีเฟรช
         </button>
@@ -75,9 +97,9 @@ export default function OrdersPage() {
 
       <div className={styles.list}>
         {filtered.length===0?(
-          <div className={styles.empty}><span>📭</span><span>No orders here</span></div>
+          <div className={styles.empty}><span>📭</span><span>ยังไม่มีรายการในหมวดนี้</span></div>
         ):filtered.map(o=>{
-          const ss=SS[o.status]||{bg:'#f4f6f4',color:'#6b7280',dot:'#aaa'}
+          const ss=SS[o.status]||{bg:'#f4f6f4',color:'#6b7280',dot:'#aaa', lbl: o.status}
           const nx=NEXT[o.status]
           const open=openId===o.OdrId
           return (
@@ -89,27 +111,41 @@ export default function OrdersPage() {
                     <span className={styles.ordId}>{o.OdrId}</span>
                     <span className={styles.sBadge} style={{background:ss.bg,color:ss.color}}>
                       <span className={styles.sDot} style={{background:ss.dot}}/>
-                      {o.status}
+                      {ss.lbl}
                     </span>
+                    {o.RiderId && (o.status === 'Ready' || o.status === 'Delivering') && (
+                      <span className={styles.rBadge} style={{background:'#e3f2fd', color:'#1565c0', fontSize:'11px', padding:'3px 8px', borderRadius:'12px', marginLeft:'6px', fontWeight:'600'}}>
+                        🛵 {o.riderName || 'ไรเดอร์'}{o.status==='Ready' ? ' (มารับ)' : ''}
+                      </span>
+                    )}
                     <span className={styles.oTime}>{o.time}</span>
                   </div>
                   <div className={styles.oCust}>👤 {o.customer}</div>
                   <div className={styles.oItems}>{o.items}</div>
                 </div>
                 <div className={styles.cardRight}>
-                  <div className={styles.oTotal}>{o.total} THB</div>
+                  <div className={styles.oTotal}>{o.total} บาท</div>
                   <div className={styles.oToggle}>{open?'▲':'▼'}</div>
                 </div>
               </div>
               {open&&(
                 <div className={styles.detail}>
                   <div className={styles.dGrid}>
-                    <div><div className={styles.dLbl}>📍 Address</div><div className={styles.dVal}>{o.address}</div></div>
-                    <div><div className={styles.dLbl}>📱 Phone</div><div className={styles.dVal}>{o.phone}</div></div>
+                    <div><div className={styles.dLbl}>📍 ที่อยู่จัดส่ง</div><div className={styles.dVal}>{o.address}</div></div>
+                    <div><div className={styles.dLbl}>📱 เบอร์โทรศัพท์</div><div className={styles.dVal}>{o.phone}</div></div>
+                    {o.RiderId && (
+                      <div style={{gridColumn:'1/-1', borderTop:'1px solid #eee', paddingTop:'10px'}}>
+                        <div className={styles.dLbl}>🛵 ข้อมูลไรเดอร์ที่รับงาน</div>
+                        <div className={styles.dVal} style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                          <span>{o.riderName || 'Rider'}</span>
+                          {o.riderPhone && <a href={`tel:${o.riderPhone}`} style={{color:'#1e88e5', textDecoration:'none', fontWeight:'600'}}>📞 โทรหาไรเดอร์</a>}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className={styles.actRow}>
                     {o.status!=='Completed'&&o.status!=='Cancelled'&&(
-                      <button onClick={()=>cancel(o.OdrId)} className={styles.btnCancel}>❌ Cancel</button>
+                      <button onClick={()=>cancel(o.OdrId)} className={styles.btnCancel}>❌ ยกเลิกออเดอร์</button>
                     )}
                     {nx&&<button onClick={()=>upStatus(o.OdrId,nx.next)} className={styles.btnNext} style={{background:nx.color}}>✅ {nx.lbl}</button>}
                   </div>

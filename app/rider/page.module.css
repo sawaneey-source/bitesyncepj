@@ -1,0 +1,46 @@
+.title { font-family:'Prompt',sans-serif; font-size:22px; font-weight:800; color:#1a1f1a; margin:0 0 18px; }
+.secTitle { font-family:'Prompt',sans-serif; font-size:15px; font-weight:700; color:#374137; margin:22px 0 12px; }
+
+/* Online card */
+.onlineCard { background:#fff; border-radius:16px; padding:20px 22px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 10px rgba(0,0,0,.07); margin-bottom:14px; border:2px solid #eaeeea; transition:.3s; }
+.onlineCardOn { border-color:#4caf50; background:#f1fff1; }
+.onlineLeft { display:flex; align-items:center; gap:14px; }
+.onlineCircle { width:52px; height:52px; border-radius:50%; background:#f4f7f4; display:flex; align-items:center; justify-content:center; transition:.3s; }
+.onlineCircleOn { background:#4caf50; box-shadow:0 0 0 6px rgba(76,175,80,.15); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 6px rgba(76,175,80,.15)} 50%{box-shadow:0 0 0 12px rgba(76,175,80,.05)} }
+.onlineIcon { font-size:24px; }
+.onlineStatus { font-family:'Prompt',sans-serif; font-size:16px; font-weight:800; color:#1a1f1a; margin-bottom:2px; }
+.onlineSub { font-size:13px; color:#6b7280; }
+
+/* Toggle switch */
+.toggleSwitch { position:relative; display:inline-block; width:52px; height:28px; flex-shrink:0; }
+.toggleInput { opacity:0; width:0; height:0; }
+.toggleSlider { position:absolute; inset:0; background:#dde8dd; border-radius:28px; cursor:pointer; transition:.3s; }
+.toggleSlider::before { content:''; position:absolute; width:22px; height:22px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.3s; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+.toggleInput:checked + .toggleSlider { background:#4caf50; }
+.toggleInput:checked + .toggleSlider::before { transform:translateX(24px); }
+
+/* Active alert */
+.activeAlert { background:#fff3e0; border:1.5px solid #ff6d00; border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; margin-bottom:4px; transition:.18s; }
+.activeAlert:hover { background:#ffe0b2; }
+.activeAlertIcon { font-size:24px; flex-shrink:0; }
+.activeAlertInfo { flex:1; }
+.activeAlertTitle { font-weight:800; font-size:14px; color:#e65100; margin-bottom:2px; }
+.activeAlertSub { font-size:12.5px; color:#6b7280; }
+.activeAlertArrow { font-size:18px; color:#e65100; font-weight:700; }
+
+/* Stats */
+.statsGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.statCard { background:#fff; border-radius:14px; padding:16px 14px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.statIcon { font-size:24px; margin-bottom:6px; }
+.statVal  { font-family:'Prompt',sans-serif; font-size:22px; font-weight:900; line-height:1; margin-bottom:4px; }
+.statLbl  { font-size:12px; color:#6b7280; }
+
+/* Quick actions */
+.quickGrid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.quickCard { border-radius:14px; padding:18px 16px; cursor:pointer; transition:transform .2s, box-shadow .2s; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.quickCard:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.1); }
+.quickIconWrap { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
+.quickIcon  { font-size:20px; }
+.quickLabel { font-family:'Prompt',sans-serif; font-size:14px; font-weight:800; color:#1a1f1a; margin-bottom:2px; }
+.quickSub   { font-size:12px; color:#6b7280; }

@@ -42,6 +42,23 @@ export default function MenuPage() {
     } catch {}
     setMenus(p=>p.filter(m=>m.id!==id)); setDelId(null); toast_('ลบเมนูแล้ว','err')
   }
+  
+  async function toggleStatus(id, currentStatus) {
+    const nextStatus = currentStatus === 'available' ? 'out_of_stock' : 'available'
+    try {
+      const u = JSON.parse(localStorage.getItem('bs_user'))
+      const res = await fetch(`http://localhost/bitesync/api/shop/menu.php?id=${id}&usrId=${u.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('bs_token')}` },
+        body: JSON.stringify({ status: nextStatus })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMenus(p => p.map(m => m.id === id ? { ...m, status: nextStatus } : m))
+        toast_(nextStatus === 'available' ? 'เปิดการขายแล้ว' : 'ปิดการขายแล้ว')
+      }
+    } catch {}
+  }
 
   let list = tab==='All' ? menus : menus.filter(m=>m.category===tab)
   if (q) {
@@ -89,7 +106,10 @@ export default function MenuPage() {
           <div key={m.id} className={styles.menuCard}>
             <div className={styles.imgWrap}>
               <img src={getImg(m.image)} alt={m.name} className={styles.img}/>
-              <span className={`${styles.sTag} ${m.status==='available'?styles.sTagOn:styles.sTagOff}`}>
+              <span 
+                className={`${styles.sTag} ${m.status==='available'?styles.sTagOn:styles.sTagOff} ${styles.sTagClick}`}
+                onClick={(e) => { e.stopPropagation(); toggleStatus(m.id, m.status); }}
+              >
                 {m.status==='available'?'Available':'Out of stock'}
               </span>
             </div>

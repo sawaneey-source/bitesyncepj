@@ -155,11 +155,23 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'PUT') {
-    // For simplicity with image uploads, some people use POST for updates. 
-    // But let's handle JSON PUT for now. If they need image upload on edit, we'd use POST.
     $in = json_decode(file_get_contents("php://input"), true);
     $id = $_GET['id'] ?? $in['id'] ?? null;
     if(!$id) exit(json_encode(["success"=>false, "message"=>"ID required"]));
+
+    // Check if it's a "quick toggle" (only status provided)
+    if (isset($in['status']) && count($in) === 1) {
+        $statusText = $in['status'];
+        $status = ($statusText === 'available') ? 1 : 0;
+        $stmt = $conn->prepare("UPDATE tbl_food SET FoodStatus=? WHERE FoodId=? AND ShopId=?");
+        $stmt->bind_param("iii", $status, $id, $shopId);
+        if($stmt->execute()) {
+            echo json_encode(["success"=>true, "message"=>"Status updated"]);
+        } else {
+            echo json_encode(["success"=>false, "message"=>$conn->error]);
+        }
+        exit();
+    }
 
     $name = $in['name'] ?? '';
     $price = $in['price'] ?? 0;
@@ -168,10 +180,9 @@ if ($method === 'GET') {
     $statusText = $in['status'] ?? 'available';
     $status = ($statusText === 'available') ? 1 : 0;
     $catName = $in['category'] ?? '';
-    $prepTime = $in['prepTime'] ?? 30; // Added FoodPrepTime
+    $prepTime = $in['prepTime'] ?? 30;
     $addons = $in['addons'] ?? [];
 
-    // Find CatId
     $catId = 0;
     if($catName) {
         $cs = $conn->prepare("SELECT CatId FROM tbl_menu_category WHERE CatName = ? LIMIT 1");
@@ -181,12 +192,11 @@ if ($method === 'GET') {
         if($r) $catId = $r['CatId'];
     }
 
-    $sql = "UPDATE tbl_food SET FoodName=?, CatId=?, FoodPrice=?, FoodDetail=?, FoodStatus=?, FoodPrepTime=? WHERE FoodId=? AND ShopId=?"; // Added FoodPrepTime
+    $sql = "UPDATE tbl_food SET FoodName=?, CatId=?, FoodPrice=?, FoodDetail=?, FoodStatus=?, FoodPrepTime=? WHERE FoodId=? AND ShopId=?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sidsiiii", $name, $catId, $price, $desc, $status, $prepTime, $id, $shopId); // Added 'i' for FoodPrepTime
+    $stmt->bind_param("sidsiiii", $name, $catId, $price, $desc, $status, $prepTime, $id, $shopId);
     
     if($stmt->execute()){
-        // Update Addons: Delete old ones and insert new ones
         $conn->query("DELETE FROM tbl_addon WHERE FoodId = $id");
         if (is_array($addons)) {
             $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, 1)");

@@ -111,11 +111,12 @@ export default function RestaurantPage() {
   };
 
   function addToCart(menu) {
+    if (!menu.available) return // Prevent adding out of stock items
     setCart(prev => {
       const exists = prev.find(c => c.id === menu.id)
       const next   = exists
         ? prev.map(c => c.id === menu.id ? { ...c, qty: c.qty + 1 } : c)
-        : [...prev, { ...menu, qty: 1 }]
+        : [...prev, { ...menu, qty: 1, shopId: shop.id }]
       localStorage.setItem('bs_cart', JSON.stringify(next))
       return next
     })
@@ -213,25 +214,27 @@ export default function RestaurantPage() {
               {menus.map(m => {
                 const qty = getQty(m.id)
                 return (
-                  <div key={m.id} className={styles.menuCard} onClick={() => router.push(`/food/${m.id}`)}>
-                    <div className={styles.menuImgWrap}>
-                      <img src={m.img} alt={m.name} className={styles.menuImg} />
-                      {qty > 0 && <div className={styles.qtyBadge}>x{qty}</div>}
-                    </div>
-                    <div className={styles.menuBody}>
-                      <div className={styles.menuName}>{m.name}</div>
-                      <div className={styles.menuDesc}>{m.desc || 'เมนูแนะนำยอดฮิต'}</div>
-                      <div className={styles.menuFoot}>
-                        <span className={styles.menuPrice}>฿{m.price}</span>
-                        <button 
-                          className={styles.addBtn}
-                          onClick={(e) => { e.stopPropagation(); addToCart(m); }}
-                        >
-                          +
-                        </button>
+                    <div key={m.id} className={`${styles.menuCard} ${!m.available ? styles.outOfStock : ''}`} onClick={() => router.push(`/food/${m.id}`)}>
+                      <div className={styles.menuImgWrap}>
+                        <img src={m.img} alt={m.name} className={styles.menuImg} />
+                        {qty > 0 && <div className={styles.qtyBadge}>x{qty}</div>}
+                        {!m.available && <div className={styles.outBadge}>หมด</div>}
+                      </div>
+                      <div className={styles.menuBody}>
+                        <div className={styles.menuName}>{m.name}</div>
+                        <div className={styles.menuDesc}>{m.desc || 'เมนูแนะนำยอดฮิต'}</div>
+                        <div className={styles.menuFoot}>
+                          <span className={styles.menuPrice}>฿{m.price}</span>
+                          <button 
+                            className={`${styles.addBtn} ${!m.available ? styles.addBtnOff : ''}`}
+                            disabled={!m.available}
+                            onClick={(e) => { e.stopPropagation(); m.available && addToCart(m); }}
+                          >
+                            {m.available ? '+' : '✕'}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
                 )
               })}
             </div>

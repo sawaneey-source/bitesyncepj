@@ -23,7 +23,11 @@ $data = json_decode(file_get_contents("php://input"), true);
 $email = $data['email'];
 $password = $data['password'];
 
-$sql = "SELECT * FROM tbl_userinfo WHERE UsrEmail=?";
+$sql = "SELECT u.*, 
+               CONCAT(COALESCE(a.HouseNo,''), ' ', COALESCE(a.SubDistrict,''), ' ', COALESCE(a.District,''), ' ', COALESCE(a.Province,''), ' ', COALESCE(a.Zipcode,'')) as address
+        FROM tbl_userinfo u
+        LEFT JOIN tbl_address a ON u.UsrId = a.UsrId AND a.IsDefault = 1
+        WHERE u.UsrEmail = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s",$email);
 $stmt->execute();
@@ -41,7 +45,11 @@ if($result->num_rows > 0){
             "user"=>[
                 "id"=>$user['UsrId'],
                 "name"=>$user['UsrFullName'],
-                "role"=>$user['UsrRole']
+                "email"=>$user['UsrEmail'],
+                "phone"=>$user['UsrPhone'],
+                "role"=>$user['UsrRole'],
+                "image"=>$user['UsrImage'],
+                "address"=>$user['address']
             ],
             "token"=>"bitesync_login_token"
         ]);

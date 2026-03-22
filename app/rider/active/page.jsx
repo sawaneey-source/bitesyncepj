@@ -1,0 +1,265 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import styles from './page.module.css'
+
+const STEPS = [
+  { key:'pickup',   label:'กำลังไปรับอาหาร',     icon:'📦', desc:'เดินทางไปที่ร้านค้า' },
+  { key:'delivered',label:'กำลังไปส่งลูกค้า',     icon:'🛵', desc:'เดินทางไปหาลูกค้า' },
+  { key:'done',     label:'ส่งสำเร็จ',          icon:'🏁', desc:'ออเดอร์เสร็จสมบูรณ์' },
+]
+
+const MOCK_ACTIVE = {
+  id:'#1025', step:0,
+  shopName:'มอกกี้เบเกอรี่',
+  shopAddr:'123 ถ.กาญจนวนิช หาดใหญ่',
+  shopPhone:'074-123-456',
+  custName:'สมชาย ใจดี',
+  custAddr:'56/2 ม.1 ต.หาดใหญ่ สงขลา',
+  custPhone:'081-234-5678',
+  items:[ {name:'เค้กช็อกโกแลต',qty:1,price:90}, {name:'ชาไทยเย็น',qty:2,price:55} ],
+  total:200, fee:25,
+  img:'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=200&q=80',
+}
+
+export default function RiderActivePage() {
+  const router = useRouter()
+  const [job, setJob]     = useState(null)
+  const [toast, setToast] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false)
+
+  useEffect(() => {
+    fetchActiveJob()
+    const int = setInterval(fetchActiveJob, 10000)
+    return () => clearInterval(int)
+  }, [])
+
+  // Location Pulse
+  useEffect(() => {
+    if (!job) return
+    const watchId = navigator.geolocation.watchPosition((pos) => {
+      const { latitude: lat, longitude: lng } = pos.coords
+      sendLocation(lat, lng)
+    }, null, { enableHighAccuracy: true })
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [job?.id])
+
+  async function sendLocation(lat, lng) {
+    try {
+      const uStr = localStorage.getItem('bs_user')
+      if (!uStr) return
+      const uid = JSON.parse(uStr).id
+      await fetch('http://localhost/bitesync/api/rider/update-location.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('bs_token')}` },
+        body: JSON.stringify({ usrId: uid, lat, lng })
+      })
+    } catch {}
+  }
+
+  function showToast(msg,type='ok'){ setToast({msg,type}); setTimeout(()=>setToast(null),2500) }
+
+  async function fetchActiveJob() {
+    try {
+      const uStr = localStorage.getItem('bs_user')
+      if (!uStr) throw new Error('No user data')
+      const uid = JSON.parse(uStr).id
+
+      const res  = await fetch(`http://localhost/bitesync/api/rider/active-job.php?usrId=${uid}`, {
+        headers:{ Authorization:`Bearer ${localStorage.getItem('bs_token')}` }
+      })
+      const data = await res.json()
+      if (data.success && data.data) setJob(data.data)
+      else setJob(null)
+    } catch { setJob(null) }
+  }
+
+  async function updateStep(nextStep, statusKey) {
+    setLoading(true)
+    try {
+      await fetch('http://localhost/bitesync/api/rider/update-status.php', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('bs_token')}` },
+        body: JSON.stringify({ orderId: job.id, status: statusKey })
+      })
+    } catch {}
+
+    if (nextStep >= STEPS.length - 1) {
+      setJob(prev => ({ ...prev, step: nextStep }))
+      showToast('ส่งสำเร็จ! 🎉')
+      setTimeout(() => { setJob(null); router.push('/rider/history') }, 1500)
+    } else {
+      setJob(prev => ({ ...prev, step: nextStep }))
+      showToast(STEPS[nextStep-1]?.label || 'อัปเดตแล้ว!')
+    }
+    setLoading(false)
+  }
+
+  async function cancelJob() {
+    setShowConfirmCancel(false)
+    setLoading(true)
+    try {
+      const uStr = localStorage.getItem('bs_user')
+      if (!uStr) throw new Error('No user data')
+      const uid = JSON.parse(uStr).id
+
+      const res = await fetch('http://localhost/bitesync/api/rider/cancel-job.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('bs_token')}` },
+        body: JSON.stringify({ orderId: job.id, riderId: uid })
+      })
+      const data = await res.json()
+      if (data.success) {
+        showToast('ยกเลิกงานแล้ว!', 'ok')
+        setTimeout(() => { setJob(null); router.push('/rider/jobs') }, 1200)
+      } else {
+        showToast(data.message || 'เกิดข้อผิดพลาด', 'err')
+      }
+    } catch (err) {
+      showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'err')
+    }
+    setLoading(false)
+  }
+
+  if (!job) return (
+    <div className={styles.noJob}>
+      <span>🛵</span>
+      <span>ไม่มีงานที่กำลังส่ง</span>
+      <button onClick={() => router.push('/rider/jobs')} className={styles.goJobsBtn}>ดูงานใหม่</button>
+    </div>
+  )
+
+  const currentStep = STEPS[job.step]
+  const nextStep    = STEPS[job.step + 1]
+
+  return (
+    <div>
+      {toast && <div className={`${styles.toast} ${toast.type==='err'?styles.toastErr:styles.toastOk}`}>{toast.type==='err'?'⚠️':'✅'} {toast.msg}</div>}
+
+      <div className={styles.hdr}>
+        <h1 className={styles.title}>งานปัจจุบัน</h1>
+        <span className={styles.orderId}>{job.id}</span>
+      </div>
+
+      {job.statusLabel === 'Ready' && job.step === 0 && (
+        <div className={styles.readyBanner} style={{background:'#e8f5e9',color:'#2a6129',padding:'16px',borderRadius:'12px',marginBottom:'20px',display:'flex',alignItems:'center',gap:'12px',fontWeight:'bold',border:'2px solid #4caf50'}}>
+          <span style={{fontSize:'24px',animation:'pulse 2s infinite'}}>🟢</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:'18px'}}>ร้านอาหารเตรียมอาหารเสร็จแล้ว!</div>
+            <div style={{fontSize:'14px',fontWeight:'normal',marginTop:'4px'}}>กรุณาเดินเข้าไปติดต่อรับอาหารที่ร้านได้เลยเพื่อความรวดเร็ว</div>
+          </div>
+        </div>
+      )}
+
+      {/* Status progress */}
+      <div className={styles.progressCard}>
+        <div className={styles.progressTitle}>สถานะการส่ง</div>
+        <div className={styles.progressSteps}>
+          {STEPS.map((s, i) => {
+            const done    = i < job.step
+            const current = i === job.step
+            return (
+              <div key={s.key} className={styles.progressStep}>
+                <div className={`${styles.progCircle} ${done?styles.progDone:''} ${current?styles.progCurrent:''}`}>
+                  {done ? '✓' : s.icon}
+                </div>
+                <span className={`${styles.progLbl} ${current?styles.progLblCurrent:done?styles.progLblDone:''}`}>{s.label}</span>
+                {i < STEPS.length - 1 && <div className={`${styles.progLine} ${done?styles.progLineDone:''}`}/>}
+              </div>
+            )
+          })}
+        </div>
+        {currentStep && (
+          <div className={styles.currentStatus}>
+            <span className={styles.currentIcon}>{currentStep.icon}</span>
+            <span className={styles.currentDesc}>{currentStep.desc}</span>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.layout}>
+        <div className={styles.left}>
+          {/* Shop info */}
+          <div className={`${styles.card} ${job.step === 0 ? styles.focusedCard : ''}`}>
+            <h2 className={styles.cardTitle}>🏪 ร้านค้า (ต้นทาง)</h2>
+            <div className={styles.placeInfo}>
+              <div className={styles.placeName}>{job.shopName}</div>
+              <div className={styles.placeAddr}>📍 {job.shopAddr}</div>
+              <a href={`tel:${job.shopPhone}`} className={styles.callBtn}>📞 โทรหาร้าน</a>
+            </div>
+          </div>
+
+          {/* Customer info */}
+          <div className={`${styles.card} ${job.step === 1 ? styles.focusedCard : ''}`}>
+            <h2 className={styles.cardTitle}>📍 ลูกค้า (ปลายทาง)</h2>
+            <div className={styles.placeInfo}>
+              <div className={styles.placeName}>{job.custName}</div>
+              <div className={styles.placeAddr}>📍 {job.custAddr}</div>
+              <a href={`tel:${job.custPhone}`} className={styles.callBtn}>📞 โทรหาลูกค้า</a>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.right}>
+          {/* Order items */}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>รายการอาหาร</h2>
+            {job.items.map((item, i) => (
+              <div key={i} className={styles.item}>
+                <span className={styles.itemName}>{item.name}</span>
+                <span className={styles.itemQty}>x{item.qty}</span>
+                <span className={styles.itemPrice}>{item.price * item.qty} ฿</span>
+              </div>
+            ))}
+            <div className={styles.divider}/>
+            <div className={styles.totalRow}>
+              <span>ค่าส่งที่ได้รับ</span>
+              <span className={styles.feeVal}>+{job.fee} ฿</span>
+            </div>
+          </div>
+
+          {/* Action button */}
+          {job.step < STEPS.length - 1 && (
+            <button
+              onClick={() => updateStep(job.step + 1, STEPS[job.step].key)}
+              disabled={loading}
+              className={styles.actionBtn}
+            >
+              {loading ? '⏳ กำลังอัปเดต...' :
+                job.step === 0 ? '📦 รับอาหารเรียบร้อย' :
+                '✅ จัดส่งสำเร็จ'
+              }
+            </button>
+          )}
+
+          {/* Cancel button */}
+          {job.step === 0 && (
+            <button 
+              onClick={() => setShowConfirmCancel(true)}
+              disabled={loading}
+              style={{marginTop:'12px', background:'transparent', color:'#e53935', border:'1px solid #e53935', width:'100%', padding:'12px', borderRadius:'12px', fontWeight:'bold', cursor:'pointer'}}
+            >
+              ❌ ยกเลิกการรับงานนี้
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Confirm Cancel Modal */}
+      {showConfirmCancel && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',animation:'fadeIn 0.2s'}}>
+          <div style={{background:'#fff',borderRadius:'16px',padding:'24px',width:'100%',maxWidth:'340px',textAlign:'center',boxShadow:'0 10px 30px rgba(0,0,0,0.2)',animation:'slideUp 0.3s cubic-bezier(0.2,0.8,0.2,1)'}}>
+            <div style={{fontSize:'40px',marginBottom:'12px'}}>⚠️</div>
+            <h3 style={{fontSize:'18px',fontWeight:'bold',color:'#e53935',marginBottom:'8px'}}>ยืนยันยกเลิกงานนี้?</h3>
+            <p style={{fontSize:'14px',color:'#666',marginBottom:'24px',lineHeight:'1.5'}}>ระบบจะปลดคุณออกจากออเดอร์นี้ และส่งคิวต่อให้ไรเดอร์ท่านอื่นแทน คุณแน่ใจหรือไม่?</p>
+            <div style={{display:'flex',gap:'10px'}}>
+              <button onClick={() => setShowConfirmCancel(false)} style={{flex:1,padding:'12px',borderRadius:'10px',border:'none',background:'#f4f7f4',color:'#333',fontWeight:'bold',cursor:'pointer'}}>ปิด</button>
+              <button onClick={cancelJob} style={{flex:1,padding:'12px',borderRadius:'10px',border:'none',background:'#e53935',color:'#fff',fontWeight:'bold',cursor:'pointer'}}>ยืนยันยกเลิก</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

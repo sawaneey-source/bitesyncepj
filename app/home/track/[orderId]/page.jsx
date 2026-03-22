@@ -5,29 +5,13 @@ import styles from './page.module.css'
 import Navbar from '@/components/Navbar'
 
 const STEPS = [
-  { key:'received',  label:'Order Received',   icon:'📋' },
-  { key:'preparing', label:'Preparing Food',    icon:'👨‍🍳' },
-  { key:'waiting',   label:'Waiting for Rider', icon:'⏳' },
-  { key:'assigned',  label:'Rider Assigned',    icon:'🛵' },
-  { key:'pickup',    label:'Picked Up',          icon:'📦' },
-  { key:'delivered', label:'Delivered',          icon:'✅' },
+  { key:'received',  label:'ได้รับคำสั่งซื้อแล้ว',   icon:'📋' },
+  { key:'preparing', label:'กำลังเตรียมอาหาร',    icon:'👨‍🍳' },
+  { key:'waiting',   label:'รอไรเดอร์มารับ', icon:'⏳' },
+  { key:'assigned',  label:'จัดหาไรเดอร์แล้ว',    icon:'🛵' },
+  { key:'pickup',    label:'รับอาหารแล้ว',          icon:'📦' },
+  { key:'delivered', label:'จัดส่งเรียบร้อย',          icon:'🏁' },
 ]
-
-// Mock order data
-const MOCK_ORDER = {
-  id: 'BSS92231',
-  currentStep: 3,
-  estimatedTime: '10-15 min',
-  customer: { name: 'สมชาย', address: '123 ถ.กาญจนวนิช หาดใหญ่', lat: 7.0085, lng: 100.4734 },
-  rider: { name: 'Aek', phone: '096-456-9088', vehicle: 'Honda PCX', plate: 'กข-1234', lat: 7.0067, lng: 100.4698 },
-  shop: { name: 'มอกกี้เบเกอรี่', lat: 7.0042, lng: 100.4651 },
-  items: [
-    { name: 'Backyard Biscuit Cake', qty: 1, price: 50 },
-    { name: 'Our Island Dessert Shot', qty: 1, price: 180 },
-    { name: 'Matcha Jelly', qty: 2, price: 75 },
-  ],
-  subtotal: 380, deliveryFee: 15, total: 395,
-}
 
 export default function TrackPage() {
   const router  = useRouter()
@@ -36,12 +20,12 @@ export default function TrackPage() {
   const mapInstanceRef = useRef(null)
   const riderMarkerRef = useRef(null)
 
-  const [order, setOrder]     = useState(MOCK_ORDER)
+  const [order, setOrder]     = useState(null)
+  const [error, setError]     = useState(null)
   const [showMap, setShowMap] = useState(false)
   const [user, setUser]       = useState(null)
   const [mapReady, setMapReady] = useState(false)
 
-  // Poll order status every 10s
   useEffect(() => {
     const u = localStorage.getItem('bs_user')
     if (!u) {
@@ -51,66 +35,84 @@ export default function TrackPage() {
     setUser(JSON.parse(u))
     
     fetchOrder()
-    const interval = setInterval(fetchOrder, 10000)
+    const interval = setInterval(fetchOrder, 5000)
     return () => clearInterval(interval)
-  }, [router])
+  }, [router, params?.orderId])
 
-  // Init map after showMap = true
   useEffect(() => {
-    if (!showMap || mapInstanceRef.current) return
+    if (!showMap || mapInstanceRef.current || !order) return
     initMap()
-  }, [showMap])
+  }, [showMap, order])
 
-  // Update rider marker when order changes
+  // Live Marker Update
   useEffect(() => {
-    if (!mapReady || !riderMarkerRef.current) return
-    riderMarkerRef.current.setLatLng([order.rider.lat, order.rider.lng])
-  }, [order.rider.lat, order.rider.lng, mapReady])
+    if (!mapInstanceRef.current || !riderMarkerRef.current || !order?.rider) return
+    const { lat, lng } = order.rider
+    riderMarkerRef.current.setLatLng([lat, lng])
+  }, [order?.rider?.lat, order?.rider?.lng])
 
   async function fetchOrder() {
-    // 1. Check local history first for real data
-    const history = JSON.parse(localStorage.getItem('bs_history') || '[]')
-    const local = history.find(h => h.id === params?.orderId)
-    
-    if (local) {
-      setOrder(prev => ({
-        ...local,
-        // Keep simulated rider movement if it was already moving
-        rider: { 
-          ...local.rider, 
-          lat: prev.id === local.id ? prev.rider.lat : local.rider.lat,
-          lng: prev.id === local.id ? prev.rider.lng : local.rider.lng
-        }
-      }))
-      return
-    }
-
-    // 2. Fallback to API
     try {
       const token = localStorage.getItem('bs_token')
       const res   = await fetch(`http://localhost/bitesync/api/customer/orders.php?id=${params?.orderId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
-      if (data.success) setOrder(data.data)
-    } catch {
-      // simulate rider moving
-      setOrder(prev => ({
-        ...prev,
-        rider: {
-          ...prev.rider,
-          lat: prev.rider.lat + (Math.random() - 0.5) * 0.0005,
-          lng: prev.rider.lng + (Math.random() - 0.5) * 0.0005,
-        }
-      }))
+      if (data.success) {
+          const d = data.data
+          const status = Number(d.OdrStatus)
+          
+          // Only redirect on Completed (6)
+          if (status === 6) {
+             localStorage.removeItem('bs_last_order')
+             router.replace(`/home/receipt/${params.orderId}`)
+             return
+          }
+
+          // Normalize data structure for frontend
+          setOrder({
+              id: d.OdrId,
+              currentStep: d.currentStep,
+              estimatedTime: '10-20 นาที',
+              date: d.OdrCreatedAt,
+              total: d.OdrGrandTotal,
+              deliveryFee: d.OdrDelFee,
+              shop: { 
+                  id: d.ShopId, 
+                  name: d.ShopName, 
+                  lat: parseFloat(d.ShopLat || 7.0042), 
+                  lng: parseFloat(d.ShopLng || 100.4651) 
+              },
+              customer: { 
+                  name: user?.name || d.UsrFullName, 
+                  address: `${d.HouseNo} ${d.SubDistrict} ${d.District} ${d.Province}`,
+                  lat: 7.0085, lng: 100.4734 
+              },
+              rider: d.RiderId ? {
+                  name: d.RiderName,
+                  phone: d.RiderPhone,
+                  vehicle: d.RiderVehicleType || 'รถจักรยานยนต์',
+                  plate: d.RiderVehiclePlate || '-',
+                  lat: parseFloat(d.RiderLat || 7.0067),
+                  lng: parseFloat(d.RiderLng || 100.4698)
+              } : null,
+              items: d.items
+          })
+          setError(null)
+      } else {
+          setError(data.message || 'ไม่พบข้อมูลออเดอร์')
+      }
+    } catch (e) {
+      console.error("Fetch order error:", e)
+      setError("เกิดข้อผิดพลาดในการโหลดข้อมูล")
     }
   }
 
   async function initMap() {
+    if (!order) return
     const L = (await import('leaflet')).default
     await import('leaflet/dist/leaflet.css')
 
-    // Fix default icon
     delete L.Icon.Default.prototype._getIconUrl
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -120,78 +122,46 @@ export default function TrackPage() {
 
     if (!mapRef.current || mapInstanceRef.current) return
 
-    const map = L.map(mapRef.current).setView(
-      [order.rider.lat, order.rider.lng], 15
-    )
+    const map = L.map(mapRef.current).setView([order.shop.lat, order.shop.lng], 15)
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map)
 
-    // Shop marker (green)
     const shopIcon = L.divIcon({
       html: `<div style="background:#2a6129;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">🏪</div>`,
       className: '', iconAnchor: [18, 18]
     })
-    L.marker([order.shop.lat, order.shop.lng], { icon: shopIcon })
-      .addTo(map)
-      .bindPopup(`<b>${order.shop.name}</b><br/><a href="/home/restaurant/${order.shop.id || order.shopId || 1}" style="color:#2a6129;font-weight:700">ไปที่หน้าร้าน →</a>`)
+    L.marker([order.shop.lat, order.shop.lng], { icon: shopIcon }).addTo(map).bindPopup(`<b>${order.shop.name}</b>`)
 
-    // Customer marker (yellow)
     const custIcon = L.divIcon({
       html: `<div style="background:#f0c419;color:#1a1f1a;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">📍</div>`,
       className: '', iconAnchor: [18, 18]
     })
-    L.marker([order.customer.lat, order.customer.lng], { icon: custIcon })
-      .addTo(map)
-      .bindPopup(`<b>ที่อยู่จัดส่ง</b><br/>${order.customer.address}`)
+    L.marker([order.customer.lat, order.customer.lng], { icon: custIcon }).addTo(map).bindPopup(`<b>ที่อยู่ของคุณ</b>`)
 
-    // Rider marker (animated)
-    const riderIcon = L.divIcon({
-      html: `<div style="background:#e65100;color:#fff;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 2px 12px rgba(230,81,0,.4)">🛵</div>`,
-      className: '', iconAnchor: [20, 20]
-    })
-    const riderMarker = L.marker([order.rider.lat, order.rider.lng], { icon: riderIcon })
-      .addTo(map)
-      .bindPopup(`<b>${order.rider.name}</b><br/>${order.rider.vehicle}`)
-
-    riderMarkerRef.current = riderMarker
-
-    // Draw route (shop → rider → customer)
-    L.polyline([
-      [order.shop.lat, order.shop.lng],
-      [order.rider.lat, order.rider.lng],
-      [order.customer.lat, order.customer.lng],
-    ], { color: '#2a6129', weight: 4, opacity: 0.7, dashArray: '8,4' }).addTo(map)
+    if (order.rider) {
+        const riderIcon = L.divIcon({
+          html: `<div style="background:#e65100;color:#fff;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 2px 12px rgba(230,81,0,.4)">🛵</div>`,
+          className: '', iconAnchor: [20, 20]
+        })
+        riderMarkerRef.current = L.marker([order.rider.lat, order.rider.lng], { icon: riderIcon }).addTo(map).bindPopup(`<b>ผู้ส่ง: ${order.rider.name}</b>`)
+    }
 
     mapInstanceRef.current = map
     setMapReady(true)
-
-    // Poll rider position and update marker every 10s
-    setInterval(async () => {
-      try {
-        const token = localStorage.getItem('bs_token')
-        const res   = await fetch(`http://localhost/bitesync/api/rider/location.php?orderId=${params?.orderId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const data = await res.json()
-        if (data.success && riderMarkerRef.current) {
-          riderMarkerRef.current.setLatLng([data.lat, data.lng])
-          map.panTo([data.lat, data.lng])
-        }
-      } catch {
-        // simulate movement
-        if (riderMarkerRef.current) {
-          const pos = riderMarkerRef.current.getLatLng()
-          const newPos = {
-            lat: pos.lat + (Math.random() - 0.5) * 0.0004,
-            lng: pos.lng + (Math.random() - 0.5) * 0.0004,
-          }
-          riderMarkerRef.current.setLatLng([newPos.lat, newPos.lng])
-        }
-      }
-    }, 10000)
   }
+
+  if (error) return (
+    <div className={styles.loading}>
+      <div style={{color:'#e53935', marginBottom:18}}>{error}</div>
+      <button onClick={() => router.push('/home')} className={styles.backBtn} style={{background:'#f0f4f0'}}>
+        กลับหน้าหลัก
+      </button>
+    </div>
+  )
+
+  if (!order) return <div className={styles.loading}>กำลังโหลดข้อมูล...</div>
 
   const step = order.currentStep
 
@@ -203,50 +173,67 @@ export default function TrackPage() {
           <button onClick={() => router.push('/home')} className={styles.backBtn}>
             <i className="fa-solid fa-arrow-left" /> กลับหน้าหลัก
           </button>
-          <button onClick={fetchOrder} className={styles.refreshBtn}>
-            <i className="fa-solid fa-arrows-rotate" /> อัปเดตสถานะ
-          </button>
+          <div className={styles.navTitle}>ติดตามออเดอร์ #{order.id}</div>
         </div>
       </div>
 
       <div className={styles.body}>
-        {/* Map toggle banner */}
         <div className={styles.mapBanner} onClick={() => setShowMap(v => !v)}>
-          <span>🗺️ Track Order on Map</span>
+          <span>🗺️ ติดตามบนแผนที่</span>
           <span className={styles.mapToggle}>{showMap ? '▲ ซ่อนแผนที่' : '▼ ดูแผนที่'}</span>
         </div>
 
-        {/* Leaflet Map */}
         {showMap && (
           <div className={styles.mapWrap}>
             <div ref={mapRef} className={styles.mapContainer}/>
-            <div className={styles.mapLegend}>
-              <span>🏪 ร้านค้า</span>
-              <span>🛵 ไรเดอร์</span>
-              <span>📍 ปลายทาง</span>
-            </div>
           </div>
         )}
 
         <div className={styles.layout}>
-          {/* LEFT */}
           <div className={styles.left}>
             <div className={styles.card}>
               <div className={styles.orderHdr}>
                 <div>
-                  <h2 className={styles.cardTitle}>Track Your Order</h2>
-                  <div className={styles.orderId}>Order id: #{order.id}</div>
-                  <div className={styles.orderTime}>📅 Order Placed: {order.date}</div>
+                  <h2 className={styles.cardTitle}>สถานะการจัดส่ง</h2>
+                  <div className={styles.orderId}>ออเดอร์หมายเลข: #{order.id}</div>
                 </div>
                 <div className={styles.estSection}>
-                  <div className={styles.estBadge}>
-                    🕐 Arriving in {order.estimatedTime}
-                  </div>
-                  <div className={styles.estTime}>Est. Delivery: 23:55 น.</div>
+                  <div className={styles.estBadge}>🕐 คาดว่าจะถึงใน {order.estimatedTime}</div>
                 </div>
               </div>
 
-              {/* Status steps */}
+              {step === 0 && (
+                <div className={styles.cancelSection}>
+                   <p className={styles.cancelHint}>* คุณสามารถยกเลิกออเดอร์ได้ก่อนที่ร้านค้าจะเริ่มเตรียมอาหาร</p>
+                   <button 
+                     className={styles.cancelBtn} 
+                     onClick={async () => {
+                       if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกออเดอร์นี้?')) return;
+                       try {
+                         const token = localStorage.getItem('bs_token');
+                         const user = JSON.parse(localStorage.getItem('bs_user'));
+                         const res = await fetch(`http://localhost/bitesync/api/customer/orders.php`, {
+                           method: 'PUT',
+                           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                           body: JSON.stringify({ id: order.id, status: 6, userId: user.id })
+                         });
+                         const data = await res.json();
+                         if (data.success) {
+                           alert(data.message);
+                           fetchOrder();
+                         } else {
+                           alert(data.message);
+                         }
+                       } catch (e) {
+                         alert('เกิดข้อผิดพลาดในการยกเลิก');
+                       }
+                     }}
+                   >
+                     ❌ ยกเลิกออเดอร์นี้
+                   </button>
+                </div>
+              )}
+
               <div className={styles.steps}>
                 {STEPS.map((s, i) => {
                   const done    = i < step
@@ -270,10 +257,9 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {/* Rider info */}
-            {step >= 3 && (
+            {order.rider && (
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Rider</h2>
+                <h2 className={styles.cardTitle}>ข้อมูลคนขับ</h2>
                 <div className={styles.riderRow}>
                   <div className={styles.riderAvatar}>{order.rider.name[0]}</div>
                   <div className={styles.riderInfo}>
@@ -287,24 +273,13 @@ export default function TrackPage() {
             )}
           </div>
 
-          {/* RIGHT */}
           <div className={styles.right}>
             <div className={styles.card}>
-              <h2 className={styles.cardTitle}>Your order</h2>
+              <h2 className={styles.cardTitle}>รายการอาหาร</h2>
               {order.items.map((item, i) => (
-                <div 
-                  key={i} 
-                  className={styles.item}
-                  onClick={() => router.push(`/home/restaurant/${order.shop.id || order.shopId || 1}`)}
-                  style={{ cursor: 'pointer' }}
-                >
+                <div key={i} className={styles.item}>
                   <div className={styles.itemMain}>
                     <span className={styles.itemName}>{item.name}</span>
-                    {item.addons && item.addons.length > 0 && (
-                      <div className={styles.itemAddons}>
-                        {item.addons.map(a => `${a.name} x${a.qty || 1}`).join(', ')}
-                      </div>
-                    )}
                   </div>
                   <span className={styles.itemQty}>x{item.qty}</span>
                   <span className={styles.itemPrice}>{item.price * item.qty} THB</span>
@@ -312,17 +287,11 @@ export default function TrackPage() {
               ))}
               <div className={styles.divider}/>
               <div className={styles.item}>
-                <span>ค่าจัดส่ง</span><span/><span>{order.deliveryFee} THB</span>
+                <span>ค่าจัดส่ง</span><span>{order.deliveryFee} THB</span>
               </div>
               <div className={`${styles.item} ${styles.itemTotal}`}>
-                <span>Total:</span><span/><span>{order.total} THB</span>
+                <span>ยอดรวมทั้งหมด:</span><span>{order.total} THB</span>
               </div>
-              <button
-                onClick={() => router.push(`/home/receipt/${order.id}`)}
-                className={styles.receiptBtn}
-              >
-                Order Details →
-              </button>
             </div>
           </div>
         </div>

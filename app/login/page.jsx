@@ -30,7 +30,7 @@ export default function LoginPage() {
         localStorage.setItem('bs_user', JSON.stringify(data.user))
         const role = data.user.role
         if      (role === 'admin')      window.location.href = '/admin/dashboard'
-        else if (role === 'rider')      window.location.href = '/rider/home'
+        else if (role === 'rider')      window.location.href = '/rider'
         else if (role === 'restaurant') window.location.href = '/shop'
         else                            window.location.href = '/home'
       } else {

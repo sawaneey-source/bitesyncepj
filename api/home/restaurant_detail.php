@@ -63,7 +63,7 @@ if ($shop) {
 
     // Fetch Menus
     $menus = [];
-    $sql_m = "SELECT FoodId as id, FoodName as name, FoodPrice as price, 
+    $sql_m = "SELECT FoodId as id, FoodName as name, FoodPrice as price, ShopId as shopId,
                      (SELECT CatName FROM tbl_menu_category WHERE tbl_menu_category.CatId = tbl_food.CatId) as category,
                      FoodDetail as `desc`, FoodImagePath as img, FoodStatus as available
               FROM tbl_food WHERE ShopId = ? ORDER BY FoodId DESC";

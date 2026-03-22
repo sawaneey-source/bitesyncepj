@@ -45,8 +45,19 @@ $stmt->bind_param("sssss",$role,$fullName,$email,$phone,$hash);
 
 if($stmt->execute()){
     $usrId = $conn->insert_id;
-
-    echo json_encode(["success"=>true]);
+    echo json_encode([
+        "success"=>true,
+        "user"=>[
+            "id"=>$usrId,
+            "name"=>$fullName,
+            "email"=>$email,
+            "phone"=>$phone,
+            "role"=>$role,
+            "image"=>null,
+            "address"=>null
+        ],
+        "token"=>"bitesync_login_token"
+    ]);
 }else{
     echo json_encode([
         "success"=>false,

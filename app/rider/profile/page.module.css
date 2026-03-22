@@ -1,0 +1,42 @@
+.toast{position:fixed;top:18px;right:18px;z-index:9999;color:#fff;padding:11px 18px;border-radius:11px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.14);animation:si .3s ease;}
+.toastOk{background:#2a6129;}.toastErr{background:#e53935;}
+@keyframes si{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+.title{font-family:'Prompt',sans-serif;font-size:22px;font-weight:800;color:#1a1f1a;margin:0 0 22px;}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start;}
+.avatarCard{background:#fff;border-radius:16px;padding:22px 18px;box-shadow:0 2px 10px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:center;gap:10px;}
+.avatarWrap{position:relative;width:110px;height:110px;border-radius:50%;overflow:hidden;cursor:pointer;background:#f4f7f4;display:flex;align-items:center;justify-content:center;}
+.avatarImg{width:100%;height:100%;object-fit:cover;}
+.avatarPlaceholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f4f7f4;font-size:48px;}
+.avatarBtns{display:flex;gap:8px;margin-top:12px;margin-bottom:12px;justify-content:center;}
+.avatarEditBtn{background:#f4f7f4;border:1.5px solid #dde8dd;padding:5px 14px;border-radius:20px;font-size:11.5px;color:#374137;cursor:pointer;font-family:'Prompt',sans-serif;transition:all .2s;font-weight:600;}
+.avatarEditBtn:hover{background:#e8eee8;border-color:#2a6129;color:#1a2e1a;}
+.avatarCameraBtn{position:absolute;bottom:0;right:0;width:34px;height:34px;border-radius:50%;background:#1a2e1a;color:#fff;border:3px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.15);transition:all .2s;z-index:10;}
+.avatarCameraBtn:hover{transform:scale(1.1);background:#2a6129;}
+.avatarName{font-family:'Prompt',sans-serif;font-size:16px;font-weight:800;color:#1a1f1a;text-align:center;margin-top:8px;}
+.avatarSub{font-size:13.0px;color:#6b7280;margin-bottom:4px;}
+.ratingBox{display:flex;align-items:center;gap:6px;background:#f4f7f4;border-radius:20px;padding:6px 14px;font-size:12.5px;color:#374137;}
+.starsRow{display:flex;gap:2.5px;font-size:15px;line-height:1;margin-top:-1px;}
+.ratingDot{color:#ccc;}
+.formCard{background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,.06);}
+.sectionTitle{font-family:'Prompt',sans-serif;font-size:14px;font-weight:700;color:#374137;margin:0 0 12px;padding-bottom:8px;border-bottom:1.5px solid #f0f4f0;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.field{margin-bottom:0;}
+.label{font-size:12.5px;font-weight:700;color:#6b7280;display:block;margin-bottom:5px;}
+.inp{width:100%;border:1.5px solid #dde8dd;border-radius:9px;padding:9px 13px;font-size:13.5px;font-family:'Sarabun',sans-serif;outline:none;background:#f6f9f6;color:#1a1f1a;box-sizing:border-box;}
+.inp:focus{border-color:#2a6129;}
+.saveBtn{background:#1a2e1a;color:#fff;border:none;border-radius:12px;padding:13px 28px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Prompt',sans-serif;margin-top:20px;transition:.18s;}
+.saveBtn:hover:not(:disabled){background:#2a6129;}
+.saveBtn:disabled{opacity:.65;cursor:not-allowed;}
+
+/* Cropper Modal */
+.cropOverlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px; }
+.cropModal { background:#fff; border-radius:18px; width:100%; max-width:600px; display:flex; flex-direction:column; overflow:hidden; }
+.cropHdr { padding:16px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+.cropTitle { font-weight:700; font-size:18px; margin:0; font-family:'Prompt',sans-serif; }
+.cropArea { position:relative; width:100%; height:400px; background:#333; }
+.cropCtrls { padding:20px; display:flex; flex-direction:column; gap:16px; }
+.zoomRow { display:flex; align-items:center; gap:12px; font-weight: 600; color: #555; }
+.zoomInp { flex:1; accent-color:#1a2e1a; cursor: pointer; }
+.cropBtns { display:flex; gap:12px; }
+.btnCropDone { flex:2; padding:12px; background:#1a2e1a; color:#fff; border:none; border-radius:10px; font-weight:700; cursor:pointer;}
+.btnCropCan { flex:1; padding:12px; background:#f5f5f5; color:#666; border:none; border-radius:10px; font-weight:700; cursor:pointer;}

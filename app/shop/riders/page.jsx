@@ -2,60 +2,46 @@
 import { useState, useEffect } from 'react'
 import styles from './page.module.css'
 
-const STATUS_STEPS = ['Order Received','Preparing Food','Waiting for Rider','Rider Assigned','Picked Up','Delivered']
-
-const MOCK = [
-  {
-    OdrId: '#1025', customer: 'สมชาย ใจดี', phone: '081-234-5678',
-    rider: { 
-      name: 'อาร์ม', 
-      phone: '096-456-9088', 
-      img: 'https://i.pravatar.cc/150?u=arm', 
-      distance: '0.3 km away',
-      eta: '2 mins',
-      vehicle: { plate: '1กข-1234', model: 'Honda Forza 350 (เทา)', type: 'Motorcycle' }
-    },
-    items: [
-      { name: 'Backyard Biscuit Cake', qty: 1, price: 50 },
-      { name: 'Our Island Dessert Shot', qty: 1, price: 180 },
-      { name: 'Matcha Jelly', qty: 2, price: 75 },
-    ],
-    total: 310, step: 3,
-    img: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=200&q=80',
-    createdAt: '14:20'
-  },
-  {
-    OdrId: '#1026', customer: 'สมศรี มีสุข', phone: '082-345-6789',
-    rider: { 
-      name: 'นิว', 
-      phone: '085-678-1234', 
-      img: 'https://i.pravatar.cc/150?u=new', 
-      distance: '1.2 km away',
-      eta: '8 mins',
-      vehicle: { plate: 'รย-999', model: 'Yamaha XMAX (ดำ)', type: 'Motorcycle' }
-    },
-    items: [
-      { name: 'เค้กช็อกโกแลต', qty: 2, price: 90 },
-      { name: 'ชาไทยเย็น', qty: 1, price: 55 },
-    ],
-    total: 235, step: 4,
-    img: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=200&q=80',
-    createdAt: '14:35'
-  },
+const STATUS_STEPS = [
+  'ได้รับคำสั่งซื้อแล้ว',
+  'กำลังเตรียมอาหาร',
+  'รอไรเดอร์มารับ',
+  'ไรเดอร์รับงานแล้ว',
+  'ไรเดอร์รับอาหารแล้ว',
+  'จัดส่งสำเร็จ'
 ]
 
 export default function RidersPage() {
-  const [orders, setOrders] = useState(MOCK)
+  const [orders, setOrders] = useState([])
   const [selected, setSelected] = useState(null)
   const [toast, setToast] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // useEffect(() => { fetchActiveJobs() }, [])
+  useEffect(() => { 
+    fetchActiveJobs()
+    const interval = setInterval(fetchActiveJobs, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   function showToast(msg, type = 'ok') { setToast({ msg, type }); setTimeout(() => setToast(null), 2400) }
 
   async function fetchActiveJobs() {
-    // In real app, we fetch from API. For now, we use MOCK for "Decoration"
-    // fetch('http://localhost/bitesync/api/shop/active-jobs.php')...
+    try {
+      const uStr = localStorage.getItem('bs_user')
+      if (!uStr) return
+      const uid = JSON.parse(uStr).id
+      const res = await fetch(`http://localhost/bitesync/api/shop/active-jobs.php?usrId=${uid}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('bs_token')}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setOrders(data.data)
+      }
+    } catch (e) {
+      console.error("Fetch active jobs failed:", e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const sel = orders.find(o => o.OdrId === selected)
@@ -88,15 +74,17 @@ export default function RidersPage() {
                   <div className={styles.jobTop}>
                      <div className={styles.riderBrief}>
                         <div className={styles.riderAvatar}>
-                           {o.rider.img ? <img src={o.rider.img} alt={o.rider.name} /> : o.rider.name[0]}
+                           {o.rider ? (o.rider.img ? <img src={o.rider.img} alt={o.rider.name} /> : o.rider.name[0]) : '⏳'}
                         </div>
                         <div>
-                           <div className={styles.riderName}>{o.rider.name}</div>
-                           <div className={styles.riderVehicle}>{o.rider.vehicle.plate} • {o.rider.vehicle.type}</div>
+                           <div className={styles.riderName}>{o.rider ? o.rider.name : 'กำลังจัดหาไรเดอร์...'}</div>
+                           <div className={styles.riderVehicle}>
+                             {o.rider ? `${o.rider.vehicle.plate} • ${o.rider.vehicle.type}` : 'โปรดรอสักครู่'}
+                           </div>
                         </div>
                      </div>
                      <div className={styles.etaBadge}>
-                        <i className="fa-solid fa-clock" /> {o.rider.eta}
+                        <i className="fa-solid fa-clock" /> {o.rider ? 'กำลังมา' : 'รอรับงาน'}
                      </div>
                   </div>
 
@@ -105,7 +93,9 @@ export default function RidersPage() {
                         <span className={styles.orderLabel}>Order {o.OdrId}</span>
                         <span className={styles.orderTime}>{o.createdAt}</span>
                      </div>
-                     <div className={styles.jobDist}>📍 {o.rider.distance} จากร้านคุณ</div>
+                     <div className={styles.jobDist}>
+                        {o.rider ? `📍 ${o.rider.distance} จากร้านคุณ` : 'ยังไม่มีพิกัดไรเดอร์'}
+                     </div>
                   </div>
 
                   <div className={styles.jobBottom}>
@@ -152,30 +142,36 @@ export default function RidersPage() {
                  </div>
               </div>
 
-              {/* Rider Detailed Info */}
-              <div className={styles.detailCard}>
+               {/* Rider Detailed Info */}
+               <div className={styles.detailCard}>
                 <div className={styles.cardHeaderSide}>
                    <h2 className={styles.cardTitle}>ข้อมูลไรเดอร์</h2>
-                   <div className={styles.rating}><i className="fa-solid fa-star" /> 4.9 (200+)</div>
+                   {sel.rider && <div className={styles.rating}><i className="fa-solid fa-star" /> {sel.rider.rating}</div>}
                 </div>
-                <div className={styles.riderFullRow}>
-                  <div className={styles.riderAvatarLarge}>
-                    <img src={sel.rider.img || "https://i.pravatar.cc/150"} alt="Rider" />
-                  </div>
-                  <div className={styles.riderDetails}>
-                    <div className={styles.personName}>{sel.rider.name}</div>
-                    <div className={styles.personPhone}>{sel.rider.phone}</div>
-                    <div className={styles.vehicleInfo}>
-                       <i className="fa-solid fa-motorcycle" /> {sel.rider.vehicle.model}
-                       <span className={styles.plate}>{sel.rider.vehicle.plate}</span>
+                {sel.rider ? (
+                  <div className={styles.riderFullRow}>
+                    <div className={styles.riderAvatarLarge}>
+                      <img src={sel.rider.img || "https://i.pravatar.cc/150"} alt="Rider" />
+                    </div>
+                    <div className={styles.riderDetails}>
+                      <div className={styles.personName}>{sel.rider.name}</div>
+                      <div className={styles.personPhone}>{sel.rider.phone}</div>
+                      <div className={styles.vehicleInfo}>
+                         <i className="fa-solid fa-motorcycle" /> {sel.rider.vehicle.type}
+                         <span className={styles.plate}>{sel.rider.vehicle.plate}</span>
+                      </div>
+                    </div>
+                    <div className={styles.quickActions}>
+                       <button className={styles.actionBtnCall} onClick={() => window.open(`tel:${sel.rider.phone}`)}>
+                          <i className="fa-solid fa-phone" /> โทร
+                       </button>
                     </div>
                   </div>
-                  <div className={styles.quickActions}>
-                     <button className={styles.actionBtnCall} onClick={() => window.open(`tel:${sel.rider.phone}`)}>
-                        <i className="fa-solid fa-phone" /> โทร
-                     </button>
+                ) : (
+                  <div className={styles.noRiderBox}>
+                    <p>ยังไม่มีไรเดอร์รับงานนี้ ระบบกำลังค้นหาไรเดอร์ที่ใกล้ที่สุด...</p>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Order Items */}

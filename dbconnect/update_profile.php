@@ -17,15 +17,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 include "dbconnect.php";
 
-/* รับ JSON */
+/* รับ JSON หรือ FormData */
 $data = json_decode(file_get_contents("php://input"), true);
 
-if(!$data){
+if(!$data && empty($_POST)){
     echo json_encode([
         "success"=>false,
         "message"=>"No data received"
     ]);
     exit;
+}
+
+// Merge data if needed
+if ($data) {
+    foreach($data as $k => $v) $_POST[$k] = $v;
 }
 
 $usrId = $_POST["id"] ?? "";
@@ -67,6 +72,16 @@ if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
     }
 }
 
+// Handle Original Image (UsrImageOri)
+$logoOriPath = null;
+if (isset($_FILES['imageOri']) && $_FILES['imageOri']['error'] === UPLOAD_ERR_OK) {
+    $fileExt = pathinfo($_FILES['imageOri']['name'], PATHINFO_EXTENSION);
+    $fileName = 'profile_ori_' . $usrId . '_' . time() . '.' . $fileExt;
+    if (move_uploaded_file($_FILES['imageOri']['tmp_name'], $uploadDir . $fileName)) {
+        $logoOriPath = '/uploads/profiles/' . $fileName;
+    }
+}
+
 // Handle Banner
 $bannerPath = null;
 if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
@@ -77,59 +92,67 @@ if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
     }
 }
 
-// Prepare Dynamic Update
-$sql = "UPDATE tbl_userinfo SET ";
-$updates = [];
-$params = [];
-$types = "";
+// Update User Info
+$userUpdates = [];
+$userParams = [];
+$userTypes = "";
+if ($fullName) { $userUpdates[] = "UsrFullName = ?"; $userParams[] = $fullName; $userTypes .= "s"; }
+if ($phone) { $userUpdates[] = "UsrPhone = ?"; $userParams[] = $phone; $userTypes .= "s"; }
+if ($logoPath) { $userUpdates[] = "UsrImage = ?"; $userParams[] = $logoPath; $userTypes .= "s"; }
+if ($logoOriPath) { $userUpdates[] = "UsrImageOri = ?"; $userParams[] = $logoOriPath; $userTypes .= "s"; }
+// Note: UsrAddress is deprecated and managed via tbl_address
 
-if ($fullName) { $updates[] = "UsrFullName = ?"; $params[] = $fullName; $types .= "s"; }
-if ($phone) { $updates[] = "UsrPhone = ?"; $params[] = $phone; $types .= "s"; }
-if ($logoPath) { $updates[] = "UsrImage = ?"; $params[] = $logoPath; $types .= "s"; }
-
-// Add restaurant fields if they are provided
-if ($shopName) { $updates[] = "ShopName = ?"; $params[] = $shopName; $types .= "s"; }
-if ($shopPhone) { $updates[] = "ShopPhone = ?"; $params[] = $shopPhone; $types .= "s"; }
-if ($shopCatType) { $updates[] = "ShopCatType = ?"; $params[] = $shopCatType; $types .= "s"; }
-if ($shopStatus) { $updates[] = "ShopStatus = ?"; $params[] = $shopStatus; $types .= "s"; }
-if ($shopLat) { $updates[] = "ShopLat = ?"; $params[] = $shopLat; $types .= "s"; }
-if ($shopLng) { $updates[] = "ShopLng = ?"; $params[] = $shopLng; $types .= "s"; }
-if ($bannerPath) { $updates[] = "ShopBannerPath = ?"; $params[] = $bannerPath; $types .= "s"; }
-if ($address) { $updates[] = "UsrAddress = ?"; $params[] = $address; $types .= "s"; }
-
-if (empty($updates)) {
-    echo json_encode(["success"=>false, "message"=>"No fields to update"]);
-    exit;
+if (!empty($userUpdates)) {
+    $sqlUser = "UPDATE tbl_userinfo SET " . implode(", ", $userUpdates) . " WHERE UsrId = ?";
+    $userParams[] = $usrId;
+    $userTypes .= "i";
+    $stmtUser = $conn->prepare($sqlUser);
+    $stmtUser->bind_param($userTypes, ...$userParams);
+    $stmtUser->execute();
 }
 
-$sql .= implode(", ", $updates);
-$sql .= " WHERE UsrId = ?";
-$params[] = $usrId;
-$types .= "i";
+// Update Shop Info (if user is restaurant/shop)
+$shopUpdates = [];
+$shopParams = [];
+$shopTypes = "";
+if ($shopName) { $shopUpdates[] = "ShopName = ?"; $shopParams[] = $shopName; $shopTypes .= "s"; }
+if ($shopPhone) { $shopUpdates[] = "ShopPhone = ?"; $shopParams[] = $shopPhone; $shopTypes .= "s"; }
+if ($shopCatType) { $shopUpdates[] = "ShopCatType = ?"; $shopParams[] = $shopCatType; $shopTypes .= "s"; }
+if ($shopStatus) { $shopUpdates[] = "ShopStatus = ?"; $shopParams[] = $shopStatus; $shopTypes .= "s"; }
+if ($shopLat) { $shopUpdates[] = "ShopLat = ?"; $shopParams[] = $shopLat; $shopTypes .= "s"; }
+if ($shopLng) { $shopUpdates[] = "ShopLng = ?"; $shopParams[] = $shopLng; $shopTypes .= "s"; }
+if ($bannerPath) { $shopUpdates[] = "ShopBannerPath = ?"; $shopParams[] = $bannerPath; $shopTypes .= "s"; }
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param($types, ...$params);
-
-if($stmt->execute()){
-    // Refresh User Data (Include new Shop fields)
-    $sql_refresh = "SELECT UsrId as id, UsrFullName as name, UsrEmail as email, UsrPhone as phone, UsrRole as role, UsrImage as image, 
-                           ShopName as shopName, ShopPhone as shopPhone, ShopCatType as shopCatType, ShopStatus as shopStatus, 
-                           ShopLat as shopLat, ShopLng as shopLng, ShopBannerPath as banner, UsrAddress as address 
-                    FROM tbl_userinfo WHERE UsrId = ?";
-    $stmt_refresh = $conn->prepare($sql_refresh);
-    $stmt_refresh->bind_param("i", $usrId);
-    $stmt_refresh->execute();
-    $updated_user = $stmt_refresh->get_result()->fetch_assoc();
-
-    echo json_encode([
-        "success" => true,
-        "message" => "บันทึกข้อมูลสำเร็จเรียบร้อยแล้ว",
-        "user" => $updated_user
-    ]);
-} else {
-    echo json_encode(["success" => false, "message" => "Error: " . $conn->error]);
+if (!empty($shopUpdates)) {
+    $sqlShop = "UPDATE tbl_shop SET " . implode(", ", $shopUpdates) . " WHERE UsrId = ?";
+    $shopParams[] = $usrId;
+    $shopTypes .= "i";
+    $stmtShop = $conn->prepare($sqlShop);
+    $stmtShop->bind_param($shopTypes, ...$shopParams);
+    $stmtShop->execute();
 }
 
-$stmt->close();
+// Refresh User Data (Join tbl_userinfo and tbl_shop)
+$sql_refresh = "SELECT u.UsrId as id, u.UsrFullName as name, u.UsrEmail as email, u.UsrPhone as phone, 
+                       u.UsrRole as role, u.UsrImage as image, u.UsrImageOri as imageOri,
+                       CONCAT(COALESCE(a.HouseNo,''), ' ', COALESCE(a.SubDistrict,''), ' ', COALESCE(a.District,''), ' ', COALESCE(a.Province,''), ' ', COALESCE(a.Zipcode,'')) as address,
+                       s.ShopName as shopName, s.ShopPhone as shopPhone, s.ShopCatType as shopCatType, 
+                       s.ShopStatus as shopStatus, s.ShopLat as shopLat, s.ShopLng as shopLng, 
+                       s.ShopBannerPath as banner 
+                FROM tbl_userinfo u 
+                LEFT JOIN tbl_shop s ON u.UsrId = s.UsrId 
+                LEFT JOIN tbl_address a ON u.UsrId = a.UsrId AND a.IsDefault = 1
+                WHERE u.UsrId = ?";
+$stmt_refresh = $conn->prepare($sql_refresh);
+$stmt_refresh->bind_param("i", $usrId);
+$stmt_refresh->execute();
+$updated_user = $stmt_refresh->get_result()->fetch_assoc();
+
+echo json_encode([
+    "success" => true,
+    "message" => "บันทึกข้อมูลสำเร็จเรียบร้อยแล้ว",
+    "user" => $updated_user
+]);
+
 $conn->close();
 ?>

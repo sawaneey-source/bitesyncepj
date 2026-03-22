@@ -16,14 +16,68 @@ export default function CheckoutPage() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [lastOrder, setLastOrder]       = useState(null)
 
+  // Address states
+  const [provinces, setProvinces] = useState([])
+  const [selProvince, setSelProvince] = useState('')
+  const [selAmphure, setSelAmphure] = useState('')
+  const [selTambon, setSelTambon] = useState('')
+  const [zipcode, setZipcode] = useState('')
+  const [houseNo, setHouseNo] = useState('')
+  const [village, setVillage] = useState('')
+  const [road, setRoad] = useState('')
+  const [soi, setSoi] = useState('')
+  const [moo, setMoo] = useState('')
+
   useEffect(() => {
     setCart(JSON.parse(localStorage.getItem('bs_cart') || '[]'))
     setAddress(localStorage.getItem('bs_order_address') || '')
     setNote(localStorage.getItem('bs_order_note') || '')
+    
     const u = localStorage.getItem('bs_user')
-    if (u) setUser(JSON.parse(u))
+    if (u) {
+      const userData = JSON.parse(u)
+      if (userData.role === 'restaurant' || userData.role === 'shop') {
+        router.replace('/shop')
+        return
+      } else if (userData.role === 'rider') {
+        router.replace('/rider')
+        return
+      } else if (userData.role === 'admin') {
+        router.replace('/admin/dashboard')
+        return
+      }
+      setUser(userData)
+    } else {
+      router.replace('/login')
+      return
+    }
+    
     setLastOrder(localStorage.getItem('bs_last_order') || null)
-  }, [])
+
+    // Load saved address
+    const saved = localStorage.getItem('bs_address_full')
+    if (saved) {
+      const s = JSON.parse(saved)
+      setSelProvince(s.province || '')
+      setSelAmphure(s.amphure || '')
+      setSelTambon(s.tambon || '')
+      setZipcode(s.zip || '')
+      setHouseNo(s.houseNo || '')
+      setVillage(s.village || '')
+      setRoad(s.road || '')
+      setSoi(s.soi || '')
+      setMoo(s.moo || '')
+      setAddress(s.full || '')
+    } else {
+      setAddress(localStorage.getItem('bs_order_address') || '')
+    }
+
+    // Fetch provinces
+    fetch('http://localhost/bitesync/api/home/thai_address.php')
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .catch(() => {})
+  }, [router])
 
   function changeQty(index, delta) {
     const next = [...cart]
@@ -38,6 +92,33 @@ export default function CheckoutPage() {
     localStorage.setItem('bs_cart', JSON.stringify(next))
   }
 
+  // Address helpers
+  const currentPro = provinces.find(p => p.name_th === selProvince)
+  const currentAmp = currentPro?.amphure.find(a => a.name_th === selAmphure)
+  const currentTam = currentAmp?.tambon.find(t => t.name === selTambon)
+
+  function updateFullAddress(h, v, r, s, m, t, a, p, z) {
+    const parts = []
+    if (h) parts.push(h)
+    if (m) parts.push(`หมู่ ${m}`)
+    if (v) parts.push(v)
+    if (s) parts.push(`ซอย ${s}`)
+    if (r) parts.push(`ถนน ${r}`)
+    if (t) parts.push(`ต.${t}`)
+    if (a) parts.push(`อ.${a}`)
+    if (p) parts.push(`จ.${p}`)
+    if (z) parts.push(z)
+    
+    const full = parts.join(' ').trim()
+    setAddress(full)
+    localStorage.setItem('bs_address_full', JSON.stringify({ 
+      houseNo:h, village:v, road:r, soi:s, moo:m, 
+      tambon:t, amphure:a, province:p, zip:z, full 
+    }))
+  }
+
+  const isAddressValid = selProvince && selAmphure && selTambon && houseNo.trim().length >= 1
+
   const subtotal = (cart || []).reduce((s, c) => s + Math.round((parseFloat(c.price || 0) * Number(c.qty || 0))), 0)
   const deliveryFee = 15
   const total = Math.round(subtotal + deliveryFee)
@@ -45,23 +126,42 @@ export default function CheckoutPage() {
   async function placeOrder() {
     setLoading(true)
     try {
-      const user  = JSON.parse(localStorage.getItem('bs_user') || '{}')
+      const user = JSON.parse(localStorage.getItem('bs_user') || '{}')
       const token = localStorage.getItem('bs_token')
-      const res   = await fetch('http://localhost/bitesync/api/customer/orders.php', {
+      
+      // Send structured address record
+      const addressRecord = {
+        houseNo: houseNo,
+        village: village,
+        road: road,
+        soi: soi,
+        moo: moo,
+        tambon: selTambon,
+        amphure: selAmphure,
+        province: selProvince,
+        zip: zipcode
+      }
+
+      const res = await fetch('http://localhost/bitesync/api/customer/orders.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          userId: user.id, items: cart, address,
-          note, total, deliveryFee
+          userId: user.id, 
+          items: cart, 
+          addressRecord, // Real structured address
+          total, 
+          deliveryFee
         })
       })
       const data = await res.json()
       if (data.success) {
         setOrderId(data.orderId)
         setStep(2)
+      } else {
+        alert(data.message || 'เกิดข้อผิดพลาดในการสั่งซื้อ')
       }
     } catch {
-      // mock
+      // Fallback for demo
       const mockId = `ORD-${Date.now().toString().slice(-6)}`
       setOrderId(mockId)
       setStep(2)
@@ -73,12 +173,22 @@ export default function CheckoutPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem('bs_token')
-      await fetch(`http://localhost/bitesync/api/customer/payment.php`, {
+      const res = await fetch(`http://localhost/bitesync/api/customer/payment.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ orderId, method: 'qr', amount: total })
       })
-    } catch {}
+      const data = await res.json()
+      if (!data.success) {
+        alert(data.message || 'การชำระเงินไม่ถูกต้อง')
+        setLoading(false)
+        return
+      }
+    } catch (e) {
+      alert('ไม่สามารถแจ้งยืนยันการชำระเงินได้ กรุณาลองใหม่')
+      setLoading(false)
+      return
+    }
     const history = JSON.parse(localStorage.getItem('bs_history') || '[]')
     const newOrder = {
       id: orderId,
@@ -243,13 +353,140 @@ export default function CheckoutPage() {
               {/* Delivery */}
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>📍 ที่อยู่จัดส่ง</h2>
-                <textarea
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  rows={2}
-                  className={styles.inp}
-                  placeholder="ที่อยู่จัดส่ง..."
-                />
+                
+                <div className={styles.addrFull}>
+                  <label>บ้านเลขที่ / อาคาร</label>
+                  <input
+                    type="text"
+                    value={houseNo}
+                    onChange={e => {
+                      setHouseNo(e.target.value);
+                      updateFullAddress(e.target.value, village, road, soi, moo, selTambon, selAmphure, selProvince, zipcode);
+                    }}
+                    className={styles.inp}
+                    placeholder="เช่น 123/4 หมู่บ้านสุขใจ"
+                  />
+                </div>
+
+                <div className={styles.addrGrid}>
+                  <div className={styles.addrField}>
+                    <label>หมู่ที่</label>
+                    <input 
+                      type="text" 
+                      placeholder="เช่น 5" 
+                      value={moo} 
+                      onChange={e => {
+                        setMoo(e.target.value);
+                        updateFullAddress(houseNo, village, road, soi, e.target.value, selTambon, selAmphure, selProvince, zipcode);
+                      }}
+                      className={styles.sel}
+                    />
+                  </div>
+                  <div className={styles.addrField}>
+                    <label>หมู่บ้าน</label>
+                    <input 
+                      type="text" 
+                      placeholder="หมู่บ้าน..." 
+                      value={village} 
+                      onChange={e => {
+                        setVillage(e.target.value);
+                        updateFullAddress(houseNo, e.target.value, road, soi, moo, selTambon, selAmphure, selProvince, zipcode);
+                      }}
+                      className={styles.sel}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.addrGrid}>
+                  <div className={styles.addrField}>
+                    <label>ซอย</label>
+                    <input 
+                      type="text" 
+                      placeholder="ซอย..." 
+                      value={soi} 
+                      onChange={e => {
+                        setSoi(e.target.value);
+                        updateFullAddress(houseNo, village, road, e.target.value, moo, selTambon, selAmphure, selProvince, zipcode);
+                      }}
+                      className={styles.sel}
+                    />
+                  </div>
+                  <div className={styles.addrField}>
+                    <label>ถนน</label>
+                    <input 
+                      type="text" 
+                      placeholder="ถนน..." 
+                      value={road} 
+                      onChange={e => {
+                        setRoad(e.target.value);
+                        updateFullAddress(houseNo, village, e.target.value, soi, moo, selTambon, selAmphure, selProvince, zipcode);
+                      }}
+                      className={styles.sel}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.addrGrid}>
+                  <div className={styles.addrField}>
+                    <label>จังหวัด</label>
+                    <select 
+                      value={selProvince} 
+                      onChange={e => {
+                        const v = e.target.value;
+                        setSelProvince(v); setSelAmphure(''); setSelTambon(''); setZipcode('');
+                        updateFullAddress(houseNo, village, road, soi, moo, '', '', v, '');
+                      }}
+                      className={styles.sel}
+                    >
+                      <option value="">เลือกจังหวัด</option>
+                      {provinces.map(p => <option key={p.name_th} value={p.name_th}>{p.name_th}</option>)}
+                    </select>
+                  </div>
+
+                  <div className={styles.addrField}>
+                    <label>อำเภอ/เขต</label>
+                    <select 
+                      value={selAmphure} 
+                      disabled={!selProvince}
+                      onChange={e => {
+                        const v = e.target.value;
+                        setSelAmphure(v); setSelTambon(''); setZipcode('');
+                        updateFullAddress(houseNo, village, road, soi, moo, '', v, selProvince, '');
+                      }}
+                      className={styles.sel}
+                    >
+                      <option value="">เลือกอำเภอ</option>
+                      {currentPro?.amphure.map(a => <option key={a.name_th} value={a.name_th}>{a.name_th}</option>)}
+                    </select>
+                  </div>
+
+                  <div className={styles.addrField}>
+                    <label>ตำบล/แขวง</label>
+                    <select 
+                      value={selTambon} 
+                      disabled={!selAmphure}
+                      onChange={e => {
+                        const v = e.target.value;
+                        const t = currentAmp?.tambon.find(x => (x.name_th === v || x.name === v));
+                        setSelTambon(v);
+                        setZipcode(t?.zip_code || t?.zip || '');
+                        updateFullAddress(houseNo, village, road, soi, moo, v, selAmphure, selProvince, t?.zip_code || t?.zip || '');
+                      }}
+                      className={styles.sel}
+                    >
+                      <option value="">เลือกตำบล</option>
+                      {currentAmp?.tambon.map(t => <option key={t.name_th || t.name} value={t.name_th || t.name}>{t.name_th || t.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className={styles.addrField}>
+                    <label>รหัสไปรษณีย์</label>
+                    <input type="text" value={zipcode} readOnly className={`${styles.sel} ${styles.readOnly}`} placeholder="Zipcode"/>
+                  </div>
+                </div>
+
+                {address && <div className={styles.addrPreview}><strong>Preview:</strong> {address}</div>}
+                
                 {note && <div className={styles.noteRow}>📝 {note}</div>}
               </div>
             </div>
@@ -263,8 +500,12 @@ export default function CheckoutPage() {
                 <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
                   <span>ทั้งหมด</span><span>{Math.round(total).toLocaleString()} ฿</span>
                 </div>
-                <button onClick={placeOrder} disabled={loading} className={styles.payBtn}>
-                  {loading ? '⏳ กำลังดำเนินการ...' : `ยืนยันออเดอร์ — ${Math.round(total).toLocaleString()} ฿`}
+                <button 
+                  onClick={placeOrder} 
+                  disabled={loading || !isAddressValid || cart.length === 0} 
+                  className={styles.payBtn}
+                >
+                  {loading ? '⏳ กำลังดำเนินการ...' : (!isAddressValid ? '⚠️ กรุณาใส่ที่อยู่ให้ครบ' : `ยืนยันออเดอร์ — ${Math.round(total).toLocaleString()} ฿`)}
                 </button>
               </div>
             </div>

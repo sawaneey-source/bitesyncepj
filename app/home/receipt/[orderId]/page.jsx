@@ -4,26 +4,25 @@ import { useRouter, useParams } from 'next/navigation'
 import styles from './page.module.css'
 import Navbar from '@/components/Navbar'
 
-const MOCK = {
-  id: 'BSS92231', date: '17 Mar 2026, 14:35',
-  customer: { name: 'สมชาย ใจดี', phone: '081-234-5678', address: '123 ถ.กาญจนวนิช หาดใหญ่' },
-  shop: { name: 'มอกกี้เบเกอรี่' },
-  rider: { name: 'Aek' },
-  items: [
-    { name: 'Backyard Biscuit Cake', qty: 1, price: 50 },
-    { name: 'Our Island Dessert Shot', qty: 1, price: 180 },
-    { name: 'Matcha Jelly', qty: 2, price: 75 },
-  ],
-  subtotal: 380, deliveryFee: 15, total: 395,
-  paymentMethod: 'QR Code / PromptPay', status: 'Delivered',
+const STATUS_MAP = {
+  1: { lbl: 'รอรับออเดอร์', color: '#856404' },
+  2: { lbl: 'รับออเดอร์แล้ว', color: '#2a6129' },
+  3: { lbl: 'กำลังเตรียมอาหาร', color: '#e65100' },
+  4: { lbl: 'รอไรเดอร์มารับ', color: '#2a6129' },
+  5: { lbl: 'กำลังจัดส่ง', color: '#1565c0' },
+  6: { lbl: 'จัดส่งสำเร็จ', color: '#2a6129' },
+  7: { lbl: 'ยกเลิกออเดอร์', color: '#b71c1c' }
 }
 
 export default function ReceiptPage() {
   const router = useRouter()
   const params = useParams()
-  const [order, setOrder] = useState(MOCK)
-  const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [rating, setRating] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
+  const [hasRated, setHasRated] = useState(false)
 
   useEffect(() => {
     const u = localStorage.getItem('bs_user')
@@ -34,30 +33,70 @@ export default function ReceiptPage() {
     setUser(JSON.parse(u))
 
     async function fetchReceipt() {
-      // 1. Check local history first for real data
-      const history = JSON.parse(localStorage.getItem('bs_history') || '[]')
-      const localOrder = history.find(h => h.id === params?.orderId)
-
-      if (localOrder) {
-        setOrder(localOrder)
-        setLoading(false)
-        return
-      }
-
-      // 2. Fallback to API if not in history
       setLoading(true)
       try {
-        const res = await fetch(`http://localhost/bitesync/api/customer/receipt.php?id=${params?.orderId}`)
+        const token = localStorage.getItem('bs_token')
+        const res = await fetch(`http://localhost/bitesync/api/customer/orders.php?id=${params?.orderId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
         const d = await res.json()
-        if (d.success) setOrder(d.data)
-        else setOrder(MOCK) // Final fallback
-      } catch {
-        setOrder(MOCK)
+        if (d.success) {
+            const row = d.data
+            setOrder({
+                id: row.OdrId,
+                date: row.OdrCreatedAt,
+                paymentMethod: 'โอนเงิน (QR Code / PromptPay)',
+                total: row.OdrGrandTotal,
+                subtotal: row.OdrFoodPrice,
+                deliveryFee: row.OdrDelFee,
+                OdrStatus: row.OdrStatus,
+                items: row.items || [],
+                shop: { id: row.ShopId, name: row.ShopName },
+                rider: { name: row.RiderName || 'รอยืนยันคนขับ' },
+                customer: { 
+                    name: user?.name, 
+                    address: `${row.HouseNo} ${row.SubDistrict} ${row.District} ${row.Province}` 
+                }
+            })
+            if (row.RiderRating) {
+                setRating(Number(row.RiderRating))
+                setHasRated(true)
+            }
+        }
+      } catch (e) {
+        console.error("Receipt fetch failed", e)
       }
       setLoading(false)
     }
     if (params?.orderId) fetchReceipt()
-  }, [params?.orderId])
+  }, [params?.orderId, user?.name])
+
+  async function handleRate(val) {
+    if (hasRated || submitting) return
+    setRating(val)
+    setSubmitting(true)
+    try {
+      const token = localStorage.getItem('bs_token')
+      const res = await fetch('http://localhost/bitesync/api/customer/rate-rider.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId: params.orderId, rating: val })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setHasRated(true)
+      } else {
+        alert(data.message)
+      }
+    } catch (e) {
+      alert('เกิดข้อผิดพลาดในการให้คะแนน')
+    }
+    setSubmitting(false)
+  }
+
+  if (loading || !order) return <div className={styles.loading}>กำลังโหลดใบเสร็จ...</div>
+
+  const st = STATUS_MAP[order.OdrStatus] || { lbl: 'ได้รับคำสั่งซื้อ', color: '#6d7280' }
 
   return (
     <div className={styles.page}>
@@ -67,62 +106,61 @@ export default function ReceiptPage() {
           <button onClick={() => router.back()} className={styles.backBtn}>
             <i className="fa-solid fa-arrow-left" /> กลับ
           </button>
-          <span className={styles.paidBadge}>✅ Fully Paid</span>
+          <span className={styles.paidBadge}>✅ ชำระเงินเรียบร้อย</span>
         </div>
       </div>
 
       <div className={styles.body}>
         <div className={styles.receiptCard}>
-
-          {/* Header */}
           <div className={styles.rcptHdr}>
             <div className={styles.rcptLogoRow}>
               <div className={styles.rcptLogoMark}>🍃</div>
               <span className={styles.rcptLogoTxt}>Bite<em>Sync</em></span>
             </div>
-            <h2 className={styles.rcptTitle}>Order Receipt</h2>
+            <h2 className={styles.rcptTitle}>ใบแจ้งหนี้ / ใบเสร็จ</h2>
           </div>
 
-          {/* Order meta */}
           <div className={styles.metaGrid}>
             <div className={styles.metaBox}>
-              <div className={styles.metaLabel}>Order ID</div>
+              <div className={styles.metaLabel}>เลขที่ออเดอร์</div>
               <div className={styles.metaVal}>#{order.id}</div>
             </div>
             <div className={styles.metaBox}>
-              <div className={styles.metaLabel}>Date</div>
+              <div className={styles.metaLabel}>วันที่สั่งซื้อ</div>
               <div className={styles.metaVal}>{order.date}</div>
             </div>
             <div className={styles.metaBox}>
-              <div className={styles.metaLabel}>Payment</div>
+              <div className={styles.metaLabel}>ชำระโดย</div>
               <div className={styles.metaVal}>{order.paymentMethod}</div>
             </div>
             <div className={styles.metaBox}>
-              <div className={styles.metaLabel}>Status</div>
-              <div className={`${styles.metaVal} ${styles.metaValGreen}`}>✅ {order.status}</div>
+              <div className={styles.metaLabel}>สถานะล่าสุด</div>
+              <div className={styles.metaVal} style={{color: st.color}}>
+                  {Number(order.OdrStatus) === 6 ? '✅ ' : Number(order.OdrStatus) === 7 ? '❌ ' : '⏳ '}
+                  {st.lbl}
+              </div>
             </div>
           </div>
 
           <div className={styles.divider} />
 
-          {/* Info grid */}
           <div className={styles.infoGrid}>
             <div className={styles.infoBox}>
-              <div className={styles.infoTitle}>🏪 Restaurant</div>
+              <div className={styles.infoTitle}>🏪 ร้านอาหาร</div>
               <div
                 className={styles.infoName}
-                onClick={() => router.push(`/home/restaurant/${order.shop.id || order.shopId || 1}`)}
+                onClick={() => router.push(`/home/restaurant/${order.shop.id}`)}
                 style={{ cursor: 'pointer', color: '#2a6129' }}
               >
                 {order.shop.name}
               </div>
             </div>
             <div className={styles.infoBox}>
-              <div className={styles.infoTitle}>🛵 Rider</div>
+              <div className={styles.infoTitle}>🛵 ไรเดอร์</div>
               <div className={styles.infoName}>{order.rider.name}</div>
             </div>
             <div className={`${styles.infoBox} ${styles.infoBoxFull}`}>
-              <div className={styles.infoTitle}>📍 Delivery To</div>
+              <div className={styles.infoTitle}>📍 ส่งที่</div>
               <div className={styles.infoName}>{order.customer.name}</div>
               <div className={styles.infoSub}>{order.customer.address}</div>
             </div>
@@ -130,49 +168,65 @@ export default function ReceiptPage() {
 
           <div className={styles.divider} />
 
-          {/* Items */}
           <div className={styles.itemsSection}>
             <div className={styles.itemsTitle}>รายการอาหาร</div>
             {order.items.map((item, i) => (
-              <div
-                key={i}
-                className={styles.item}
-                onClick={() => router.push(`/home/restaurant/${order.shop.id || order.shopId || 1}`)}
-                style={{ cursor: 'pointer' }}
-              >
+              <div key={i} className={styles.item}>
                 <div className={styles.itemMain}>
                   <span className={styles.itemName}>{item.name}</span>
-                  {item.addons && item.addons.length > 0 && (
-                    <div className={styles.itemAddons}>
-                      {item.addons.map(a => `${a.name} x${a.qty || 1}`).join(', ')}
-                    </div>
-                  )}
                 </div>
                 <span className={styles.itemQty}>x{item.qty}</span>
-                <span className={styles.itemPrice}>{Math.round(item.price * item.qty).toLocaleString()} THB</span>
+                <span className={styles.itemPrice}>{Math.round(item.price * item.qty).toLocaleString()} ฿</span>
               </div>
             ))}
           </div>
 
           <div className={styles.divider} />
 
-          {/* Summary */}
           <div className={styles.summary}>
             <div className={styles.summRow}>
-              <span>ยอดรวม</span>
-              <span>{order.subtotal} THB</span>
+              <span>ค่าอาหารทั้งหมด</span>
+              <span>{order.subtotal} ฿</span>
             </div>
             <div className={styles.summRow}>
               <span>ค่าจัดส่ง</span>
-              <span>{order.deliveryFee} THB</span>
+              <span>{order.deliveryFee} ฿</span>
             </div>
             <div className={`${styles.summRow} ${styles.summTotal}`}>
-              <span>Total</span>
-              <span>{order.total} THB</span>
+              <span>ยอดรวมสุทธิ</span>
+              <span>{order.total} ฿</span>
             </div>
           </div>
 
-          {/* Barcode decoration */}
+          {/* Rating Section */}
+          {Number(order.OdrStatus) === 6 && (
+            <div className={styles.ratingSection} style={{marginTop: '20px', textAlign: 'center', background: '#f9fbf9', padding: '15px', borderRadius: '12px', border: '1px dashed #2a6129'}}>
+              <div style={{fontSize: '14px', fontWeight: 'bold', color: '#2a6129', marginBottom: '8px'}}>
+                {hasRated ? '🌟 ขอบคุณสำหรับคะแนน!' : '⭐ ให้คะแนนไรเดอร์เพื่อเป็นกำลังใจ'}
+              </div>
+              <div style={{display: 'flex', justifyContent: 'center', gap: '8px'}}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <span 
+                    key={s} 
+                    onClick={() => handleRate(s)}
+                    style={{
+                      fontSize: '32px', 
+                      cursor: hasRated ? 'default' : 'pointer',
+                      color: s <= rating ? '#f0c419' : '#ccc',
+                      transition: 'transform 0.2s',
+                      filter: submitting ? 'grayscale(1)' : 'none'
+                    }}
+                    onMouseEnter={(e) => !hasRated && (e.target.style.transform = 'scale(1.2)')}
+                    onMouseLeave={(e) => !hasRated && (e.target.style.transform = 'scale(1)')}
+                  >
+                    {s <= rating ? '★' : '☆'}
+                  </span>
+                ))}
+              </div>
+              {hasRated && <div style={{fontSize: '12px', color: '#666', marginTop: '5px'}}>ออเดอร์นี้ได้รับ {rating} ดาว</div>}
+            </div>
+          )}
+
           <div className={styles.barcode}>
             {'█░█░██░█░█░██░█░█░██░█░█░██░█░█░██░█░█░██░█'.split('').map((c, i) => (
               <span key={i} style={{ color: c === '█' ? '#1a1f1a' : '#fff', fontSize: 8 }}>{c}</span>
@@ -180,14 +234,15 @@ export default function ReceiptPage() {
             <div className={styles.barcodeId}>#{order.id}</div>
           </div>
 
-          {/* Actions */}
           <div className={styles.actions}>
-            <button
-              onClick={() => router.push(`/home/track/${params.orderId}`)}
-              className={styles.btnTrack}
-            >
-              🛵 ติดตามออเดอร์
-            </button>
+            {!['6', '7'].includes(order.OdrStatus?.toString()) && (
+              <button
+                onClick={() => router.push(`/home/track/${params.orderId}`)}
+                className={styles.btnTrack}
+              >
+                🛵 ติดตามออเดอร์
+              </button>
+            )}
             <button onClick={() => window.print()} className={styles.btnPrint}>🖨️ พิมพ์ใบเสร็จ</button>
             <button onClick={() => router.push('/home')} className={styles.btnHome}>กลับหน้าหลัก</button>
           </div>

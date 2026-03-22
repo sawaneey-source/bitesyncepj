@@ -1,0 +1,114 @@
+<?php
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+// Set Timezone to Thailand
+date_default_timezone_set('Asia/Bangkok');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+include "../../dbconnect/dbconnect.php";
+$conn->set_charset("utf8mb4");
+
+$usrId = $_GET['usrId'] ?? 0;
+$period = $_GET['period'] ?? 'วันนี้';
+
+if (!$usrId) {
+    echo json_encode(['success' => false, 'message' => 'Missing UsrId']);
+    exit();
+}
+
+// Get Rider Info
+$rStmt = $conn->prepare("SELECT RiderId, RiderRatingAvg FROM tbl_rider WHERE UsrId = ?");
+$rStmt->bind_param("i", $usrId);
+$rStmt->execute();
+$rRes = $rStmt->get_result();
+if ($rRow = $rRes->fetch_assoc()) {
+    $riderId = $rRow['RiderId'];
+    $currentRatingAvg = (float)$rRow['RiderRatingAvg'];
+} else {
+    echo json_encode(['success' => false, 'message' => 'Rider not found']);
+    exit();
+}
+
+// Date Filter Clause using MySQL dates to be safe
+$dateClause = "DATE(o.OdrUpdatedAt) = CURDATE()";
+if ($period === 'สัปดาห์นี้') {
+    $dateClause = "YEARWEEK(o.OdrUpdatedAt, 1) = YEARWEEK(CURDATE(), 1)";
+} else if ($period === 'เดือนนี้') {
+    $dateClause = "YEAR(o.OdrUpdatedAt) = YEAR(CURDATE()) AND MONTH(o.OdrUpdatedAt) = MONTH(CURDATE())";
+} else if ($period === 'ทั้งหมด') {
+    $dateClause = "1=1";
+}
+
+// 1. Fetch History List
+$sql = "SELECT o.OdrId, o.OdrUpdatedAt as date, o.OdrDelFee as fee, o.OdrDistance as distance, o.OdrStatus, o.RiderRating,
+               s.ShopName, a.HouseNo, a.SubDistrict
+        FROM tbl_order o
+        LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
+        LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
+        WHERE o.RiderId = ? AND o.OdrStatus IN (6, 7) AND $dateClause
+        ORDER BY o.OdrUpdatedAt DESC";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $riderId);
+$stmt->execute();
+$res = $stmt->get_result();
+
+$history = [];
+$summary = ['deliveries' => 0, 'earnings' => 0, 'distance' => 0, 'cancelled' => 0, 'rating' => $currentRatingAvg];
+
+while ($row = $res->fetch_assoc()) {
+    $isDelivered = $row['OdrStatus'] == 6;
+    $statusStr = $isDelivered ? 'delivered' : 'cancelled';
+    
+    $ts = strtotime($row['date']);
+    $dateStr = date("H:i", $ts) . " (" . date("d/m", $ts) . ")";
+    if ($period === 'วันนี้') {
+        $dateStr = "เวลา " . date("H:i", $ts);
+    }
+    
+    if ($isDelivered) {
+        $summary['deliveries']++;
+        $summary['earnings'] += (float)$row['fee'];
+        $summary['distance'] += (float)$row['distance'];
+    } else {
+        $summary['cancelled']++;
+    }
+
+    $history[] = [
+        'id' => '#' . $row['OdrId'],
+        'date' => $dateStr,
+        'shopName' => $row['ShopName'],
+        'custAddr' => $row['HouseNo'] . ' ' . $row['SubDistrict'],
+        'fee' => (int)$row['fee'],
+        'status' => $statusStr,
+        'distance' => number_format((float)$row['distance'], 1) . ' กม.',
+        'rating' => $row['RiderRating']
+    ];
+}
+
+$summary['distance'] = number_format($summary['distance'], 1);
+
+// 2. Chart Data (Last 7 days earnings)
+// Use DATE_SUB and CURDATE to ensure standard MySQL date matching
+$chart = [];
+for ($i = 6; $i >= 0; $i--) {
+    $stmt = $conn->prepare("SELECT SUM(OdrDelFee) as total FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6 AND DATE(OdrUpdatedAt) = DATE_SUB(CURDATE(), INTERVAL ? DAY)");
+    $stmt->bind_param("ii", $riderId, $i);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $chart[] = (float)($row['total'] ?? 0);
+}
+
+echo json_encode([
+    'success' => true,
+    'data' => $history,
+    'summary' => $summary,
+    'chart' => $chart
+]);

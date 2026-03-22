@@ -25,12 +25,20 @@ export default function ShopLayout({ children }) {
 
   
   const [shop, setShop] = useState({ name: 'กำลังโหลด...', id: null, logo: null })
+  const [orderCount, setOrderCount] = useState(0)
 
   useEffect(() => {
     const savedUser = localStorage.getItem('bs_user')
     if (savedUser) {
       const u = JSON.parse(savedUser)
+      if (u.role !== 'restaurant' && u.role !== 'shop') {
+        if (u.role === 'rider') router.replace('/rider')
+        else if (u.role === 'admin') router.replace('/admin/dashboard')
+        else router.replace('/home')
+        return
+      }
       setUser(u)
+
       // Fetch Shop Info
       fetch(`http://localhost/bitesync/api/shop/get_shop_info.php?usrId=${u.id}`)
         .then(r => r.json())
@@ -39,11 +47,29 @@ export default function ShopLayout({ children }) {
           else setShop({ name: u.name, id: null, logo: null })
         })
         .catch(() => setShop({ name: u.name, id: null, logo: null }))
+
+      refreshCount()
+      setChecking(false)
     } else {
-      setUser({ name: "ร้านค้า", role: "restaurant" })
-      setShop({ name: "ร้านค้า", id: null, logo: null })
+      router.replace('/login')
     }
-    setChecking(false)
+  }, [router])
+
+  const refreshCount = () => {
+    const savedUser = localStorage.getItem('bs_user')
+    if (!savedUser) return
+    const u = JSON.parse(savedUser)
+    fetch(`http://localhost/bitesync/api/shop/orders.php?usrId=${u.id}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setOrderCount(d.data.filter(o => o.status === 'Pending').length)
+      })
+      .catch(() => {})
+  }
+
+  useEffect(() => {
+    window.addEventListener('orderUpdate', refreshCount)
+    return () => window.removeEventListener('orderUpdate', refreshCount)
   }, [])
 
   useEffect(() => {
@@ -99,7 +125,7 @@ export default function ShopLayout({ children }) {
               <Link key={n.href} href={n.href} className={`${styles.navLink} ${active ? styles.navActive : ''}`}>
                 <span className={styles.navIcon}>{n.icon}</span>
                 <span>{n.label}</span>
-                {n.href === '/shop/orders' && <span className={styles.navBadge}>6</span>}
+                {n.href === '/shop/orders' && orderCount > 0 && <span className={styles.navBadge}>{orderCount}</span>}
               </Link>
             )
           })}

@@ -77,7 +77,7 @@ export default function FoodDetailPage() {
   const totalPrice = (cart || []).reduce((s, c) => s + (Number(c.price || 0) * Number(c.qty || 0)), 0)
 
   function addToCart() {
-    if (!food) return;
+    if (!food || !food.available) return;
     const nextCart = JSON.parse(localStorage.getItem('bs_cart') || '[]')
     const item = {
       id: food.id, name: food.name, 
@@ -265,8 +265,12 @@ export default function FoodDetailPage() {
               </div>
 
               {/* Add to cart */}
-              <button onClick={addToCart} className={styles.addCartBtn}>
-                Add to Cart — {Math.round(total)} ฿
+              <button 
+                onClick={food.available ? addToCart : null} 
+                className={`${styles.addCartBtn} ${!food.available ? styles.addCartBtnOff : ''}`}
+                disabled={!food.available}
+              >
+                {food.available ? `Add to Cart — ${Math.round(total)} ฿` : 'สินค้าหมด'}
               </button>
             </div>
           </div>

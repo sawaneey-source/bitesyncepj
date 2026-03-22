@@ -20,17 +20,27 @@ export default function Navbar({ showSearch = false, searchValue = '', onSearchC
   const [lastOrder, setLastOrder] = useState(null)
 
   useEffect(() => {
-    const u = localStorage.getItem('bs_user')
-    if (u) setUser(JSON.parse(u))
-    
-    // Auto-sync cart if not provided
-    if (cartCount === 0) {
+    const syncState = () => {
+      const u = localStorage.getItem('bs_user')
+      if (u) setUser(JSON.parse(u))
+      else setUser(null)
+
       const cart = JSON.parse(localStorage.getItem('bs_cart') || '[]')
       setLocalCartCount(cart.reduce((s, c) => s + (Number(c.qty) || 1), 0))
-    } else {
-      setLocalCartCount(cartCount)
+      
+      setLastOrder(localStorage.getItem('bs_last_order') || null)
     }
-    setLastOrder(localStorage.getItem('bs_last_order') || null)
+
+    syncState()
+    
+    // Polling and Storage listener for real-time sync across tabs/actions
+    const interval = setInterval(syncState, 2000)
+    window.addEventListener('storage', syncState)
+    
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('storage', syncState)
+    }
   }, [cartCount])
 
   const handleLogout = () => {

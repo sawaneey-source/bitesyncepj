@@ -48,6 +48,11 @@
 .estBadge { background:#e8f5e9; color:#2a6129; border-radius:10px; padding:8px 12px; font-size:13px; font-weight:800; white-space:nowrap; box-shadow:0 2px 6px rgba(42,97,41,.1); }
 .estTime { font-size:14px; font-weight:900; color:#1a1f1a; font-family:'Prompt',sans-serif; }
 
+.cancelSection { margin-bottom:20px; padding:15px; background:#fff5f5; border:1px dashed #feb2b2; border-radius:12px; }
+.cancelHint { font-size:12px; color:#c53030; margin-bottom:10px; font-weight:500; }
+.cancelBtn { width:100%; padding:10px; background:#fff; border:1.5px solid #feb2b2; color:#c53030; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; font-family:'Sarabun',sans-serif; }
+.cancelBtn:hover { background:#fff5f5; border-color:#c53030; transform:translateY(-1px); box-shadow:0 2px 6px rgba(197,48,48,.1); }
+
 /* Steps */
 .steps { display:flex; flex-direction:column; }
 .stepRow { display:flex; align-items:flex-start; gap:14px; }
