@@ -2,6 +2,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+import dynamic from 'next/dynamic'
+
+const RiderMap = dynamic(() => import('@/components/RiderMap'), { ssr: false })
 
 const STEPS = [
   { key:'pickup',   label:'กำลังไปรับอาหาร',     icon:'📦', desc:'เดินทางไปที่ร้านค้า' },
@@ -28,6 +31,8 @@ export default function RiderActivePage() {
   const [toast, setToast] = useState(null)
   const [loading, setLoading] = useState(false)
   const [showConfirmCancel, setShowConfirmCancel] = useState(false)
+  const [riderLoc, setRiderLoc] = useState({ lat: 7.0067, lng: 100.4698 }) // Default center if no GPS yet
+  const [syncStatus, setSyncStatus] = useState('idle') // idle, syncing, ok, err
 
   useEffect(() => {
     fetchActiveJob()
@@ -40,22 +45,30 @@ export default function RiderActivePage() {
     if (!job) return
     const watchId = navigator.geolocation.watchPosition((pos) => {
       const { latitude: lat, longitude: lng } = pos.coords
+      setRiderLoc({ lat, lng })
       sendLocation(lat, lng)
     }, null, { enableHighAccuracy: true })
     return () => navigator.geolocation.clearWatch(watchId)
   }, [job?.id])
 
   async function sendLocation(lat, lng) {
+    setSyncStatus('syncing')
     try {
       const uStr = localStorage.getItem('bs_user')
       if (!uStr) return
       const uid = JSON.parse(uStr).id
-      await fetch('http://localhost/bitesync/api/rider/update-location.php', {
+      const res = await fetch('http://localhost/bitesync/api/rider/update-location.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('bs_token')}` },
         body: JSON.stringify({ usrId: uid, lat, lng })
       })
-    } catch {}
+      const data = await res.json()
+      if (data.success) setSyncStatus('ok')
+      else setSyncStatus('err')
+    } catch (e) {
+      console.error("Sync error:", e)
+      setSyncStatus('err')
+    }
   }
 
   function showToast(msg,type='ok'){ setToast({msg,type}); setTimeout(()=>setToast(null),2500) }
@@ -78,22 +91,44 @@ export default function RiderActivePage() {
   async function updateStep(nextStep, statusKey) {
     setLoading(true)
     try {
-      await fetch('http://localhost/bitesync/api/rider/update-status.php', {
+      const res = await fetch('http://localhost/bitesync/api/rider/update-status.php', {
         method:'POST',
         headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('bs_token')}` },
         body: JSON.stringify({ orderId: job.id, status: statusKey })
       })
-    } catch {}
+      const data = await res.json()
+      
+      if (!data.success) {
+          showToast(data.message || 'อัปเดตสถานะไม่สำเร็จ', 'err')
+          setLoading(false)
+          return
+      }
 
-    if (nextStep >= STEPS.length - 1) {
-      setJob(prev => ({ ...prev, step: nextStep }))
-      showToast('ส่งสำเร็จ! 🎉')
-      setTimeout(() => { setJob(null); router.push('/rider/history') }, 1500)
-    } else {
-      setJob(prev => ({ ...prev, step: nextStep }))
-      showToast(STEPS[nextStep-1]?.label || 'อัปเดตแล้ว!')
+      // Success
+      if (nextStep >= STEPS.length - 1) {
+        setJob(prev => ({ ...prev, step: nextStep }))
+        showToast('ส่งสำเร็จ! 🎉')
+        setTimeout(() => { setJob(null); router.push('/rider/history') }, 1500)
+      } else {
+        setJob(prev => ({ ...prev, step: nextStep }))
+        showToast(STEPS[nextStep-1]?.label || 'อัปเดตแล้ว!')
+      }
+    } catch (e) {
+      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'err')
     }
     setLoading(false)
+  }
+
+  function getDistance(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371; // km
+    const dLat = (lat2-lat1) * Math.PI / 180;
+    const dLon = (lon2-lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   }
 
   async function cancelJob() {
@@ -138,7 +173,15 @@ export default function RiderActivePage() {
       {toast && <div className={`${styles.toast} ${toast.type==='err'?styles.toastErr:styles.toastOk}`}>{toast.type==='err'?'⚠️':'✅'} {toast.msg}</div>}
 
       <div className={styles.hdr}>
-        <h1 className={styles.title}>งานปัจจุบัน</h1>
+        <div style={{display:'flex', flexDirection:'column'}}>
+           <h1 className={styles.title}>งานปัจจุบัน</h1>
+           <div style={{display:'flex', alignItems:'center', gap:6, fontSize:12, marginTop:4}}>
+              {syncStatus === 'syncing' && <span style={{color:'#1976d2'}}>📡 กำลังส่งพิกัด...</span>}
+              {syncStatus === 'ok' && <span style={{color:'#2e7d32'}}>✅ พิกัดอัปเดตแล้ว</span>}
+              {syncStatus === 'err' && <span style={{color:'#d32f2f'}}>❌ พิกัดไม่ส่ง (เช็คเน็ต/GPS)</span>}
+              {syncStatus === 'idle' && <span style={{color:'#666'}}>⚪ รอสัญญาณ GPS...</span>}
+           </div>
+        </div>
         <span className={styles.orderId}>{job.id}</span>
       </div>
 
@@ -172,10 +215,31 @@ export default function RiderActivePage() {
         </div>
         {currentStep && (
           <div className={styles.currentStatus}>
-            <span className={styles.currentIcon}>{currentStep.icon}</span>
-            <span className={styles.currentDesc}>{currentStep.desc}</span>
+             <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <span className={styles.currentIcon}>{currentStep.icon}</span>
+                <span className={styles.currentDesc}>{currentStep.desc}</span>
+             </div>
+             {job.step === 0 && (
+                <div style={{fontSize:15, fontWeight:800, color:'#f39c12', marginTop:5}}>
+                   📍 ระยะทางไปร้าน: {getDistance(riderLoc.lat, riderLoc.lng, job.shopLat, job.shopLng).toFixed(2)} กม.
+                </div>
+             )}
+             {job.step === 1 && (
+                <div style={{fontSize:15, fontWeight:800, color:'#00b14f', marginTop:5}}>
+                   🛵 ระยะทางไปลูกค้า: {getDistance(riderLoc.lat, riderLoc.lng, job.custLat, job.custLng).toFixed(2)} กม.
+                </div>
+             )}
           </div>
         )}
+      </div>
+
+      <div className={styles.mapSection}>
+        <RiderMap 
+          riderLoc={riderLoc}
+          shopLoc={{ lat: parseFloat(job.shopLat), lng: parseFloat(job.shopLng), name: job.shopName }}
+          custLoc={{ lat: parseFloat(job.custLat), lng: parseFloat(job.custLng), name: job.custName }}
+          step={job.step}
+        />
       </div>
 
       <div className={styles.layout}>
@@ -212,6 +276,10 @@ export default function RiderActivePage() {
                 <span className={styles.itemPrice}>{item.price * item.qty} ฿</span>
               </div>
             ))}
+            <div className={styles.divider}/>
+            <div className={styles.totalRow}>
+              <span title="ระยะทางจากร้านไปลูกค้า">ระยะทางจัดส่ง: {job.distance}</span>
+            </div>
             <div className={styles.divider}/>
             <div className={styles.totalRow}>
               <span>ค่าส่งที่ได้รับ</span>

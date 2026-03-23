@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Cropper from 'react-easy-crop'
 import { getCroppedImg } from '../menu/cropHelper'
@@ -73,6 +73,12 @@ export default function ShopProfilePage() {
   const [showBannerMenu, setShowBannerMenu] = useState(false)
   const [showLogoMenu, setShowLogoMenu] = useState(false)
 
+  // Map refs
+  const mapRef = useRef(null)
+  const mapInstanceRef = useRef(null)
+  const markerRef = useRef(null)
+  const [mapReady, setMapReady] = useState(false)
+
   // Derived cascading lists
   const provinces = useMemo(() => thaiData.map(p => p.name_th), [thaiData])
   const selProv = useMemo(() => thaiData.find(p => p.name_th === province), [thaiData, province])
@@ -144,8 +150,14 @@ export default function ShopProfilePage() {
     setGeoLoading(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setAdrLat(pos.coords.latitude.toFixed(7))
-        setAdrLng(pos.coords.longitude.toFixed(7))
+        const { latitude, longitude } = pos.coords
+        setAdrLat(latitude.toFixed(7))
+        setAdrLng(longitude.toFixed(7))
+        if (mapInstanceRef.current && markerRef.current) {
+          mapInstanceRef.current.setView([latitude, longitude], 16)
+          markerRef.current.setLatLng([latitude, longitude])
+        }
+        reverseGeocode(latitude, longitude)
         setGeoLoading(false)
         showToast('ดึงพิกัดปัจจุบันสำเร็จ ✅')
       },
@@ -156,6 +168,108 @@ export default function ShopProfilePage() {
       { enableHighAccuracy: true }
     )
   }
+
+  async function initMap() {
+    if (typeof window === 'undefined') return
+    const L = (await import('leaflet')).default
+    await import('leaflet/dist/leaflet.css')
+
+    delete L.Icon.Default.prototype._getIconUrl
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    })
+
+    if (!mapRef.current || mapInstanceRef.current) return
+
+    const initialLat = adrLat || 7.0085
+    const initialLng = adrLng || 100.4734
+
+    const map = L.map(mapRef.current).setView([initialLat, initialLng], 16)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map)
+
+    const marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map)
+    marker.on('dragend', () => {
+      const pos = marker.getLatLng()
+      setAdrLat(pos.lat.toFixed(7))
+      setAdrLng(pos.lng.toFixed(7))
+      reverseGeocode(pos.lat, pos.lng)
+    })
+
+    map.on('click', (e) => {
+      marker.setLatLng(e.latlng)
+      setAdrLat(e.latlng.lat.toFixed(7))
+      setAdrLng(e.latlng.lng.toFixed(7))
+      reverseGeocode(e.latlng.lat, e.latlng.lng)
+    })
+
+    mapInstanceRef.current = map
+    markerRef.current = marker
+    setMapReady(true)
+  }
+
+  async function reverseGeocode(lat, lng) {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`);
+      const data = await res.json();
+      if (data && data.address) {
+        const addr = data.address;
+        if (addr.house_number) setHouseNo(addr.house_number);
+        if (addr.road) setRoad(addr.road);
+
+        // Try to match Thai names from our data
+        const pMatch = thaiData.find(p => addr.state?.includes(p.name_th) || addr.province?.includes(p.name_th));
+        if (pMatch) {
+            setProvince(pMatch.name_th);
+            const aMatch = pMatch.amphure.find(a => addr.city_district?.includes(a.name_th) || addr.district?.includes(a.name_th));
+            if (aMatch) {
+                setDistrict(aMatch.name_th);
+                const tMatch = aMatch.tambon.find(t => addr.suburb?.includes(t.name) || addr.subdistrict?.includes(t.name));
+                if (tMatch) {
+                    setSubDistrict(tMatch.name);
+                    setZipcode(String(tMatch.zip || tMatch.zip_code || ''));
+                }
+            }
+        }
+      }
+    } catch (e) { console.error("Geocoding error:", e); }
+  }
+
+  async function forwardGeocode(p, a, t) {
+    if (!p || !a || !t) return
+    try {
+      const query = `${t}, ${a}, ${p}, Thailand`
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setAdrLat(parseFloat(lat).toFixed(7));
+        setAdrLng(parseFloat(lon).toFixed(7));
+        if (mapInstanceRef.current && markerRef.current) {
+          mapInstanceRef.current.setView([lat, lon], 16);
+          markerRef.current.setLatLng([lat, lon]);
+        }
+      }
+    } catch (e) { console.error("Forward geocoding error:", e); }
+  }
+
+  // Trigger map init when address data is ready
+  useEffect(() => {
+    if (!addrLoading && isMounted && !mapReady) {
+        initMap();
+    }
+  }, [addrLoading, isMounted])
+
+  // Sync map when lat/lng changes from DB (first load)
+  useEffect(() => {
+    if (mapInstanceRef.current && adrLat && adrLng && !mapReady) {
+        mapInstanceRef.current.setView([adrLat, adrLng], 16);
+        markerRef.current.setLatLng([adrLat, adrLng]);
+    }
+  }, [adrLat, adrLng])
 
   const showToast = (msg, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000) }
 
@@ -473,42 +587,49 @@ export default function ShopProfilePage() {
                 </div>
               </div>
 
-              <div className={styles.twoCol}>
-                <div className={styles.infoItem}>
-                  <label className={styles.resLabel}>ตำบล/แขวง</label>
-                  <select className={styles.resSelect} value={subDistrict} onChange={e => handleSubDistrictChange(e.target.value)} disabled={!district}>
-                    <option value="">-- เลือกตำบล --</option>
-                    {subDistricts.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                  </select>
+                <div className={styles.twoCol}>
+                  <div className={styles.infoItem}>
+                    <label className={styles.resLabel}>ตำบล/แขวง</label>
+                    <select className={styles.resSelect} value={subDistrict} onChange={e => {
+                        const v = e.target.value;
+                        handleSubDistrictChange(v);
+                        forwardGeocode(province, district, v);
+                    }} disabled={!district}>
+                      <option value="">-- เลือกตำบล --</option>
+                      {subDistricts.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <label className={styles.resLabel}>รหัสไปรษณีย์ (กรอกอัตโนมัติ)</label>
+                    <input type="text" className={styles.resInput} value={zipcode} onChange={e => setZipcode(e.target.value)} placeholder="10500" maxLength={5} readOnly={!!subDistrict} />
+                  </div>
                 </div>
-                <div className={styles.infoItem}>
-                  <label className={styles.resLabel}>รหัสไปรษณีย์ (กรอกอัตโนมัติ)</label>
-                  <input type="text" className={styles.resInput} value={zipcode} onChange={e => setZipcode(e.target.value)} placeholder="10500" maxLength={5} readOnly={!!subDistrict} />
-                </div>
-              </div>
 
-              {/* ── ปักหมุดตำแหน่ง (Geolocation) ── */}
-              <div className={styles.gpsBox}>
-                <label className={styles.resLabel}>ปักหมุดตำแหน่งร้าน (สำหรับไรเดอร์)</label>
-                <div className={styles.gpsGrid}>
-                  <div className={styles.infoItem}>
-                    <input type="text" className={styles.resInput} value={adrLat || ''} onChange={e => setAdrLat(e.target.value)} placeholder="Latitude (เช่น 13.7563)" />
+                {/* ── ปักหมุดตำแหน่ง (Geolocation Map) ── */}
+                <div className={styles.divider} />
+                <div className={styles.gpsBox}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}}>
+                    <label className={styles.resLabel}>📍 ปักหมุดตำแหน่งร้าน (สำหรับไรเดอร์)</label>
+                    <button className={styles.gpsBtn} onClick={getCurrentLocation} disabled={geoLoading}>
+                      <i className="fa-solid fa-location-crosshairs" /> {geoLoading ? 'ดึงพิกัด...' : 'ใช้พิกัดปัจจุบัน'}
+                    </button>
                   </div>
-                  <div className={styles.infoItem}>
-                    <input type="text" className={styles.resInput} value={adrLng || ''} onChange={e => setAdrLng(e.target.value)} placeholder="Longitude (เช่น 100.5018)" />
+                  
+                  <p className={styles.mapHint}>ปักหมุดให้ตรงกับประตูหน้าร้านของคุณ เพื่อให้ไรเดอร์รับงานได้สะดวก</p>
+                  
+                  <div ref={mapRef} className={styles.shopMap} />
+
+                  <div className={styles.gpsGrid}>
+                    <div className={styles.infoItem}>
+                      <label style={{fontSize:12, color:'#666'}}>Latitude</label>
+                      <input type="text" className={styles.resInput} value={adrLat || ''} readOnly placeholder="Latitude" />
+                    </div>
+                    <div className={styles.infoItem}>
+                      <label style={{fontSize:12, color:'#666'}}>Longitude</label>
+                      <input type="text" className={styles.resInput} value={adrLng || ''} readOnly placeholder="Longitude" />
+                    </div>
                   </div>
-                  <button className={styles.gpsAutoBtn} onClick={getCurrentLocation} disabled={geoLoading}>
-                    {geoLoading ? '⏳...' : <span><i className="fa-solid fa-location-crosshairs" /></span>}
-                  </button>
                 </div>
-                {adrLat && adrLng && (
-                  <p className={styles.gpsHint}>
-                    <a href={`https://www.google.com/maps?q=${adrLat},${adrLng}`} target="_blank" rel="noreferrer" className={styles.gpsLink}>
-                      [ ดูบนแผนที่ ]
-                    </a>
-                  </p>
-                )}
-              </div>
 
               {/* ── ตั้งค่าบัญชีความปลอดภัย ── */}
               <div className={styles.divider} />

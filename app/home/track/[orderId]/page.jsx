@@ -14,11 +14,16 @@ const STEPS = [
 ]
 
 export default function TrackPage() {
+  const isValid = (loc) => loc && typeof loc.lat === 'number' && loc.lat !== 0 && !isNaN(loc.lat) && typeof loc.lng === 'number' && loc.lng !== 0 && !isNaN(loc.lng)
+
   const router  = useRouter()
   const params  = useParams()
   const mapRef  = useRef(null)
   const mapInstanceRef = useRef(null)
-  const riderMarkerRef = useRef(null)
+  const riderMarkerRef      = useRef(null)
+  const shopMarkerRef       = useRef(null)
+  const customerMarkerRef   = useRef(null)
+  const routePolylineRef    = useRef(null)
 
   const [order, setOrder]     = useState(null)
   const [error, setError]     = useState(null)
@@ -35,7 +40,7 @@ export default function TrackPage() {
     setUser(JSON.parse(u))
     
     fetchOrder()
-    const interval = setInterval(fetchOrder, 5000)
+    const interval = setInterval(fetchOrder, 2000)
     return () => clearInterval(interval)
   }, [router, params?.orderId])
 
@@ -44,17 +49,96 @@ export default function TrackPage() {
     initMap()
   }, [showMap, order])
 
-  // Live Marker Update
+  // Live Marker & Route Update
+  // Map Marker & Route Synchronization
   useEffect(() => {
-    if (!mapInstanceRef.current || !riderMarkerRef.current || !order?.rider) return
-    const { lat, lng } = order.rider
-    riderMarkerRef.current.setLatLng([lat, lng])
-  }, [order?.rider?.lat, order?.rider?.lng])
+    if (!mapReady || !mapInstanceRef.current || !order) return
+
+    const syncMap = async () => {
+        const L = (await import('leaflet')).default
+        const map = mapInstanceRef.current
+        const bounds = []
+
+        // 1. Rider Marker - Orange 🛵
+        if (order.rider && isValid(order.rider)) {
+            if (!riderMarkerRef.current) {
+                const riderIcon = L.divIcon({
+                    html: `<div style="background:#e65100;color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:all 0.5s ease-out">🛵</div>`,
+                    className: '', iconAnchor: [17, 17]
+                })
+                riderMarkerRef.current = L.marker([order.rider.lat, order.rider.lng], { icon: riderIcon }).addTo(map)
+                riderMarkerRef.current.bindPopup(`<b>ผู้ส่ง: ${order.rider.name}</b>`)
+            } else {
+                riderMarkerRef.current.setLatLng([order.rider.lat, order.rider.lng])
+            }
+            bounds.push([order.rider.lat, order.rider.lng])
+        }
+
+        // 2. Shop Marker - Green 🏪
+        if (order.shop && isValid(order.shop)) {
+            if (!shopMarkerRef.current) {
+                const shopIcon = L.divIcon({
+                    html: `<div style="background:#2a6129;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🏪</div>`,
+                    className: '', iconAnchor: [18, 18]
+                })
+                shopMarkerRef.current = L.marker([order.shop.lat, order.shop.lng], { icon: shopIcon }).addTo(map)
+            } else {
+                shopMarkerRef.current.setLatLng([order.shop.lat, order.shop.lng])
+            }
+            bounds.push([order.shop.lat, order.shop.lng])
+        }
+
+        // 3. Customer Marker - Red 🏠
+        if (order.customer && isValid(order.customer)) {
+            if (!customerMarkerRef.current) {
+                const custIcon = L.divIcon({
+                    html: `<div style="background:#d32f2f;color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.2)">🏠</div>`,
+                    className: '', iconAnchor: [16, 16]
+                })
+                customerMarkerRef.current = L.marker([order.customer.lat, order.customer.lng], { icon: custIcon }).addTo(map)
+            } else {
+                customerMarkerRef.current.setLatLng([order.customer.lat, order.customer.lng])
+            }
+            bounds.push([order.customer.lat, order.customer.lng])
+        }
+
+        // 4. Update Route Line
+        if (isValid(order.rider)) {
+            let dest = order.customer
+            let color = '#00b14f'
+            let isDashed = false
+
+            if (order.currentStep <= 3 && isValid(order.shop)) {
+                dest = order.shop
+                color = '#f39c12'
+                isDashed = true
+            }
+
+            if (isValid(dest)) {
+                try {
+                    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${order.rider.lng},${order.rider.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`)
+                    const data = await res.json()
+                    if (data.routes && data.routes.length > 0) {
+                        const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
+                        if (routePolylineRef.current) map.removeLayer(routePolylineRef.current)
+                        routePolylineRef.current = L.polyline(coords, {
+                            color: color, weight: 6, opacity: 0.6, dashArray: isDashed ? '10, 10' : null, lineJoin: 'round'
+                        }).addTo(map)
+                    }
+                } catch (e) {
+                    console.error("Route update error:", e)
+                }
+            }
+        }
+    }
+
+    syncMap()
+  }, [mapReady, order?.rider?.lat, order?.rider?.lng, order?.customer?.lat, order?.customer?.lng, order?.currentStep])
 
   async function fetchOrder() {
     try {
       const token = localStorage.getItem('bs_token')
-      const res   = await fetch(`http://localhost/bitesync/api/customer/orders.php?id=${params?.orderId}`, {
+       const res   = await fetch(`http://localhost/bitesync/api/customer/orders.php?id=${params?.orderId}&t=${Date.now()}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -69,32 +153,40 @@ export default function TrackPage() {
              return
           }
 
+          if (status === 7) {
+             localStorage.removeItem('bs_last_order')
+          }
+
           // Normalize data structure for frontend
           setOrder({
               id: d.OdrId,
               currentStep: d.currentStep,
-              estimatedTime: '10-20 นาที',
+              shopPrepTime: parseInt(d.ShopPrepTime || 15),
+              maxPrepTime: parseInt(d.MaxPrepTime || 0),
+              distance: parseFloat(d.OdrDistance || 0),
               date: d.OdrCreatedAt,
               total: d.OdrGrandTotal,
               deliveryFee: d.OdrDelFee,
               shop: { 
                   id: d.ShopId, 
                   name: d.ShopName, 
-                  lat: parseFloat(d.ShopLat || 7.0042), 
-                  lng: parseFloat(d.ShopLng || 100.4651) 
+                  lat: (d.ShopLat && parseFloat(d.ShopLat) !== 0) ? parseFloat(d.ShopLat) : 0, 
+                  lng: (d.ShopLng && parseFloat(d.ShopLng) !== 0) ? parseFloat(d.ShopLng) : 0 
               },
               customer: { 
-                  name: user?.name || d.UsrFullName, 
-                  address: `${d.HouseNo} ${d.SubDistrict} ${d.District} ${d.Province}`,
-                  lat: 7.0085, lng: 100.4734 
+                  id: d.UsrId,
+                  name: d.CustName || 'คุณลูกค้า', 
+                  address: `${d.HouseNo || ''} ${d.SubDistrict || ''} ${d.District || ''} ${d.Province || ''}`,
+                  lat: (d.AdrLat && parseFloat(d.AdrLat) !== 0) ? parseFloat(d.AdrLat) : 0, 
+                  lng: (d.AdrLng && parseFloat(d.AdrLng) !== 0) ? parseFloat(d.AdrLng) : 0 
               },
               rider: d.RiderId ? {
                   name: d.RiderName,
                   phone: d.RiderPhone,
                   vehicle: d.RiderVehicleType || 'รถจักรยานยนต์',
                   plate: d.RiderVehiclePlate || '-',
-                  lat: parseFloat(d.RiderLat || 7.0067),
-                  lng: parseFloat(d.RiderLng || 100.4698)
+                  lat: (d.RiderLat && parseFloat(d.RiderLat) !== 0) ? parseFloat(d.RiderLat) : (parseFloat(d.ShopLat) || 0),
+                  lng: (d.RiderLng && parseFloat(d.RiderLng) !== 0) ? parseFloat(d.RiderLng) : (parseFloat(d.ShopLng) || 0)
               } : null,
               items: d.items
           })
@@ -106,6 +198,49 @@ export default function TrackPage() {
       console.error("Fetch order error:", e)
       setError("เกิดข้อผิดพลาดในการโหลดข้อมูล")
     }
+  }
+
+  function getDistance(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371; // km
+    const dLat = (lat2-lat1) * Math.PI / 180;
+    const dLon = (lon2-lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  function calculateETA() {
+    if (!order) return '...';
+    
+    // Average driving speed 30km/h -> 2m/km + buffer
+    const driveSpeedMinPerKm = 2.5; 
+    const buffer = 5;
+
+    let totalMin = 0;
+    const status = order.currentStep;
+
+    if (status <= 2) { 
+       // Preparing: Use Max of items or Shop default
+       const pTime = order.maxPrepTime || order.shopPrepTime;
+       totalMin = pTime + (order.distance * driveSpeedMinPerKm) + buffer;
+    } else if (status === 3 || status === 4) {
+       // Ready/Assigned: Wait for Pickup + Drive (Shop->Cust)
+       totalMin = (order.distance * driveSpeedMinPerKm) + buffer + 2; 
+    } else if (status === 5) {
+       // Delivering: Drive (Rider->Cust)
+       if (order.rider && isValid(order.rider)) {
+          const distToCust = getDistance(order.rider.lat, order.rider.lng, order.customer.lat, order.customer.lng);
+          totalMin = (distToCust * driveSpeedMinPerKm) + 3;
+       } else {
+          totalMin = (order.distance * driveSpeedMinPerKm) + 2;
+       }
+    }
+
+    const min = Math.max(5, Math.ceil(totalMin));
+    return `${min}-${min+10} นาที`;
   }
 
   async function initMap() {
@@ -122,25 +257,37 @@ export default function TrackPage() {
 
     if (!mapRef.current || mapInstanceRef.current) return
 
-    const map = L.map(mapRef.current).setView([order.shop.lat, order.shop.lng], 15)
+    // Default center: Hat Yai
+    let centerLat = 6.9847, centerLng = 100.4748 
+    if (isValid(order.shop)) {
+      centerLat = order.shop.lat; centerLng = order.shop.lng
+    } else if (isValid(order.customer)) {
+      centerLat = order.customer.lat; centerLng = order.customer.lng
+    }
+
+    const map = L.map(mapRef.current).setView([centerLat, centerLng], 15)
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map)
 
-    const shopIcon = L.divIcon({
-      html: `<div style="background:#2a6129;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">🏪</div>`,
-      className: '', iconAnchor: [18, 18]
-    })
-    L.marker([order.shop.lat, order.shop.lng], { icon: shopIcon }).addTo(map).bindPopup(`<b>${order.shop.name}</b>`)
+    if (isValid(order.shop)) {
+      const shopIcon = L.divIcon({
+        html: `<div style="background:#2a6129;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">🏪</div>`,
+        className: '', iconAnchor: [18, 18]
+      })
+      L.marker([order.shop.lat, order.shop.lng], { icon: shopIcon }).addTo(map).bindPopup(`<b>${order.shop.name}</b>`)
+    }
 
-    const custIcon = L.divIcon({
-      html: `<div style="background:#f0c419;color:#1a1f1a;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">📍</div>`,
-      className: '', iconAnchor: [18, 18]
-    })
-    L.marker([order.customer.lat, order.customer.lng], { icon: custIcon }).addTo(map).bindPopup(`<b>ที่อยู่ของคุณ</b>`)
+    if (isValid(order.customer)) {
+      const custIcon = L.divIcon({
+        html: `<div style="background:#f0c419;color:#1a1f1a;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">📍</div>`,
+        className: '', iconAnchor: [18, 18]
+      })
+      L.marker([order.customer.lat, order.customer.lng], { icon: custIcon }).addTo(map).bindPopup(`<b>ที่อยู่ของคุณ</b>`)
+    }
 
-    if (order.rider) {
+    if (order.rider && isValid(order.rider)) {
         const riderIcon = L.divIcon({
           html: `<div style="background:#e65100;color:#fff;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 2px 12px rgba(230,81,0,.4)">🛵</div>`,
           className: '', iconAnchor: [20, 20]
@@ -148,16 +295,40 @@ export default function TrackPage() {
         riderMarkerRef.current = L.marker([order.rider.lat, order.rider.lng], { icon: riderIcon }).addTo(map).bindPopup(`<b>ผู้ส่ง: ${order.rider.name}</b>`)
     }
 
+    // Auto-fit bounds
+    const bounds = []
+    if (isValid(order.shop)) bounds.push([order.shop.lat, order.shop.lng])
+    if (isValid(order.customer)) bounds.push([order.customer.lat, order.customer.lng])
+    if (order.rider && isValid(order.rider)) bounds.push([order.rider.lat, order.rider.lng])
+    
+    if (bounds.length > 0) {
+      if (bounds.length === 1) {
+          map.setView(bounds[0], 15)
+      } else {
+          map.fitBounds(bounds, { padding: [50, 50] })
+      }
+    }
+
     mapInstanceRef.current = map
     setMapReady(true)
   }
 
   if (error) return (
-    <div className={styles.loading}>
-      <div style={{color:'#e53935', marginBottom:18}}>{error}</div>
-      <button onClick={() => router.push('/home')} className={styles.backBtn} style={{background:'#f0f4f0'}}>
-        กลับหน้าหลัก
-      </button>
+    <div className={styles.page}>
+      <Navbar />
+      <div className={styles.body}>
+        <div className={styles.emptyCard}>
+           <span className={styles.emptyIcon}>📦</span>
+           <h2 className={styles.emptyTitle}>ไม่พบข้อมูลออเดอร์นี้ในระบบ</h2>
+           <p className={styles.emptyText}>
+             ขออภัยครับ ออเดอร์หมายเลข #{params?.orderId} อาจถูกยกเลิก ลบออกไปแล้ว หรือลิงก์ไม่ถูกต้อง <br/>
+             กรุณาตรวจสอบอีกครั้งในหน้าประวัติ หรือกลับไปเลือกสั่งอาหารใหม่ครับ
+           </p>
+           <button onClick={() => router.push('/home')} className={styles.shopNowBtn}>
+             กลับหน้าหลักเพื่อเลือกสั่งอาหาร
+           </button>
+        </div>
+      </div>
     </div>
   )
 
@@ -178,10 +349,12 @@ export default function TrackPage() {
       </div>
 
       <div className={styles.body}>
-        <div className={styles.mapBanner} onClick={() => setShowMap(v => !v)}>
-          <span>🗺️ ติดตามบนแผนที่</span>
-          <span className={styles.mapToggle}>{showMap ? '▲ ซ่อนแผนที่' : '▼ ดูแผนที่'}</span>
-        </div>
+        {order.currentStep !== -1 && (
+          <div className={styles.mapBanner} onClick={() => setShowMap(v => !v)}>
+            <span>🗺️ ติดตามบนแผนที่</span>
+            <span className={styles.mapToggle}>{showMap ? '▲ ซ่อนแผนที่' : '▼ ดูแผนที่'}</span>
+          </div>
+        )}
 
         {showMap && (
           <div className={styles.mapWrap}>
@@ -197,9 +370,11 @@ export default function TrackPage() {
                   <h2 className={styles.cardTitle}>สถานะการจัดส่ง</h2>
                   <div className={styles.orderId}>ออเดอร์หมายเลข: #{order.id}</div>
                 </div>
-                <div className={styles.estSection}>
-                  <div className={styles.estBadge}>🕐 คาดว่าจะถึงใน {order.estimatedTime}</div>
-                </div>
+                {order.currentStep !== -1 && (
+                   <div className={styles.estSection}>
+                    <div className={styles.estBadge}>🕐 คาดว่าจะถึงใน {calculateETA()}</div>
+                  </div>
+                )}
               </div>
 
               {step === 0 && (
@@ -235,7 +410,18 @@ export default function TrackPage() {
               )}
 
               <div className={styles.steps}>
-                {STEPS.map((s, i) => {
+                {(order.currentStep === -1) ? (
+                  <div className={styles.cancelledCard}>
+                    <div className={styles.cancelledTitle}>❌ ออเดอร์ของคุณถูกยกเลิกแล้ว</div>
+                    <p className={styles.cancelledText}>
+                      ขออภัยครับ ออเดอร์หมายเลข #{order.id} ถูกยกเลิกโดยร้านค้า หรือระบบขัดข้อง 
+                      หากคุณชำระเงินแล้ว ระบบจะดำเนินการคืนเงินให้ท่านโดยเร็วที่สุด
+                    </p>
+                    <button onClick={() => router.push('/home')} className={styles.backHomeBtn}>
+                      กลับหน้าหลักเพื่อสั่งอาหารใหม่
+                    </button>
+                  </div>
+                ) : STEPS.map((s, i) => {
                   const done    = i < step
                   const current = i === step
                   return (
@@ -257,7 +443,7 @@ export default function TrackPage() {
               </div>
             </div>
 
-            {order.rider && (
+            {order.rider && order.currentStep !== -1 && (
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>ข้อมูลคนขับ</h2>
                 <div className={styles.riderRow}>

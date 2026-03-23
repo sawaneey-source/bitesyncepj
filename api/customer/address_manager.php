@@ -20,7 +20,17 @@ if (!$userId) {
 }
 
 if ($method === 'GET') {
-    $stmt = $conn->prepare("SELECT * FROM tbl_address WHERE UsrId = ? ORDER BY IsDefault DESC, AdrId DESC");
+    // Unique addresses by core fields, prioritizing Default and latest AdrId
+    $sql = "SELECT * FROM tbl_address 
+            WHERE AdrId IN (
+                SELECT MAX(AdrId) 
+                FROM tbl_address 
+                WHERE UsrId = ? 
+                GROUP BY HouseNo, SubDistrict, District, Province, AdrLat, AdrLng
+            )
+            ORDER BY IsDefault DESC, AdrId DESC";
+            
+    $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $userId);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -30,14 +40,31 @@ if ($method === 'GET') {
 } 
 elseif ($method === 'POST') {
     $data = json_decode(file_get_contents("php://input"), true);
-    $stmt = $conn->prepare("INSERT INTO tbl_address (UsrId, HouseNo, Village, Road, Soi, Moo, SubDistrict, District, Province, Zipcode, IsDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $isDef = isset($data['isDefault']) && $data['isDefault'] ? 1 : 0;
-    
+
+    // 1. Check if EXACT match already exists
+    $chk = $conn->prepare("SELECT AdrId FROM tbl_address WHERE UsrId = ? AND HouseNo = ? AND SubDistrict = ? AND District = ? AND Province = ? AND AdrLat = ? AND AdrLng = ? LIMIT 1");
+    $chk->bind_param("issssss", $userId, $data['houseNo'], $data['subDistrict'], $data['district'], $data['province'], $data['adrLat'], $data['adrLng']);
+    $chk->execute();
+    $existing = $chk->get_result()->fetch_assoc();
+
+    if ($existing) {
+        $adrId = $existing['AdrId'];
+        if ($isDef) {
+            $conn->query("UPDATE tbl_address SET IsDefault = 0 WHERE UsrId = " . (int)$userId);
+            $conn->query("UPDATE tbl_address SET IsDefault = 1 WHERE AdrId = " . (int)$adrId);
+        }
+        echo json_encode(['success' => true, 'message' => 'Address already exists, updated default status']);
+        exit;
+    }
+
+    // 2. Insert new if not found
     if ($isDef) {
         $conn->query("UPDATE tbl_address SET IsDefault = 0 WHERE UsrId = " . (int)$userId);
     }
-
-    $stmt->bind_param("isssssssssi", $userId, $data['houseNo'], $data['village'], $data['road'], $data['soi'], $data['moo'], $data['subDistrict'], $data['district'], $data['province'], $data['zipcode'], $isDef);
+    
+    $stmt = $conn->prepare("INSERT INTO tbl_address (UsrId, HouseNo, Village, Road, Soi, Moo, SubDistrict, District, Province, Zipcode, AdrLat, AdrLng, IsDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("isssssssssddi", $userId, $data['houseNo'], $data['village'], $data['road'], $data['soi'], $data['moo'], $data['subDistrict'], $data['district'], $data['province'], $data['zipcode'], $data['adrLat'], $data['adrLng'], $isDef);
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'message' => 'Address added']);
     } else {

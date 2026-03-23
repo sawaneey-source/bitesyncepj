@@ -57,8 +57,8 @@ $checkStmt->execute();
 $res = $checkStmt->get_result();
 
 if ($row = $res->fetch_assoc()) {
-    if ($row['OdrStatus'] != 3 && $row['OdrStatus'] != 4) {
-        echo json_encode(['success' => false, 'message' => 'ออเดอร์นี้ไม่ได้อยู่ในสถานะรอวิ่งงานครับ']);
+    if ($row['OdrStatus'] != 4) {
+        echo json_encode(['success' => false, 'message' => 'ออเดอร์นี้ยังไม่พร้อมสำหรับการจัดส่งครับ']);
         exit();
     }
     if (!empty($row['RiderId']) && $row['RiderId'] != 0) {

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import Logo from '@/components/Logo'
@@ -7,6 +7,8 @@ import Logo from '@/components/Logo'
 export default function CheckoutPage() {
   const router  = useRouter()
   const [cart, setCart]       = useState([])
+  const [shopLoc, setShopLoc] = useState(null)
+  const [deliveryFee, setDeliveryFee] = useState(20)
   const [address, setAddress] = useState('')
   const [note, setNote]       = useState('')
   const [step, setStep]       = useState(1) // 1=review, 2=payment QR
@@ -27,12 +29,29 @@ export default function CheckoutPage() {
   const [road, setRoad] = useState('')
   const [soi, setSoi] = useState('')
   const [moo, setMoo] = useState('')
+  const [adrLat, setAdrLat] = useState(7.0085)
+  const [adrLng, setAdrLng] = useState(100.4734)
+  const [mapReady, setMapReady] = useState(false)
+  const [saveAsDefault, setSaveAsDefault] = useState(false)
+  const mapRef = useRef(null)
+  const mapInstanceRef = useRef(null)
+  const markerRef = useRef(null)
 
   useEffect(() => {
-    setCart(JSON.parse(localStorage.getItem('bs_cart') || '[]'))
-    setAddress(localStorage.getItem('bs_order_address') || '')
-    setNote(localStorage.getItem('bs_order_note') || '')
+    const cartItems = JSON.parse(localStorage.getItem('bs_cart') || '[]')
+    setCart(cartItems)
     
+    if (cartItems.length > 0) {
+      const sId = cartItems[0].shopId || cartItems[0].ShopId
+      fetch(`http://localhost/bitesync/api/shop/profile.php?shopId=${sId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.data) {
+                setShopLoc({ lat: parseFloat(data.data.AdrLat), lng: parseFloat(data.data.AdrLng) })
+            }
+        })
+    }
+
     const u = localStorage.getItem('bs_user')
     if (u) {
       const userData = JSON.parse(u)
@@ -47,6 +66,31 @@ export default function CheckoutPage() {
         return
       }
       setUser(userData)
+      
+      // Fetch Persistent Default Address from DB
+      fetch(`http://localhost/bitesync/api/customer/address.php?usrId=${userData.id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.data) {
+                const a = data.data
+                setAdrLat(parseFloat(a.AdrLat))
+                setAdrLng(parseFloat(a.AdrLng))
+                setHouseNo(a.HouseNo || '')
+                setVillage(a.Village || '')
+                setRoad(a.Road || '')
+                setSelProvince(a.Province || '')
+                setSelAmphure(a.District || '')
+                setSelTambon(a.SubDistrict || '')
+                setZipcode(a.Zipcode || '')
+                setAddress(`${a.HouseNo || ''} ${a.SubDistrict || ''} ${a.District || ''} ${a.Province || ''}`)
+                
+                if (mapInstanceRef.current && markerRef.current) {
+                    mapInstanceRef.current.setView([a.AdrLat, a.AdrLng], 16)
+                    markerRef.current.setLatLng([a.AdrLat, a.AdrLng])
+                }
+                updateDeliveryFee(a.AdrLat, a.AdrLng)
+            }
+        })
     } else {
       router.replace('/login')
       return
@@ -77,7 +121,193 @@ export default function CheckoutPage() {
       .then(res => res.json())
       .then(data => setProvinces(data))
       .catch(() => {})
+
+    initMap()
   }, [router])
+
+  // Reactively update delivery fee
+  useEffect(() => {
+    if (shopLoc && adrLat && adrLng) {
+        updateDeliveryFee(adrLat, adrLng);
+    }
+  }, [shopLoc, adrLat, adrLng]);
+
+  async function reverseGeocode(lat, lng) {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`);
+      const data = await res.json();
+      if (data && data.address) {
+        const addr = data.address;
+        // 1. House, Road, Village (Reset if not found, keep if found)
+        const newHouseNo = addr.house_number || ''
+        const newRoad = addr.road || ''
+        const newVillage = addr.neighbourhood || addr.suburb || addr.village || ''
+        
+        setHouseNo(newHouseNo);
+        setRoad(newRoad);
+        setVillage(newVillage);
+        setSoi(''); // Reset manual fields on pin move
+        setMoo('');
+
+        // 2. Province (Match only if exactly in our list)
+        let newProvince = selProvince;
+        let newAmphure = selAmphure;
+        let newTambon = selTambon;
+        let newZip = zipcode;
+
+        const pMatch = provinces.find(p => addr.state?.includes(p.name_th) || addr.province?.includes(p.name_th) || addr.city?.includes(p.name_th));
+        if (pMatch) {
+            newProvince = pMatch.name_th;
+            setSelProvince(newProvince);
+            // 3. District (Match only if in selected province)
+            const aMatch = pMatch.amphure.find(a => addr.city_district?.includes(a.name_th) || addr.district?.includes(a.name_th));
+            if (aMatch) {
+                newAmphure = aMatch.name_th;
+                setSelAmphure(newAmphure);
+                // 4. Tambon
+                const tMatch = aMatch.tambon.find(t => addr.suburb?.includes(t.name) || addr.subdistrict?.includes(t.name));
+                if (tMatch) {
+                    newTambon = tMatch.name;
+                    newZip = tMatch.zip_code || tMatch.zip || '';
+                    setSelTambon(newTambon);
+                    setZipcode(newZip);
+                }
+            }
+        }
+        
+        // Regenerate full address string using either new matches OR existing selections
+        updateFullAddress(
+            newHouseNo,
+            newVillage,
+            newRoad,
+            '', // Soi reset
+            '', // Moo reset
+            newTambon,
+            newAmphure,
+            newProvince,
+            newZip
+        );
+      }
+    } catch (e) {
+      console.error("Geocoding error:", e);
+    }
+  }
+
+  // Manual save logic (Wait for user confirmation)
+
+  async function saveAddressToDB() {
+    if (!user || adrLat === 7.0085) return // Don't save default Hat Yai start
+    try {
+      await fetch('http://localhost/bitesync/api/customer/address.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usrId: user.id,
+          lat: adrLat,
+          lng: adrLng,
+          houseNo, village, road,
+          subDistrict: selTambon,
+          district: selAmphure,
+          province: selProvince,
+          zipcode
+        })
+      })
+    } catch (e) {
+      console.error("Save address error:", e)
+    }
+  }
+  async function forwardGeocode(p, a, t) {
+    if (!p || !a || !t) return
+    try {
+      const query = `${t}, ${a}, ${p}, Thailand`
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setAdrLat(parseFloat(lat).toFixed(7));
+        setAdrLng(parseFloat(lon).toFixed(7));
+        if (mapInstanceRef.current && markerRef.current) {
+          mapInstanceRef.current.setView([lat, lon], 16);
+          markerRef.current.setLatLng([lat, lon]);
+        }
+        updateDeliveryFee(lat, lon);
+      }
+    } catch (e) {
+      console.error("Forward geocoding error:", e);
+    }
+  }
+
+  function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // km
+    const dLat = (lat2-lat1) * Math.PI / 180;
+    const dLon = (lon2-lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  function updateDeliveryFee(lat, lng) {
+    if (!shopLoc) return;
+    const dist = getDistance(lat, lng, shopLoc.lat, shopLoc.lng);
+    const fee = Math.max(20, Math.round(20 + (dist * 5)));
+    setDeliveryFee(fee);
+  }
+
+  async function initMap() {
+    if (typeof window === 'undefined') return
+    const L = (await import('leaflet')).default
+    await import('leaflet/dist/leaflet.css')
+
+    delete L.Icon.Default.prototype._getIconUrl
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    })
+
+    if (!mapRef.current || mapInstanceRef.current) return
+
+    const map = L.map(mapRef.current).setView([adrLat, adrLng], 16)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map)
+
+    const marker = L.marker([adrLat, adrLng], { draggable: true }).addTo(map)
+    marker.on('dragend', () => {
+      const pos = marker.getLatLng()
+      setAdrLat(pos.lat.toFixed(7))
+      setAdrLng(pos.lng.toFixed(7))
+      reverseGeocode(pos.lat, pos.lng)
+      updateDeliveryFee(pos.lat, pos.lng)
+    })
+
+    map.on('click', (e) => {
+      marker.setLatLng(e.latlng)
+      setAdrLat(e.latlng.lat.toFixed(7))
+      setAdrLng(e.latlng.lng.toFixed(7))
+      reverseGeocode(e.latlng.lat, e.latlng.lng)
+      updateDeliveryFee(e.latlng.lat, e.latlng.lng)
+    })
+
+    mapInstanceRef.current = map
+    markerRef.current = marker
+    setMapReady(true)
+
+    // Only get real location if no saved address exists
+    if (!houseNo && adrLat === 7.0085) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const { latitude, longitude } = pos.coords
+          setAdrLat(latitude.toFixed(7))
+          setAdrLng(longitude.toFixed(7))
+          map.setView([latitude, longitude], 16)
+          marker.setLatLng([latitude, longitude])
+          reverseGeocode(latitude, longitude)
+          updateDeliveryFee(latitude, longitude)
+        }, null, { enableHighAccuracy: true })
+    }
+  }
 
   function changeQty(index, delta) {
     const next = [...cart]
@@ -120,7 +350,6 @@ export default function CheckoutPage() {
   const isAddressValid = selProvince && selAmphure && selTambon && houseNo.trim().length >= 1
 
   const subtotal = (cart || []).reduce((s, c) => s + Math.round((parseFloat(c.price || 0) * Number(c.qty || 0))), 0)
-  const deliveryFee = 15
   const total = Math.round(subtotal + deliveryFee)
 
   async function placeOrder() {
@@ -130,6 +359,14 @@ export default function CheckoutPage() {
       const token = localStorage.getItem('bs_token')
       
       // Send structured address record
+      // Use values from state (Map Picker)
+      const lat = parseFloat(adrLat);
+      const lng = parseFloat(adrLng);
+
+      if (saveAsDefault) {
+        saveAddressToDB();
+      }
+
       const addressRecord = {
         houseNo: houseNo,
         village: village,
@@ -139,7 +376,9 @@ export default function CheckoutPage() {
         tambon: selTambon,
         amphure: selAmphure,
         province: selProvince,
-        zip: zipcode
+        zip: zipcode,
+        lat: lat,
+        lng: lng
       }
 
       const res = await fetch('http://localhost/bitesync/api/customer/orders.php', {
@@ -150,7 +389,8 @@ export default function CheckoutPage() {
           items: cart, 
           addressRecord, // Real structured address
           total, 
-          deliveryFee
+          deliveryFee,
+          distance: getDistance(adrLat, adrLng, shopLoc.lat, shopLoc.lng).toFixed(2)
         })
       })
       const data = await res.json()
@@ -202,7 +442,8 @@ export default function CheckoutPage() {
         name: user?.name || 'Customer',
         phone: user?.phone || '08x-xxx-xxxx',
         address: address || 'No address',
-        lat: 7.0085, lng: 100.4734
+        lat: parseFloat(adrLat), 
+        lng: parseFloat(adrLng)
       },
       shop: {
         id: cart[0]?.ShopId || cart[0]?.shopId || 1,
@@ -352,7 +593,35 @@ export default function CheckoutPage() {
 
               {/* Delivery */}
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>📍 ที่อยู่จัดส่ง</h2>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <h2 className={styles.cardTitle}>📍 ที่อยู่จัดส่ง</h2>
+                </div>
+
+                {/* Map Picker Section */}
+                <div className={styles.mapPickerSection}>
+                  <div className={styles.mapPickerHeader}>
+                    <p className={styles.mapHint}>ปักหมุดตำแหน่งที่ถูกต้องบนแผนที่ เพื่อความรวดเร็วในการจัดส่ง</p>
+                    <button className={styles.gpsBtn} onClick={() => {
+                        setMapReady(false);
+                        initMap();
+                    }}>
+                      <i className="fa-solid fa-location-crosshairs" /> ดึงตำแหน่งปัจจุบัน
+                    </button>
+                  </div>
+                  
+                  <div ref={mapRef} className={styles.checkoutMap} />
+                  
+                  <div className={styles.coordinateRow}>
+                    <div className={styles.coordField}>
+                      <label>Latitude</label>
+                      <input type="text" name="lat" value={adrLat} readOnly className={styles.coordInp} />
+                    </div>
+                    <div className={styles.coordField}>
+                      <label>Longitude</label>
+                      <input type="text" name="lng" value={adrLng} readOnly className={styles.coordInp} />
+                    </div>
+                  </div>
+                </div>
                 
                 <div className={styles.addrFull}>
                   <label>บ้านเลขที่ / อาคาร</label>
@@ -471,6 +740,8 @@ export default function CheckoutPage() {
                         setSelTambon(v);
                         setZipcode(t?.zip_code || t?.zip || '');
                         updateFullAddress(houseNo, village, road, soi, moo, v, selAmphure, selProvince, t?.zip_code || t?.zip || '');
+                        // Sync map to the chosen location
+                        forwardGeocode(selProvince, selAmphure, v);
                       }}
                       className={styles.sel}
                     >
@@ -485,6 +756,21 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {user && (
+                  <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px' }}>
+                    <input 
+                      type="checkbox" 
+                      id="saveDef"
+                      checked={saveAsDefault} 
+                      onChange={e => setSaveAsDefault(e.target.checked)}
+                      style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                    />
+                    <label htmlFor="saveDef" style={{ fontSize: '14px', color: '#666', cursor: 'pointer', fontWeight: '500' }}>
+                      บันทึกตำแหน่งนี้เป็นที่อยู่เริ่มต้นในโปรไฟล์ของคุณ
+                    </label>
+                  </div>
+                )}
+
                 {address && <div className={styles.addrPreview}><strong>Preview:</strong> {address}</div>}
                 
                 {note && <div className={styles.noteRow}>📝 {note}</div>}
@@ -494,8 +780,20 @@ export default function CheckoutPage() {
             <div className={styles.right}>
               <div className={styles.summaryCard}>
                 <h2 className={styles.cardTitle}>สรุปออเดอร์</h2>
-                <div className={styles.summaryRow}><span>ยอดรวม</span><span>{Math.round(subtotal).toLocaleString()} ฿</span></div>
-                <div className={styles.summaryRow}><span>ค่าจัดส่ง</span><span>{deliveryFee.toLocaleString()} ฿</span></div>
+                <div className={styles.summaryRow}>
+                  <span>ยอดรวม</span>
+                  <span>{Math.round(subtotal).toLocaleString()} ฿</span>
+                </div>
+                {shopLoc && (
+                  <div className={styles.summaryRow} style={{fontSize:'12px', color:'#888', marginTop:'-10px', marginBottom:'10px'}}>
+                    <span>ระยะทางประมาณ:</span>
+                    <span>{getDistance(adrLat, adrLng, shopLoc.lat, shopLoc.lng).toFixed(2)} กม.</span>
+                  </div>
+                )}
+                <div className={styles.summaryRow}>
+                  <span>ค่าจัดส่ง</span>
+                  <span>{deliveryFee.toLocaleString()} ฿</span>
+                </div>
                 <div className={styles.divider}/>
                 <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
                   <span>ทั้งหมด</span><span>{Math.round(total).toLocaleString()} ฿</span>

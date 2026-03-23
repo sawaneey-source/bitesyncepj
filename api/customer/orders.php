@@ -28,6 +28,7 @@ if ($method === 'POST') {
     $addressRec = $data['addressRecord'] ?? null;
     $total      = $data['total'] ?? 0;
     $delFee     = $data['deliveryFee'] ?? 0;
+    $distance   = $data['distance'] ?? 0;
     $shopId     = $items[0]['shopId'] ?? $items[0]['ShopId'] ?? 0;
 
     if (!$userId || !$shopId || empty($items) || !$addressRec) {
@@ -57,8 +58,11 @@ if ($method === 'POST') {
         }
 
         // 1. Check if identical address already exists for this user
-        $checkA = $conn->prepare("SELECT AdrId FROM tbl_address WHERE UsrId = ? AND HouseNo = ? AND Village = ? AND Road = ? AND Soi = ? AND Moo = ? AND SubDistrict = ? AND District = ? AND Province = ? AND Zipcode = ? LIMIT 1");
-        $checkA->bind_param("isssssssss", $userId, $addressRec['houseNo'], $addressRec['village'], $addressRec['road'], $addressRec['soi'], $addressRec['moo'], $addressRec['tambon'], $addressRec['amphure'], $addressRec['province'], $addressRec['zip']);
+        $lat = (float)($addressRec['lat'] ?? 0);
+        $lng = (float)($addressRec['lng'] ?? 0);
+        
+        $checkA = $conn->prepare("SELECT AdrId FROM tbl_address WHERE UsrId = ? AND HouseNo = ? AND Village = ? AND Road = ? AND Soi = ? AND Moo = ? AND SubDistrict = ? AND District = ? AND Province = ? AND Zipcode = ? AND AdrLat = ? AND AdrLng = ? LIMIT 1");
+        $checkA->bind_param("isssssssssdd", $userId, $addressRec['houseNo'], $addressRec['village'], $addressRec['road'], $addressRec['soi'], $addressRec['moo'], $addressRec['tambon'], $addressRec['amphure'], $addressRec['province'], $addressRec['zip'], $lat, $lng);
         $checkA->execute();
         $exist = $checkA->get_result()->fetch_assoc();
         
@@ -66,8 +70,8 @@ if ($method === 'POST') {
             $adrId = $exist['AdrId'];
         } else {
             // Insert new address
-            $stmt = $conn->prepare("INSERT INTO tbl_address (UsrId, HouseNo, Village, Road, Soi, Moo, SubDistrict, District, Province, Zipcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("isssssssss", $userId, $addressRec['houseNo'], $addressRec['village'], $addressRec['road'], $addressRec['soi'], $addressRec['moo'], $addressRec['tambon'], $addressRec['amphure'], $addressRec['province'], $addressRec['zip']);
+            $stmt = $conn->prepare("INSERT INTO tbl_address (UsrId, HouseNo, Village, Road, Soi, Moo, SubDistrict, District, Province, Zipcode, AdrLat, AdrLng) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("isssssssssdd", $userId, $addressRec['houseNo'], $addressRec['village'], $addressRec['road'], $addressRec['soi'], $addressRec['moo'], $addressRec['tambon'], $addressRec['amphure'], $addressRec['province'], $addressRec['zip'], $lat, $lng);
             $stmt->execute();
             $adrId = $stmt->insert_id;
         }
@@ -75,8 +79,17 @@ if ($method === 'POST') {
         // 2. Insert into tbl_order
         $status = 1; 
         $foodPrice = $total - $delFee;
-        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrGrandTotal) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("iiiiddd", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $total);
+        
+        // Calculate Financial Splits
+        $gpRate = 0.30; // 30% Shop GP
+        $riderShareRate = 0.80; // 80% of Delivery Fee for Rider
+        
+        $odrGP       = $foodPrice * $gpRate;
+        $odrRiderFee = $delFee * $riderShareRate;
+        $odrAdminFee = $odrGP + ($delFee - $odrRiderFee); // GP + 20% of Delivery Fee
+
+        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrDistance, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("iiiiddddddd", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $distance, $total, $odrGP, $odrRiderFee, $odrAdminFee);
         $stmt->execute();
         $orderId = $stmt->insert_id;
 
@@ -100,14 +113,19 @@ if ($method === 'POST') {
     $orderId = $_GET['id'] ?? 0;
     
     if ($orderId) {
-        $sql = "SELECT o.*, s.ShopName, s.ShopLat, s.ShopLng, a.Province, a.District, a.SubDistrict, a.HouseNo, a.Zipcode,
-                       u.UsrFullName as RiderName, u.UsrPhone as RiderPhone,
-                       r.RiderVehicleType, r.RiderVehiclePlate, r.RiderLat, r.RiderLng, r.RiderRatingAvg
+        $sql = "SELECT o.*, s.ShopName, s.ShopPhone, s.ShopPrepTime, 
+                       sa.AdrLat as ShopLat, sa.AdrLng as ShopLng,
+                       a.Province, a.District, a.SubDistrict, a.HouseNo, a.Zipcode, a.AdrLat, a.AdrLng,
+                       ur.UsrFullName as RiderName, ur.UsrPhone as RiderPhone,
+                       r.RiderVehicleType, r.RiderVehiclePlate, r.RiderLat, r.RiderLng, r.RiderRatingAvg,
+                       uc.UsrFullName as CustName
                 FROM tbl_order o 
                 LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
+                LEFT JOIN tbl_address sa ON s.AdrId = sa.AdrId
                 LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
                 LEFT JOIN tbl_rider r ON o.RiderId = r.RiderId
-                LEFT JOIN tbl_userinfo u ON r.UsrId = u.UsrId
+                LEFT JOIN tbl_userinfo ur ON r.UsrId = ur.UsrId
+                LEFT JOIN tbl_userinfo uc ON o.UsrId = uc.UsrId
                 WHERE o.OdrId = ? LIMIT 1";
         
         $stmt = $conn->prepare($sql);
@@ -118,21 +136,29 @@ if ($method === 'POST') {
 
         if ($order) {
             // Get Items
-            $itemStmt = $conn->prepare("SELECT od.*, f.FoodName FROM tbl_order_detail od LEFT JOIN tbl_food f ON od.FoodId = f.FoodId WHERE od.OdrId = ?");
+            $itemStmt = $conn->prepare("SELECT od.*, f.FoodName, f.FoodPrepTime FROM tbl_order_detail od 
+                                      LEFT JOIN tbl_food f ON od.FoodId = f.FoodId 
+                                      WHERE od.OdrId = ?");
             $itemStmt->bind_param("i", $orderId);
             $itemStmt->execute();
             $itemRes = $itemStmt->get_result();
             $items = [];
-            while($it = $itemRes->fetch_assoc()) {
+            $maxPrep = 0;
+            while ($it = $itemRes->fetch_assoc()) {
+                $prep = (int)($it['FoodPrepTime'] ?? 0);
+                if ($prep > $maxPrep) $maxPrep = $prep;
+
                 $items[] = [
                     'id'   => $it['FoodId'],
                     'foodId' => $it['FoodId'],
                     'name' => $it['FoodName'],
                     'qty'  => (int)$it['OdtQty'],
-                    'price' => (float)$it['OdtUnitPrice']
+                    'price' => (float)$it['OdtUnitPrice'],
+                    'prepTime' => $prep
                 ];
             }
             $order['items'] = $items;
+            $order['MaxPrepTime'] = $maxPrep;
 
             $step = 0;
             $os = (int)$order['OdrStatus'];

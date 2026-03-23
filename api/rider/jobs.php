@@ -17,12 +17,13 @@ $usrId = $_GET['usrId'] ?? 0;
 $sql = "SELECT o.OdrId, o.OdrGrandTotal as total, o.OdrDelFee as fee, o.OdrDistance as distance,
                s.ShopName, s.ShopBannerPath as img,
                sa.Province as shopProv, sa.District as shopDist, sa.SubDistrict as shopSub, sa.HouseNo as shopHouse, sa.Road as shopRoad, sa.Village as shopVillage,
+               sa.AdrLat as shopLat, sa.AdrLng as shopLng,
                a.Province as custProv, a.District as custDist, a.SubDistrict as custSub, a.HouseNo as custHouse
         FROM tbl_order o
         LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
         LEFT JOIN tbl_address sa ON s.AdrId = sa.AdrId
         LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
-        WHERE (o.OdrStatus = 3 OR o.OdrStatus = 4) 
+        WHERE o.OdrStatus = 4 
           AND (o.RiderId IS NULL OR o.RiderId = 0)
           AND o.OdrId NOT IN (SELECT OdrId FROM tbl_order_cancel_history WHERE RiderId = (SELECT RiderId FROM tbl_rider WHERE UsrId = ?))
         ORDER BY o.OdrCreatedAt ASC";
@@ -65,7 +66,9 @@ if ($result && $result->num_rows > 0) {
             'total' => number_format((float)$row['total'], 2),
             'distance' => number_format((float)$row['distance'], 1) . ' กม.',
             'fee' => number_format((float)$row['fee'], 0),
-            'img' => $img
+            'img' => $img,
+            'shopLat' => $row['shopLat'],
+            'shopLng' => $row['shopLng']
         ];
     }
 }

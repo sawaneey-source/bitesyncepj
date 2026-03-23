@@ -16,8 +16,10 @@ include dirname(__FILE__) . "/../../dbconnect/dbconnect.php";
 
 /* ── GET: Fetch shop profile ── */
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $usrId = $_GET['usrId'] ?? null;
-    if (!$usrId) exit(json_encode(["success"=>false, "message"=>"usrId required"]));
+    $usrId  = $_GET['usrId']  ?? null;
+    $shopId = $_GET['shopId'] ?? null;
+    
+    if (!$usrId && !$shopId) exit(json_encode(["success"=>false, "message"=>"usrId or shopId required"]));
 
     $sql = "SELECT s.ShopId, s.ShopName, s.ShopPhone, s.ShopCatType, s.ShopStatus,
                    s.ShopLogoPath, s.ShopBannerPath, s.ShopLogoOriPath, s.ShopBannerOriPath, s.ShopPrepTime,
@@ -27,9 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             FROM tbl_shop s
             LEFT JOIN tbl_address a ON s.AdrId = a.AdrId
             LEFT JOIN tbl_userinfo u ON s.UsrId = u.UsrId
-            WHERE s.UsrId = ?";
+            WHERE " . ($shopId ? "s.ShopId = ?" : "s.UsrId = ?");
+    
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $usrId);
+    $idParam = $shopId ? $shopId : $usrId;
+    $stmt->bind_param("i", $idParam);
     $stmt->execute();
     $shop = $stmt->get_result()->fetch_assoc();
 

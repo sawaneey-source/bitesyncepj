@@ -17,17 +17,41 @@ export default function RiderJobsPage() {
   const [toast, setToast] = useState(null)
   const [online, setOnline] = useState(false)
   const [hasActiveJob, setHasActiveJob] = useState(false)
+  const [riderLoc, setRiderLoc] = useState(null)
 
   useEffect(() => {
     setOnline(localStorage.getItem('rider_online') === 'true')
     fetchJobs()
     checkActiveJob()
+
+    // Watch rider location
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => setRiderLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true }
+    )
+
     const iv = setInterval(() => {
       fetchJobs()
       checkActiveJob()
     }, 15000)
-    return () => clearInterval(iv)
+    return () => {
+      clearInterval(iv)
+      navigator.geolocation.clearWatch(watchId)
+    }
   }, [])
+
+  function getDistance(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371; // km
+    const dLat = (lat2-lat1) * Math.PI / 180;
+    const dLon = (lon2-lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
 
   async function checkActiveJob() {
     try {
@@ -110,6 +134,12 @@ export default function RiderJobsPage() {
         </div>
       )}
 
+      {online && riderLoc && (
+        <div style={{background:'#e3f2fd', color:'#1976d2', padding:'10px 16px', borderRadius:'10px', marginBottom:'15px', display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', fontWeight:'600'}}>
+          <i className="fa-solid fa-filter" /> กำลังกรองงานในระยะ 5 กม. รอบตัวคุณ
+        </div>
+      )}
+
       {hasActiveJob && (
         <div style={{background:'#fff3e0', border:'1px solid #ffe0b2', color:'#e65100', padding:'16px', borderRadius:'12px', marginBottom:'20px', display:'flex', alignItems:'center', gap:'12px', fontWeight:'500'}}>
           <span style={{fontSize:'20px'}}>⚠️</span>
@@ -117,15 +147,26 @@ export default function RiderJobsPage() {
         </div>
       )}
 
-      {jobs.length === 0 ? (
-        <div className={styles.empty}>
-          <span>📭</span>
-          <span>ไม่มีงานใหม่ตอนนี้</span>
-          <span className={styles.emptySub}>รอสักครู่ ระบบจะแจ้งเมื่อมีออเดอร์ใหม่</span>
-        </div>
-      ) : (
-        <div className={styles.list}>
-          {jobs.map(job => (
+      {(() => {
+        const filteredJobs = jobs.filter(job => {
+          if (!riderLoc) return true; // Show all if no GPS yet
+          const dist = getDistance(riderLoc.lat, riderLoc.lng, parseFloat(job.shopLat), parseFloat(job.shopLng));
+          return dist <= 5.0;
+        });
+
+        if (filteredJobs.length === 0) {
+          return (
+            <div className={styles.empty}>
+              <span>📭</span>
+              <span>ไม่มีงานใหม่ในระยะ 5 กม.</span>
+              <span className={styles.emptySub}>รองานใหม่สักครู่ หรือลองเปลี่ยนพื้นที่นะครับ</span>
+            </div>
+          );
+        }
+
+        return (
+          <div className={styles.list}>
+            {filteredJobs.map(job => (
             <div key={job.id} className={styles.jobCard}>
               <div className={styles.jobTop}>
                 <img src={job.img} className={styles.jobImg}/>
@@ -152,10 +193,22 @@ export default function RiderJobsPage() {
                     <span className={styles.routeAddr}>{job.custAddr}</span>
                   </div>
                 </div>
-                <div className={styles.jobMeta}>
+                 <div className={styles.jobMeta}>
                   <span>📦 {job.items}</span>
                   <span>·</span>
-                  <span>📍 {job.distance}</span>
+                  <span title="ระยะทางจากร้านไปบ้านลูกค้า">🚚 {job.distance}</span>
+                  {riderLoc && (
+                    <>
+                      <span>·</span>
+                      <span title="ระยะทางจากตำแหน่งคุณไปที่ร้าน" style={{color:'#f39c12', fontWeight:'700'}}>
+                        📍 ไปร้าน: {getDistance(riderLoc.lat, riderLoc.lng, parseFloat(job.shopLat), parseFloat(job.shopLng)).toFixed(1)} กม.
+                      </span>
+                      <span>·</span>
+                      <span title="ระยะทางรวมทั้งหมด" style={{color:'#3498db', fontWeight:'800'}}>
+                        🏁 รวม: {(getDistance(riderLoc.lat, riderLoc.lng, parseFloat(job.shopLat), parseFloat(job.shopLng)) + parseFloat(job.distance)).toFixed(1)} กม.
+                      </span>
+                    </>
+                  )}
                   <span>·</span>
                   <span>💰 {job.total} ฿</span>
                 </div>
@@ -175,7 +228,8 @@ export default function RiderJobsPage() {
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
     </div>
   )
 }

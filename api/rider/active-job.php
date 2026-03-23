@@ -28,11 +28,11 @@ if ($rRow = $rRes->fetch_assoc()) {
 }
 
 // 3. Find active job strictly for this rider
-$sql = "SELECT o.OdrId as id, o.OdrStatus as status, o.OdrFoodPrice as subtotal, o.OdrDelFee as fee, o.OdrGrandTotal as total,
+$sql = "SELECT o.OdrId as id, o.OdrStatus as status, o.OdrFoodPrice as subtotal, o.OdrDelFee as fee, o.OdrGrandTotal as total, o.OdrDistance as distance,
                a.Province as custProv, a.District as custDist, a.SubDistrict as custSub, a.HouseNo as custHouse, a.Zipcode as custZip,
-               u.UsrFullName as custName, u.UsrPhone as custPhone,
+               u.UsrFullName as custName, u.UsrPhone as custPhone, a.AdrLat as custLat, a.AdrLng as custLng,
                s.ShopName as shopName, s.ShopPhone as shopPhone,
-               sa.Province as shopProv, sa.District as shopDist, sa.SubDistrict as shopSub, sa.HouseNo as shopHouse, sa.Zipcode as shopZip, sa.Village as shopVillage, sa.Road as shopRoad
+               sa.Province as shopProv, sa.District as shopDist, sa.SubDistrict as shopSub, sa.HouseNo as shopHouse, sa.Zipcode as shopZip, sa.Village as shopVillage, sa.Road as shopRoad, sa.AdrLat as shopLat, sa.AdrLng as shopLng
         FROM tbl_order o
         LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
         LEFT JOIN tbl_userinfo u ON o.UsrId = u.UsrId
@@ -82,6 +82,13 @@ if ($job) {
     // Format full addresses
     $job['custAddr'] = $job['custHouse'] . ' ' . $job['custSub'] . ' ' . $job['custDist'] . ' ' . $job['custProv'] . ' ' . $job['custZip'];
     $job['shopAddr'] = $job['shopHouse'] . ' ' . ($job['shopVillage'] ? $job['shopVillage'].' ' : '') . ($job['shopRoad'] ? $job['shopRoad'].' ' : '') . $job['shopSub'] . ' ' . $job['shopDist'] . ' ' . $job['shopProv'];
+
+    // Ensure coordinates are numeric/defaults
+    $job['custLat'] = (float)($job['custLat'] ?: 0);
+    $job['custLng'] = (float)($job['custLng'] ?: 0);
+    $job['shopLat'] = (float)($job['shopLat'] ?: 0);
+    $job['shopLng'] = (float)($job['shopLng'] ?: 0);
+    $job['distance'] = number_format((float)$job['distance'], 1) . ' กม.';
 
     echo json_encode(['success' => true, 'data' => $job]);
 } else {
