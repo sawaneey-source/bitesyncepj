@@ -6,7 +6,7 @@ import styles from './page.module.css'
 
 export default function RiderProfilePage() {
   const fileRef = useRef()
-  const [form, setForm] = useState({ name:'', phone:'', vehicle:'', plate:'', color:'', bankName:'', bankAccount:'', emergency:'', preview:null, img:null })
+  const [form, setForm] = useState({ name:'', phone:'', email:'', vehicle:'', plate:'', color:'', bankName:'', bankAccount:'', emergency:'', preview:null, img:null, oldPw: '', userPw: '', userPwConfirm: '' })
   const [stats, setStats] = useState({ rating:0.0, jobs:0, balance:0 })
   const [loading, setLoading] = useState(false)
   const [toast, setToast]     = useState(null)
@@ -16,6 +16,7 @@ export default function RiderProfilePage() {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+  const [originalImageUrl, setOriginalImageUrl] = useState(null)  // blob URL of local file chosen this session
 
   useEffect(() => { load() }, [])
   function showToast(msg,type='ok'){ setToast({msg,type}); setTimeout(()=>setToast(null),2500) }
@@ -39,13 +40,15 @@ export default function RiderProfilePage() {
           ...f, 
           name:r.name||'', 
           phone:r.phone||'', 
+          email:r.email||'',
           vehicle:r.vehicle||'', 
           plate:r.plate||'', 
           color:r.color||'',
           bankName:r.bankName||'', 
           bankAccount:r.bankAccount||'', 
           emergency:r.emergency||'',
-          preview:r.img||null 
+          preview: r.img || null,
+          imgOri: r.imgOri || null
         }))
         setStats({ rating:r.rating, jobs:r.ratingCount, balance:r.balance })
       } else {
@@ -57,11 +60,14 @@ export default function RiderProfilePage() {
   }
 
   function onImg(e) { 
-    const f=e.target.files?.[0]; 
-    if(!f) return; 
+    const f = e.target.files?.[0]
+    if (!f) return
+    const url = URL.createObjectURL(f)
+    setOriginalImageUrl(url)  // remember full original for re-crop
+    setForm(prev => ({ ...prev, imgOriFile: f }))
     setCrop({ x: 0, y: 0 })
     setZoom(1)
-    setImageToCrop(URL.createObjectURL(f)) 
+    setImageToCrop(url)
   }
 
   const confirmCrop = async () => {
@@ -70,7 +76,6 @@ export default function RiderProfilePage() {
       const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels)
       if (!croppedBlob) throw new Error('ไม่สามารถสร้างไฟล์รูปภาพได้')
       const url = URL.createObjectURL(croppedBlob)
-      
       setForm(f => ({ 
         ...f, 
         preview: url, 
@@ -82,8 +87,32 @@ export default function RiderProfilePage() {
     }
   }
 
+  function handleEditCrop() {
+    const stamp = Date.now()
+    const toProxy = (url) => {
+      if (!url || url.startsWith('blob:') || url.startsWith('data:')) return url
+      const path = url.replace(/^https?:\/\/[^/]+\/bitesync\/public/, '')
+      return `http://localhost/bitesync/api/shop/image_proxy.php?file=${encodeURIComponent(path)}&t=${stamp}`
+    }
+
+    if (originalImageUrl) {
+      // Blob from this session — no CORS issue
+      setImageToCrop(originalImageUrl)
+    } else if (form.imgOri) {
+      setImageToCrop(toProxy(form.imgOri))
+    } else if (form.preview) {
+      setImageToCrop(toProxy(form.preview))
+    }
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+  }
+
   async function save() {
     if(!form.name.trim()) return showToast('กรุณากรอกชื่อ','err')
+    if (form.userPw.trim()) {
+      if (!form.oldPw.trim()) return showToast('กรุณาระบุรหัสผ่านเดิมเพื่อเปลี่ยนรหัสใหม่', 'err')
+      if (form.userPw !== form.userPwConfirm) return showToast('รหัสผ่านใหม่และการยืนยันไม่ตรงกัน', 'err')
+    }
     setLoading(true)
     try {
       const userStr = localStorage.getItem('bs_user')
@@ -96,7 +125,13 @@ export default function RiderProfilePage() {
       const fields = ['name', 'phone', 'vehicle', 'plate', 'color', 'bankName', 'bankAccount', 'emergency']
       fields.forEach(k => fd.append(k, form[k] || ''))
       
+      if(form.userPw) {
+        fd.append('oldPw', form.oldPw)
+        fd.append('usrPassword', form.userPw)
+      }
+      
       if(form.img) fd.append('image', form.img)
+      if(form.imgOriFile) fd.append('imageOri', form.imgOriFile)
       
       console.log('Saving Rider Profile for UsrId:', user.id)
 
@@ -124,7 +159,7 @@ export default function RiderProfilePage() {
           localStorage.setItem('bs_user', JSON.stringify(u))
         }
 
-        setForm(f => ({ ...f, img: null }))
+        setForm(f => ({ ...f, img: null, oldPw: '', userPw: '', userPwConfirm: '' }))
         load()
       } else {
         showToast(data.message||'เกิดข้อผิดพลาด','err')
@@ -148,18 +183,13 @@ export default function RiderProfilePage() {
               ? <img src={form.preview} className={styles.avatarImg} onClick={() => fileRef.current?.click()} style={{cursor:'pointer'}} />
               : <div className={styles.avatarPlaceholder} onClick={() => fileRef.current?.click()} style={{fontSize:50, cursor:'pointer'}}>🛵</div>
             }
-            <div className={styles.avatarCameraBtn} onClick={() => fileRef.current?.click()}><i className="fa-solid fa-camera"/></div>
           </div>
           <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={onImg}/>
           
           <div className={styles.avatarBtns}>
             <button className={styles.avatarEditBtn} onClick={() => fileRef.current?.click()}>เปลี่ยนรูป</button>
             {form.preview && (
-              <button className={styles.avatarEditBtn} onClick={() => {
-                setCrop({ x: 0, y: 0 })
-                setZoom(1)
-                setImageToCrop(form.preview)
-              }}>แก้ไขการครอบ</button>
+              <button className={styles.avatarEditBtn} onClick={handleEditCrop}>แก้ไขการครอบ</button>
             )}
           </div>
 
@@ -190,12 +220,12 @@ export default function RiderProfilePage() {
             </div>
             <div className={styles.field}>
               <label className={styles.label}>เบอร์โทร</label>
-              <input value={form.phone} onChange={e=>set('phone',e.target.value)} placeholder="0xx-xxx-xxxx" className={styles.inp}/>
+              <input value={form.phone} onChange={e=>set('phone',e.target.value)} placeholder="0xx-xxx-xxxx" className={styles.inp} maxLength={10}/>
             </div>
           </div>
           <div className={styles.field} style={{marginTop:12}}>
-            <label className={styles.label}>เบอร์โทรฉุกเฉิน</label>
-            <input value={form.emergency} onChange={e=>set('emergency',e.target.value)} placeholder="บุคคลที่ติดต่อได้ยามฉุกเฉิน" className={styles.inp}/>
+            <label className={styles.label}>เบอร์โทรฉุกเฉิน (10 หลัก)</label>
+            <input value={form.emergency} onChange={e=>set('emergency',e.target.value)} placeholder="บุคคลที่ติดต่อได้ยามฉุกเฉิน" className={styles.inp} maxLength={10}/>
           </div>
 
           <h2 className={styles.sectionTitle} style={{marginTop:18}}>ยานพาหนะ</h2>
@@ -226,8 +256,41 @@ export default function RiderProfilePage() {
               </select>
             </div>
             <div className={styles.field}>
-              <label className={styles.label}>เลขบัญชี</label>
-              <input value={form.bankAccount} onChange={e=>set('bankAccount',e.target.value)} placeholder="xxx-x-xxxxx-x" className={styles.inp}/>
+              <label className={styles.label}>เลขบัญชี (จำกัดขนาด)</label>
+              <input value={form.bankAccount} onChange={e=>set('bankAccount',e.target.value)} placeholder="xxx-x-xxxxx-x" className={styles.inp} maxLength={15}/>
+            </div>
+          </div>
+
+          <h2 className={styles.sectionTitle} style={{marginTop:18}}>ความปลอดภัยและบัญชี</h2>
+          <div className={styles.field}>
+            <label className={styles.label}>อีเมล (เข้าสู่ระบบ - เปลี่ยนไม่ได้)</label>
+            <input value={form.email} readOnly disabled className={styles.inp} style={{background:'#f5f5f5', color:'#888', cursor:'not-allowed'}}/>
+          </div>
+          
+          <div className={styles.row2} style={{marginTop:12}}>
+            <div className={styles.field}>
+              <label className={styles.label}>รหัสผ่านเดิม (ระบุเมื่อต้องการเปลี่ยนรหัส)</label>
+              <input type="password" value={form.oldPw} onChange={e=>set('oldPw',e.target.value)} placeholder="••••••••" className={styles.inp}/>
+            </div>
+          </div>
+          <div className={styles.row2} style={{marginTop:12}}>
+            <div className={styles.field}>
+              <label className={styles.label}>รหัสผ่านใหม่</label>
+              <input type="password" value={form.userPw} onChange={e=>set('userPw',e.target.value)} placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)" className={styles.inp} minLength={6} autoComplete="new-password"/>
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label}>ยืนยันรหัสผ่านใหม่</label>
+              <input type="password" value={form.userPwConfirm} onChange={e=>set('userPwConfirm',e.target.value)} placeholder="ยืนยันรหัสผ่านใหม่" className={styles.inp} minLength={6} autoComplete="new-password"/>
+            </div>
+          </div>
+
+          <div className={styles.pwdHintBox}>
+            <div className={styles.pwdHintIcon}>💡</div>
+            <div className={styles.pwdHintText}>
+              <strong>เปลี่ยนรหัสผ่าน:</strong> คุณสามารถพิมพ์รหัสผ่านใหม่ทับแล้วกดบันทึกได้เลยทันที<br/>
+              <a href="#" onClick={(e) => { e.preventDefault(); alert('ติดต่อแอดมินเพื่อรีเซ็ตรหัสผ่านไรเดอร์\n\nLine OA: @BiteSyncAdmin\nโทร: 02-123-4567'); }} className={styles.forgotLink}>
+                ลืมรหัสผ่านเดิมใช่ไหม? คลิกที่นี่เพื่อติดต่อแอดมิน
+              </a>
             </div>
           </div>
 

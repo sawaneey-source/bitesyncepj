@@ -96,10 +96,26 @@ if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
 $userUpdates = [];
 $userParams = [];
 $userTypes = "";
+// Password change
+$oldPw = $_POST['oldPw'] ?? '';
+$newPw = $_POST['usrPassword'] ?? '';
+
 if ($fullName) { $userUpdates[] = "UsrFullName = ?"; $userParams[] = $fullName; $userTypes .= "s"; }
 if ($phone) { $userUpdates[] = "UsrPhone = ?"; $userParams[] = $phone; $userTypes .= "s"; }
 if ($logoPath) { $userUpdates[] = "UsrImage = ?"; $userParams[] = $logoPath; $userTypes .= "s"; }
 if ($logoOriPath) { $userUpdates[] = "UsrImageOri = ?"; $userParams[] = $logoOriPath; $userTypes .= "s"; }
+if (!empty($newPw)) {
+    // Verify old password first
+    $chk = $conn->prepare("SELECT UsrPassword FROM tbl_userinfo WHERE UsrId = ?");
+    $chk->bind_param("i", $usrId);
+    $chk->execute();
+    $chkRow = $chk->get_result()->fetch_assoc();
+    if (!$chkRow || !password_verify($oldPw, $chkRow['UsrPassword'])) {
+        echo json_encode(["success" => false, "message" => "รหัสผ่านเดิมไม่ถูกต้อง ไม่สามารถเปลี่ยนรหัสผ่านได้"], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $userUpdates[] = "UsrPassword = ?"; $userParams[] = password_hash($newPw, PASSWORD_DEFAULT); $userTypes .= "s";
+}
 // Note: UsrAddress is deprecated and managed via tbl_address
 
 if (!empty($userUpdates)) {

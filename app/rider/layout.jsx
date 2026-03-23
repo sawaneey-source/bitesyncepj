@@ -113,7 +113,9 @@ export default function RiderLayout({ children }) {
         {/* Nav */}
         <nav className={styles.nav}>
           {NAV.map(n => {
-            const active = pathname.startsWith(n.href)
+            const active = n.href === '/rider'
+              ? pathname === '/rider' || pathname === '/rider/'
+              : pathname.startsWith(n.href)
             return (
               <Link key={n.href} href={n.href} className={`${styles.navLink} ${active ? styles.navActive : ''}`}>
                 <span className={styles.navIcon}>{n.icon}</span>

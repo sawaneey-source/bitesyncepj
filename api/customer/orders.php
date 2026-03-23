@@ -113,7 +113,7 @@ if ($method === 'POST') {
     $orderId = $_GET['id'] ?? 0;
     
     if ($orderId) {
-        $sql = "SELECT o.*, s.ShopName, s.ShopPhone, s.ShopPrepTime, 
+        $sql = "SELECT o.*, s.ShopName, s.ShopPhone, s.ShopPrepTime, s.ShopLogoPath AS ShopLogo,
                        sa.AdrLat as ShopLat, sa.AdrLng as ShopLng,
                        a.Province, a.District, a.SubDistrict, a.HouseNo, a.Zipcode, a.AdrLat, a.AdrLng,
                        ur.UsrFullName as RiderName, ur.UsrPhone as RiderPhone,
@@ -157,6 +157,7 @@ if ($method === 'POST') {
                     'prepTime' => $prep
                 ];
             }
+            $order['ShopLogo'] = $order['ShopLogo'] ? 'http://localhost/bitesync/public' . $order['ShopLogo'] : null;
             $order['items'] = $items;
             $order['MaxPrepTime'] = $maxPrep;
 

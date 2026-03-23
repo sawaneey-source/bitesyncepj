@@ -32,7 +32,7 @@ $sql = "SELECT o.OdrId as id, o.OdrStatus as status, o.OdrFoodPrice as subtotal,
                a.Province as custProv, a.District as custDist, a.SubDistrict as custSub, a.HouseNo as custHouse, a.Zipcode as custZip,
                u.UsrFullName as custName, u.UsrPhone as custPhone, a.AdrLat as custLat, a.AdrLng as custLng,
                s.ShopName as shopName, s.ShopPhone as shopPhone,
-               sa.Province as shopProv, sa.District as shopDist, sa.SubDistrict as shopSub, sa.HouseNo as shopHouse, sa.Zipcode as shopZip, sa.Village as shopVillage, sa.Road as shopRoad, sa.AdrLat as shopLat, sa.AdrLng as shopLng
+               sa.Province as shopProv, sa.District as shopDist, sa.SubDistrict as shopSub, sa.HouseNo as shopHouse, sa.Zipcode as shopZip, sa.Village as shopVillage, sa.Road as shopRoad, sa.AdrLat as shopLat, sa.AdrLng as shopLng, s.ShopLogoPath
         FROM tbl_order o
         LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
         LEFT JOIN tbl_userinfo u ON o.UsrId = u.UsrId
@@ -88,6 +88,7 @@ if ($job) {
     $job['custLng'] = (float)($job['custLng'] ?: 0);
     $job['shopLat'] = (float)($job['shopLat'] ?: 0);
     $job['shopLng'] = (float)($job['shopLng'] ?: 0);
+    $job['shopLogo'] = $job['ShopLogoPath'] ? 'http://localhost/bitesync/public' . $job['ShopLogoPath'] : null;
     $job['distance'] = number_format((float)$job['distance'], 1) . ' กม.';
 
     echo json_encode(['success' => true, 'data' => $job]);

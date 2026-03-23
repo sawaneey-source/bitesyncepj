@@ -36,31 +36,38 @@ export default function RiderMap({ riderLoc, shopLoc, custLoc, step }) {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map)
 
+    const createIcon = (emoji, iconUrl = null, size = 42) => {
+      const content = iconUrl 
+        ? `<img src="${iconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);" />`
+        : `<span style="font-size: ${size}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex;">${emoji}</span>`;
+      return L.divIcon({
+        className: '',
+        html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;">${content}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2]
+      });
+    };
+
     // Shop Marker
     if (isValid(shopLoc)) {
-      const shopIcon = L.divIcon({
-        html: `<div style="background:#2a6129;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">🏪</div>`,
-        className: '', iconAnchor: [18, 18]
-      })
-      L.marker([shopLoc.lat, shopLoc.lng], { icon: shopIcon }).addTo(map).bindPopup(`<b>ร้านค้า: ${shopLoc.name}</b>`)
+      const m = L.marker([shopLoc.lat, shopLoc.lng], { icon: createIcon('🏪', shopLoc.logo) })
+                 .addTo(map).bindPopup(`<b>ร้านค้า: ${shopLoc.name}</b>`);
+      m.setZIndexOffset(100);
     }
 
     // Customer Marker
     if (isValid(custLoc)) {
-      const custIcon = L.divIcon({
-        html: `<div style="background:#f0c419;color:#1a1f1a;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">📍</div>`,
-        className: '', iconAnchor: [18, 18]
-      })
-      L.marker([custLoc.lat, custLoc.lng], { icon: custIcon }).addTo(map).bindPopup(`<b>ลูกค้า: ${custLoc.name}</b>`)
+      const m = L.marker([custLoc.lat, custLoc.lng], { icon: createIcon('📍') })
+                 .addTo(map).bindPopup(`<b>ลูกค้า: ${custLoc.name}</b>`);
+      m.setZIndexOffset(50);
     }
 
     // Rider Marker
     if (isValid(riderLoc)) {
-      const riderIcon = L.divIcon({
-        html: `<div style="background:#e65100;color:#fff;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 2px 12px rgba(230,81,0,.4)">🛵</div>`,
-        className: '', iconAnchor: [20, 20]
-      })
-      riderMarkerRef.current = L.marker([riderLoc.lat, riderLoc.lng], { icon: riderIcon }).addTo(map).bindPopup(`<b>ตำแหน่งของคุณ</b>`)
+      riderMarkerRef.current = L.marker([riderLoc.lat, riderLoc.lng], { icon: createIcon('🛵', null, 48) })
+                 .addTo(map).bindPopup(`<b>ตำแหน่งของคุณ</b>`);
+      riderMarkerRef.current.setZIndexOffset(1000); // 🛵 Always on top
     }
 
     mapInstanceRef.current = map

@@ -40,19 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit(json_encode(["success"=>false, "message"=>"Valid numeric usrId required"]));
     }
 
-    // 1. Get User Info (Portable method without get_result)
-    $uSql = "SELECT UsrFullName, UsrPhone, UsrEmail, UsrImagePath FROM tbl_userinfo WHERE UsrId = ?";
+    // 1. Get User Info
+    $uSql = "SELECT UsrFullName, UsrPhone, UsrEmail, UsrImagePath, UsrImageOriPath FROM tbl_userinfo WHERE UsrId = ?";
     $uStmt = $conn->prepare($uSql);
     $uStmt->bind_param("i", $usrId);
     $uStmt->execute();
-    $uStmt->store_result();
-    
-    $uRow = null;
-    if ($uStmt->num_rows > 0) {
-        $uStmt->bind_result($name, $phone, $email, $img);
-        $uStmt->fetch();
-        $uRow = ["UsrFullName"=>$name, "UsrPhone"=>$phone, "UsrEmail"=>$email, "UsrImagePath"=>$img];
-    }
+    $uRow = $uStmt->get_result()->fetch_assoc();
     $uStmt->close();
 
     if (!$uRow) {
@@ -60,28 +53,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     // 2. Get Rider Details
-    $rSql = "SELECT RiderVehicleType, RiderVehiclePlate, RiderVehicleColor, RiderBankName, RiderBankAccount, EmergencyPhone, RiderRatingAvg, RiderRatingCount, RiderBalance, RiderStatus FROM tbl_rider WHERE UsrId = ?";
+    $rSql = "SELECT RiderId, RiderVehicleType, RiderVehiclePlate, RiderVehicleColor, RiderBankName, RiderBankAccount, EmergencyPhone, RiderStatus FROM tbl_rider WHERE UsrId = ?";
     $rStmt = $conn->prepare($rSql);
     $rStmt->bind_param("i", $usrId);
     $rStmt->execute();
     $rStmt->store_result();
     
     $rRow = null;
+    $rId = 0;
     if ($rStmt->num_rows > 0) {
-        $rStmt->bind_result($vType, $vPlate, $vColor, $vBank, $vAcc, $vEmer, $rRating, $rCount, $rBalance, $rStatus);
+        $rStmt->bind_result($rId, $vType, $vPlate, $vColor, $vBank, $vAcc, $vEmer, $rStatus);
         $rStmt->fetch();
         $rRow = [
-            "RiderVehicleType"=>$vType, "RiderVehiclePlate"=>$vPlate, "RiderVehicleColor"=>$vColor, 
-            "RiderBankName"=>$vBank, "RiderBankAccount"=>$vAcc, "EmergencyPhone"=>$vEmer, 
-            "RiderRatingAvg"=>$rRating, "RiderRatingCount"=>$rCount, "RiderBalance"=>$rBalance, "RiderStatus"=>$rStatus
+            "RiderId"=>$rId, "RiderVehicleType"=>$vType, "RiderVehiclePlate"=>$vPlate, "RiderVehicleColor"=>$vColor, 
+            "RiderBankName"=>$vBank, "RiderBankAccount"=>$vAcc, "EmergencyPhone"=>$vEmer, "RiderStatus"=>$rStatus
         ];
     }
     $rStmt->close();
+
+    // 3. Dynamically Calculate Stats from tbl_order
+    $rating = 0.0; $jobs = 0; $balance = 0.0;
+    if ($rId) {
+        // Average Rating
+        $q1 = $conn->prepare("SELECT AVG(RiderRating) as avgR, COUNT(RiderRating) as cntR FROM tbl_order WHERE RiderId = ? AND RiderRating IS NOT NULL");
+        $q1->bind_param("i", $rId);
+        $q1->execute();
+        $res1 = $q1->get_result()->fetch_assoc();
+        $rating = (float)($res1['avgR'] ?? 0);
+        $q1->close();
+
+        // Completed Jobs
+        $q2 = $conn->prepare("SELECT COUNT(*) as totalJobs FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6");
+        $q2->bind_param("i", $rId);
+        $q2->execute();
+        $res2 = $q2->get_result()->fetch_assoc();
+        $jobs = (int)($res2['totalJobs'] ?? 0);
+        $q2->close();
+
+        // Total Earnings (Balance)
+        $q3 = $conn->prepare("SELECT SUM(OdrDelFee) as totalEarnings FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6");
+        $q3->bind_param("i", $rId);
+        $q3->execute();
+        $res3 = $q3->get_result()->fetch_assoc();
+        $balance = (float)($res3['totalEarnings'] ?? 0);
+        $q3->close();
+    }
 
     // Map DB to Frontend JSON
     $data = [
         "name" => $uRow['UsrFullName'] ?? '',
         "phone" => $uRow['UsrPhone'] ?? '',
+        "email" => $uRow['UsrEmail'] ?? '',
         "vehicle" => $rRow['RiderVehicleType'] ?? '',
         "plate" => $rRow['RiderVehiclePlate'] ?? '',
         "color" => $rRow['RiderVehicleColor'] ?? '',
@@ -89,9 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         "bankAccount" => $rRow['RiderBankAccount'] ?? '',
         "emergency" => $rRow['EmergencyPhone'] ?? '',
         "img" => $uRow['UsrImagePath'] ? 'http://localhost/bitesync/public' . $uRow['UsrImagePath'] : null,
-        "rating" => $rRow['RiderRatingAvg'] ?? 0,
-        "ratingCount" => $rRow['RiderRatingCount'] ?? 0,
-        "balance" => $rRow['RiderBalance'] ?? 0,
+        "imgOri" => $uRow['UsrImageOriPath'] ? 'http://localhost/bitesync/public' . $uRow['UsrImageOriPath'] : null,
+        "rating" => round($rating, 1),
+        "ratingCount" => $jobs,
+        "balance" => $balance,
         "status" => $rRow['RiderStatus'] ?? 'Offline'
     ];
     
@@ -120,13 +143,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         exit(json_encode(["success"=>false, "message"=>"Numeric usrId required for saving"]));
     }
 
-    // 1. Update User Info
+    // 1. Update User Info & Password
     $uAffected = 0;
-    if (isset($data['name']) || isset($data['phone'])) {
-        $uSql = "UPDATE tbl_userinfo SET UsrFullName = ?, UsrPhone = ? WHERE UsrId = ?";
-        $uStmt = $conn->prepare($uSql);
+    if (isset($data['name']) || isset($data['phone']) || isset($data['usrPassword'])) {
+        // Password Change Logic
+        $pwSql = "";
+        $params = [];
+        $types = "";
+
+        if (!empty($data['usrPassword'])) {
+            // Check Old Password
+            $chk = $conn->prepare("SELECT UsrPassword FROM tbl_userinfo WHERE UsrId = ?");
+            $chk->bind_param("i", $usrId);
+            $chk->execute();
+            $chkRes = $chk->get_result()->fetch_assoc();
+            
+            if (!$chkRes || !password_verify($data['oldPw'], $chkRes['UsrPassword'])) {
+                exit(json_encode(["success" => false, "message" => "รหัสผ่านเดิมไม่ถูกต้อง ไม่สามารถเปลี่ยนรหัสผ่านได้"]));
+            }
+            
+            $newHash = password_hash($data['usrPassword'], PASSWORD_DEFAULT);
+            $uSql = "UPDATE tbl_userinfo SET UsrFullName = ?, UsrPhone = ?, UsrPassword = ? WHERE UsrId = ?";
+            $uStmt = $conn->prepare($uSql);
+            $uStmt->bind_param("sssi", $data['name'], $data['phone'], $newHash, $usrId);
+        } else {
+            $uSql = "UPDATE tbl_userinfo SET UsrFullName = ?, UsrPhone = ? WHERE UsrId = ?";
+            $uStmt = $conn->prepare($uSql);
+            $uStmt->bind_param("ssi", $data['name'], $data['phone'], $usrId);
+        }
+
         if (!$uStmt) exit(json_encode(["success"=>false, "message" => "UserInfo Prepare failed: " . $conn->error]));
-        $uStmt->bind_param("ssi", $data['name'], $data['phone'], $usrId);
         $uStmt->execute();
         $uAffected = $uStmt->affected_rows;
         $uStmt->close();
@@ -148,6 +194,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
             $iStmt->execute();
             $iAffected = $iStmt->affected_rows;
             $iStmt->close();
+        }
+    }
+
+    // 2b. Handle Original Image Upload (for re-crop later)
+    if (!empty($_FILES['imageOri']['name'])) {
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        $extOri = strtolower(pathinfo($_FILES['imageOri']['name'], PATHINFO_EXTENSION));
+        $nameOri = 'rider_ori_' . $usrId . '_' . time() . '.' . $extOri;
+        if (move_uploaded_file($_FILES['imageOri']['tmp_name'], $uploadDir . $nameOri)) {
+            $imgOriPath = '/uploads/profiles/' . $nameOri;
+            $ioSql = "UPDATE tbl_userinfo SET UsrImageOriPath = ? WHERE UsrId = ?";
+            $ioStmt = $conn->prepare($ioSql);
+            $ioStmt->bind_param("si", $imgOriPath, $usrId);
+            $ioStmt->execute();
+            $ioStmt->close();
         }
     }
 
@@ -189,10 +250,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
             $chk->close();
         }
         $rStmt->close();
-        echo json_encode(["success"=>true, "message"=>"บันทึกสำเร็จ UsrId: $usrId | User($uAffected) Rider($rAffected) Img($iAffected)"]);
     } else {
-        echo json_encode(["success"=>false, "message" => "Rider Execute failed: " . $rStmt->error]);
+        exit(json_encode(["success"=>false, "message" => "Rider Execute failed: " . $rStmt->error]));
     }
+
+    // 4. Return Fresh Data
+    $sqlLoad = "SELECT u.UsrFullName, u.UsrPhone, u.UsrEmail, u.UsrImagePath, u.UsrImageOriPath, 
+                       r.RiderVehicleType, r.RiderVehiclePlate, r.RiderVehicleColor, r.RiderBankName, r.RiderBankAccount, r.EmergencyPhone
+                FROM tbl_userinfo u 
+                LEFT JOIN tbl_rider r ON u.UsrId = r.UsrId
+                WHERE u.UsrId = ?";
+    $sLoad = $conn->prepare($sqlLoad);
+    $sLoad->bind_param("i", $usrId);
+    $sLoad->execute();
+    $r = $sLoad->get_result()->fetch_assoc();
+    
+    $fullData = [
+        "name" => $r['UsrFullName'] ?? '',
+        "phone" => $r['UsrPhone'] ?? '',
+        "email" => $r['UsrEmail'] ?? '',
+        "vehicle" => $r['RiderVehicleType'] ?? '',
+        "plate" => $r['RiderVehiclePlate'] ?? '',
+        "color" => $r['RiderVehicleColor'] ?? '',
+        "bankName" => $r['RiderBankName'] ?? '',
+        "bankAccount" => $r['RiderBankAccount'] ?? '',
+        "emergency" => $r['EmergencyPhone'] ?? '',
+        "img" => $r['UsrImagePath'] ? 'http://localhost/bitesync/public' . $r['UsrImagePath'] : null,
+        "imgOri" => $r['UsrImageOriPath'] ? 'http://localhost/bitesync/public' . $r['UsrImageOriPath'] : null
+    ];
+
+    echo json_encode(["success"=>true, "message"=>"บันทึกข้อมูลส่วนตัวสำเร็จ ✅", "data"=>$fullData], JSON_UNESCAPED_UNICODE);
     exit();
 }
 ?>

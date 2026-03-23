@@ -12,19 +12,6 @@ const STEPS = [
   { key:'done',     label:'ส่งสำเร็จ',          icon:'🏁', desc:'ออเดอร์เสร็จสมบูรณ์' },
 ]
 
-const MOCK_ACTIVE = {
-  id:'#1025', step:0,
-  shopName:'มอกกี้เบเกอรี่',
-  shopAddr:'123 ถ.กาญจนวนิช หาดใหญ่',
-  shopPhone:'074-123-456',
-  custName:'สมชาย ใจดี',
-  custAddr:'56/2 ม.1 ต.หาดใหญ่ สงขลา',
-  custPhone:'081-234-5678',
-  items:[ {name:'เค้กช็อกโกแลต',qty:1,price:90}, {name:'ชาไทยเย็น',qty:2,price:55} ],
-  total:200, fee:25,
-  img:'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=200&q=80',
-}
-
 export default function RiderActivePage() {
   const router = useRouter()
   const [job, setJob]     = useState(null)
@@ -236,7 +223,7 @@ export default function RiderActivePage() {
       <div className={styles.mapSection}>
         <RiderMap 
           riderLoc={riderLoc}
-          shopLoc={{ lat: parseFloat(job.shopLat), lng: parseFloat(job.shopLng), name: job.shopName }}
+          shopLoc={{ lat: parseFloat(job.shopLat), lng: parseFloat(job.shopLng), name: job.shopName, logo: job.shopLogo }}
           custLoc={{ lat: parseFloat(job.custLat), lng: parseFloat(job.custLng), name: job.custName }}
           step={job.step}
         />

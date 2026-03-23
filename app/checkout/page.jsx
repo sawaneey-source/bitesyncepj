@@ -117,10 +117,19 @@ export default function CheckoutPage() {
     }
 
     // Fetch provinces
+    console.log("Triggering Fetch: http://localhost/bitesync/api/home/thai_address.php");
     fetch('http://localhost/bitesync/api/home/thai_address.php')
-      .then(res => res.json())
-      .then(data => setProvinces(data))
-      .catch(() => {})
+      .then(res => {
+        console.log("Fetch response received. Status:", res.status);
+        return res.json();
+      })
+      .then(data => {
+        console.log("Provinces data loaded. Count:", data.length);
+        setProvinces(data);
+      })
+      .catch((err) => {
+        console.error("FAILED TO FETCH PROVINCES:", err);
+      });
 
     initMap()
   }, [router])
@@ -132,66 +141,136 @@ export default function CheckoutPage() {
     }
   }, [shopLoc, adrLat, adrLng]);
 
-  async function reverseGeocode(lat, lng) {
+  const reverseGeocode = async (lat, lng) => {
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`);
-      const data = await res.json();
-      if (data && data.address) {
-        const addr = data.address;
-        // 1. House, Road, Village (Reset if not found, keep if found)
-        const newHouseNo = addr.house_number || ''
-        const newRoad = addr.road || ''
-        const newVillage = addr.neighbourhood || addr.suburb || addr.village || ''
+      // Force fetch if provinces empty (safety-first approach)
+      let currentProvinces = provinces;
+      if (currentProvinces.length === 0) {
+        const res = await fetch('http://localhost/bitesync/api/home/thai_address.php');
+        currentProvinces = await res.json();
+        setProvinces(currentProvinces);
+      }
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=th`
+      );
+      const data = await response.json();
+      const address = data.address;
+
+      if (address) {
+        let matchedProvince = null;
+        let matchedAmphure = null;
+        let matchedTambon = null;
+
+        // 1. Match Province
+        const provName = (address.province || "").replace("จังหวัด", "").trim();
+        const province = currentProvinces.find((p) => {
+          const localName = (p.name_th || "").replace("จังหวัด", "").trim();
+          return localName === provName || localName.includes(provName) || provName.includes(localName);
+        });
+
+        if (province) {
+          matchedProvince = province.name_th;
+
+          // 2. Match District (Amphure)
+          const dTarget = [
+            address.amphoe,
+            address.district,
+            address.county,
+            address.city,
+            address.town,
+            address.municipality
+          ].filter(Boolean).map(s => s.replace("อำเภอ", "").trim());
+
+          let amphure = province.amphure.find((a) => {
+            const cleanA = a.name_th.replace("อำเภอ", "").trim();
+            return dTarget.some(t => t.includes(cleanA) || cleanA.includes(t));
+          });
+
+          if (amphure) {
+            matchedAmphure = amphure.name_th;
+
+            // 3. Match Sub-district (Tambon)
+            const sTarget = [
+              address.subdistrict,
+              address.tambon,
+              address.locality,
+              address.suburb,
+              address.neighbourhood,
+              address.hamlet
+            ].filter(Boolean).map(s => s.replace("ตำบล", "").trim());
+
+            const tambon = amphure.tambon.find((t) => {
+              const cleanT = t.name.replace("ตำบล", "").trim();
+              return sTarget.some(st => st.includes(cleanT) || cleanT.includes(st));
+            });
+
+            if (tambon) {
+              matchedTambon = tambon.name;
+            }
+          } else {
+            // FALLBACK: Search ALL Tambons in ALL Amphures of this Province
+            // This is useful if Nominatim gives us a Tambon name but doesn't give us the Amphure name
+            console.log("Amphure match failed. Attempting global Tambon search within province...");
+            const allTargets = [...dTarget, 
+              address.subdistrict, address.tambon, address.locality, address.suburb, address.neighbourhood, address.hamlet
+            ].filter(Boolean).map(s => s.replace("ตำบล", "").replace("อำเภอ", "").trim());
+
+            for (const a of province.amphure) {
+              const tMatch = a.tambon.find(t => {
+                const cleanT = t.name.replace("ตำบล", "").trim();
+                return allTargets.some(target => target.includes(cleanT) || cleanT.includes(target));
+              });
+              if (tMatch) {
+                matchedAmphure = a.name_th;
+                matchedTambon = tMatch.name;
+                console.log("Global Search Match Found!", { matchedAmphure, matchedTambon });
+                break;
+              }
+            }
+          }
+        }
+
+        console.log("Auto-filled Address:", { matchedProvince, matchedAmphure, matchedTambon });
+
+        setSelProvince(matchedProvince || "");
+        setSelAmphure(matchedAmphure || "");
+        setSelTambon(matchedTambon || "");
+        setZipcode(
+          matchedTambon
+            ? province.amphure
+                .find((a) => a.name_th === matchedAmphure)
+                ?.tambon.find((t) => t.name === matchedTambon)?.zip || ""
+            : ""
+        );
+        
+        // Set House, Road, Village (Reset if not found, keep if found)
+        const newHouseNo = address.house_number || ''
+        const newRoad = address.road || ''
+        const newVillage = address.neighbourhood || address.suburb || address.village || ''
         
         setHouseNo(newHouseNo);
         setRoad(newRoad);
         setVillage(newVillage);
-        setSoi(''); // Reset manual fields on pin move
+        setSoi(''); 
         setMoo('');
-
-        // 2. Province (Match only if exactly in our list)
-        let newProvince = selProvince;
-        let newAmphure = selAmphure;
-        let newTambon = selTambon;
-        let newZip = zipcode;
-
-        const pMatch = provinces.find(p => addr.state?.includes(p.name_th) || addr.province?.includes(p.name_th) || addr.city?.includes(p.name_th));
-        if (pMatch) {
-            newProvince = pMatch.name_th;
-            setSelProvince(newProvince);
-            // 3. District (Match only if in selected province)
-            const aMatch = pMatch.amphure.find(a => addr.city_district?.includes(a.name_th) || addr.district?.includes(a.name_th));
-            if (aMatch) {
-                newAmphure = aMatch.name_th;
-                setSelAmphure(newAmphure);
-                // 4. Tambon
-                const tMatch = aMatch.tambon.find(t => addr.suburb?.includes(t.name) || addr.subdistrict?.includes(t.name));
-                if (tMatch) {
-                    newTambon = tMatch.name;
-                    newZip = tMatch.zip_code || tMatch.zip || '';
-                    setSelTambon(newTambon);
-                    setZipcode(newZip);
-                }
-            }
-        }
         
-        // Regenerate full address string using either new matches OR existing selections
         updateFullAddress(
             newHouseNo,
             newVillage,
             newRoad,
-            '', // Soi reset
-            '', // Moo reset
-            newTambon,
-            newAmphure,
-            newProvince,
-            newZip
+            '', 
+            '', 
+            matchedTambon || "",
+            matchedAmphure || "",
+            matchedProvince || "",
+            zipcode
         );
       }
     } catch (e) {
       console.error("Geocoding error:", e);
     }
-  }
+  };
 
   // Manual save logic (Wait for user confirmation)
 
@@ -295,18 +374,40 @@ export default function CheckoutPage() {
     markerRef.current = marker
     setMapReady(true)
 
-    // Only get real location if no saved address exists
-    if (!houseNo && adrLat === 7.0085) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          const { latitude, longitude } = pos.coords
-          setAdrLat(latitude.toFixed(7))
-          setAdrLng(longitude.toFixed(7))
-          map.setView([latitude, longitude], 16)
-          marker.setLatLng([latitude, longitude])
-          reverseGeocode(latitude, longitude)
-          updateDeliveryFee(latitude, longitude)
-        }, null, { enableHighAccuracy: true })
+    // Only get real location automatically if adrLat is at default
+    if (adrLat === 7.0085 && !houseNo) {
+        handleGetCurrentLocation();
     }
+  }
+
+  function handleGetCurrentLocation() {
+    if (!navigator.geolocation) {
+        alert("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง");
+        return;
+    }
+    
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude, longitude } = pos.coords;
+        const lat = latitude.toFixed(7);
+        const lng = longitude.toFixed(7);
+        
+        setAdrLat(lat);
+        setAdrLng(lng);
+        
+        if (mapInstanceRef.current && markerRef.current) {
+            mapInstanceRef.current.setView([lat, lng], 16);
+            markerRef.current.setLatLng([lat, lng]);
+        }
+        
+        reverseGeocode(lat, lng);
+        updateDeliveryFee(lat, lng);
+        setLoading(false);
+    }, (err) => {
+        console.error("Geolocation error:", err);
+        setLoading(false);
+        // alert("ไม่สามารถดึงข้อมูลตำแหน่งปัจจุบันได้ กรุณาตรวจสอบการอนุญาตสิทธิ์");
+    }, { enableHighAccuracy: true });
   }
 
   function changeQty(index, delta) {
@@ -601,10 +702,7 @@ export default function CheckoutPage() {
                 <div className={styles.mapPickerSection}>
                   <div className={styles.mapPickerHeader}>
                     <p className={styles.mapHint}>ปักหมุดตำแหน่งที่ถูกต้องบนแผนที่ เพื่อความรวดเร็วในการจัดส่ง</p>
-                    <button className={styles.gpsBtn} onClick={() => {
-                        setMapReady(false);
-                        initMap();
-                    }}>
+                    <button className={styles.gpsBtn} onClick={handleGetCurrentLocation} disabled={loading}>
                       <i className="fa-solid fa-location-crosshairs" /> ดึงตำแหน่งปัจจุบัน
                     </button>
                   </div>

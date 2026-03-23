@@ -12,6 +12,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editedUser, setEditedUser] = useState({ name: '', email: '', phone: '', address: '' })
+  const [pwFields, setPwFields] = useState({ oldPw: '', userPw: '', userPwConfirm: '' })
   const [imageFile, setImageFile] = useState(null)
   const [imageFileOri, setImageFileOri] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
@@ -194,11 +195,16 @@ export default function ProfilePage() {
       formData.append('name', editedUser.name)
       formData.append('phone', editedUser.phone)
       formData.append('address', editedUser.address)
-      if (imageFile) {
-        formData.append('image', imageFile)
-      }
-      if (imageFileOri) {
-        formData.append('imageOri', imageFileOri)
+      if (imageFile) formData.append('image', imageFile)
+      if (imageFileOri) formData.append('imageOri', imageFileOri)
+
+      // Password change
+      if (pwFields.userPw) {
+        if (!pwFields.oldPw) { alert('กรุณาระบุรหัสผ่านเดิมก่อนเปลี่ยนรหัสผ่านใหม่'); setSaving(false); return }
+        if (pwFields.userPw !== pwFields.userPwConfirm) { alert('รหัสผ่านใหม่ไม่ตรงกัน กรุณากรอกใหม่อีกครั้ง'); setSaving(false); return }
+        if (pwFields.userPw.length < 6) { alert('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร'); setSaving(false); return }
+        formData.append('oldPw', pwFields.oldPw)
+        formData.append('usrPassword', pwFields.userPw)
       }
 
       const resp = await fetch('http://localhost/bitesync/dbconnect/update_profile.php', {
@@ -215,6 +221,7 @@ export default function ProfilePage() {
         setOriginalImageUrl(null)
         setSavedCrop(null)
         setSavedZoom(1)
+        setPwFields({ oldPw: '', userPw: '', userPwConfirm: '' })
         alert('อัปเดตโปรไฟล์สำเร็จแล้ว ✨')
       } else {
         alert(data.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
@@ -410,6 +417,37 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+
+            {isEditing && (
+              <>
+                <div className={styles.sectionHeader} style={{marginTop:20}}>
+                  <h2 className={styles.sectionTitle}>🔐 เปลี่ยนรหัสผ่าน</h2>
+                </div>
+                <div className={styles.infoGrid}>
+                  <div className={styles.infoItem}>
+                    <label>รหัสผ่านเดิม</label>
+                    <input type="password" className={styles.editInput} value={pwFields.oldPw} onChange={e=>setPwFields({...pwFields,oldPw:e.target.value})} placeholder="ระบุเมื่อต้องการเปลี่ยนรหัสผ่าน"/>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <label>รหัสผ่านใหม่</label>
+                    <input type="password" className={styles.editInput} value={pwFields.userPw} onChange={e=>setPwFields({...pwFields,userPw:e.target.value})} placeholder="อย่างน้อย 6 ตัวอักษร" autoComplete="new-password"/>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <label>ยืนยันรหัสผ่านใหม่</label>
+                    <input type="password" className={styles.editInput} value={pwFields.userPwConfirm} onChange={e=>setPwFields({...pwFields,userPwConfirm:e.target.value})} placeholder="ยืนยันรหัสผ่านใหม่" autoComplete="new-password"/>
+                  </div>
+                </div>
+                <div style={{background:'#fdfdf2',border:'1px solid #f1f1d1',borderRadius:'12px',padding:'14px 16px',display:'flex',gap:'12px',alignItems:'flex-start',marginTop:'12px'}}>
+                  <span style={{fontSize:'18px'}}>💡</span>
+                  <div style={{fontSize:'13px',color:'#555',lineHeight:'1.6'}}>
+                    <strong>เปลี่ยนรหัสผ่าน:</strong> กรอกรหัสเดิมและรหัสใหม่แล้วกดบันทึกได้เลยครับ<br/>
+                    <a href="#" onClick={e=>{e.preventDefault();alert('ติดต่อแอดมินเพื่อรีเซ็ตรหัสผ่าน\n\nLine OA: @BiteSyncAdmin\nโทร: 02-123-4567');}} style={{color:'#2a6129',fontWeight:'700',textDecoration:'underline',display:'inline-block',marginTop:'4px'}}>
+                      ลืมรหัสผ่านเดิมใช่ไหม? คลิกที่นี่เพื่อติดต่อแอดมิน
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className={styles.actions}>
               {isEditing ? (

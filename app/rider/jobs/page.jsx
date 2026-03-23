@@ -3,12 +3,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 
-const MOCK_JOBS = [
-  { id:'#1025', shopName:'มอกกี้เบเกอรี่', shopAddr:'123 ถ.กาญจนวนิช', custAddr:'56/2 ม.1 ต.หาดใหญ่', items:'1x เค้กช็อก, 2x ชาไทย', total:195, distance:'1.2 กม.', fee:25, img:'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=100&q=70' },
-  { id:'#1026', shopName:'Sweet Garden',   shopAddr:'89 ถ.เพชรเกษม',    custAddr:'12/4 ถ.รถไฟ',          items:'3x คุกกี้, 1x เค้ก',    total:280, distance:'2.5 กม.', fee:35, img:'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=100&q=70' },
-  { id:'#1027', shopName:'Boba & Co.',      shopAddr:'45 ถ.นิพัทธ์อุทิศ', custAddr:'88 ถ.กาญจนวนิช',      items:'2x บอบา, 1x มัทฉะ',   total:155, distance:'0.8 กม.', fee:15, img:'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=100&q=70' },
-]
-
 export default function RiderJobsPage() {
   const router = useRouter()
   const [jobs, setJobs]   = useState([])
@@ -125,7 +119,7 @@ export default function RiderJobsPage() {
           <h1 className={styles.title}>งานใหม่</h1>
           <p className={styles.sub}>ออเดอร์ที่รอไรเดอร์รับ</p>
         </div>
-        <button onClick={fetchJobs} className={styles.refreshBtn}>🔄 รีเฟรช</button>
+        <button onClick={fetchJobs} className={styles.refreshBtn}><i className="fa-solid fa-rotate" /> รีเฟรช</button>
       </div>
 
       {!online && (
