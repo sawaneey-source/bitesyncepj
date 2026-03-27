@@ -41,7 +41,7 @@ if (!$shop) {
 
 if ($shop) {
     if (!empty($shop['ShopLogoPath'])) {
-        $shop['ShopLogoPath'] = 'http://localhost/bitesync/public' . $shop['ShopLogoPath'];
+        // Just return the relative path, frontend will handle the base URL
     }
     echo json_encode(["success"=>true, "data"=>$shop]);
 } else {

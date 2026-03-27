@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+import { API_BASE } from '@/utils/api'
 
 const PERIOD_TABS = ['วันนี้', '3 วันล่าสุด', '7 วันล่าสุด', '30 วันล่าสุด', 'ทั้งหมด']
 
@@ -54,12 +55,14 @@ export default function RiderHistoryPage() {
 
   async function fetchHistory() {
     setLoading(true)
+    setHistory([])
+    setSummary({ deliveries: 0, earnings: 0, distance: 0, cancelled: 0, rating: 5.0, gross: 0 })
     try {
       const uStr = localStorage.getItem('bs_user')
       if (!uStr) return
       const uid = JSON.parse(uStr).id
 
-      const res = await fetch(`http://localhost/bitesync/api/rider/history.php?usrId=${uid}&period=${encodeURIComponent(period)}`, {
+      const res = await fetch(`${API_BASE}/rider/history.php?usrId=${uid}&period=${encodeURIComponent(period)}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('bs_token')}` }
       })
       const data = await res.json()
@@ -99,8 +102,9 @@ export default function RiderHistoryPage() {
         <div className={`${styles.summCard} ${styles.summGreen}`}>
           <div className={styles.summIcon}>💰</div>
           <div>
-            <div className={styles.summVal}>฿{summary.earnings.toLocaleString()}</div>
-            <div className={styles.summLbl}>รายได้ ({period})</div>
+            <div className={styles.summVal}>฿{(summary.earnings || 0).toLocaleString()}</div>
+            <div className={styles.summLbl}>รายได้สุทธิ ({period})</div>
+            <div style={{fontSize:11, opacity:0.8, marginTop:2}}>ค่าจัดส่งรวม: ฿{(summary.gross || 0).toLocaleString()}</div>
           </div>
         </div>
         <div className={`${styles.summCard} ${styles.summDark}`}>

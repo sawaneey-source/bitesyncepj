@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import styles from './register.module.css'
@@ -35,6 +35,16 @@ export default function RegisterPage() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const r = params.get('role')
+      if (r && ['customer', 'restaurant', 'rider'].includes(r)) {
+        setRole(r)
+      }
+    }
+  }, [])
 
   const score = strengthScore(password)
 
@@ -113,7 +123,7 @@ export default function RegisterPage() {
               <label className={styles.label}>ชื่อ-นามสกุล</label>
               <div className="input-wrap">
                 <span className="input-ic"><i className="fa-regular fa-user"/></span>
-                <input type="text" placeholder="ชื่อ-นามสกุล"
+                <input type="text" placeholder="ชื่อ-นามสกุล" autoComplete="off"
                   value={fullName} onChange={e => setFullName(e.target.value)}/>
               </div>
             </div>
@@ -123,7 +133,7 @@ export default function RegisterPage() {
               <label className={styles.label}>ที่อยู่อีเมล</label>
               <div className="input-wrap">
                 <span className="input-ic"><i className="fa-regular fa-envelope"/></span>
-                <input type="email" placeholder="อีเมล"
+                <input type="email" placeholder="อีเมล" autoComplete="off"
                   value={email} onChange={e => setEmail(e.target.value)}/>
               </div>
             </div>
@@ -133,7 +143,7 @@ export default function RegisterPage() {
               <label className={styles.label}>เบอร์โทรศัพท์</label>
               <div className="input-wrap">
                 <span className="input-ic"><i className="fa-solid fa-phone"/></span>
-                <input type="tel" placeholder="เบอร์โทรศัพท์ (10 หลัก)" maxLength={10}
+                <input type="tel" placeholder="เบอร์โทรศัพท์ (10 หลัก)" maxLength={10} autoComplete="off"
                   value={phone} onChange={e => setPhone(e.target.value)}/>
               </div>
             </div>
@@ -144,7 +154,7 @@ export default function RegisterPage() {
               <label className={styles.label}>รหัสผ่าน</label>
               <div className="input-wrap">
                 <span className="input-ic"><i className="fa-solid fa-lock"/></span>
-                <input type={showPw ? 'text' : 'password'}
+                <input type={showPw ? 'text' : 'password'} autoComplete="new-password"
                   placeholder="รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
                   value={password} onChange={e => setPassword(e.target.value)}/>
                 <button type="button" className="eye-btn" onClick={() => setShowPw(p=>!p)}>
@@ -169,7 +179,7 @@ export default function RegisterPage() {
               <label className={styles.label}>ยืนยันรหัสผ่าน</label>
               <div className="input-wrap">
                 <span className="input-ic"><i className="fa-solid fa-key"/></span>
-                <input type={showCpw ? 'text' : 'password'}
+                <input type={showCpw ? 'text' : 'password'} autoComplete="new-password"
                   placeholder="ยืนยันรหัสผ่านอีกครั้ง"
                   value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
                   style={{color: confirmPw && confirmPw!==password ? '#e53935' : 'var(--dark)'}}/>

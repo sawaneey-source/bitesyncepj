@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+import { API_BASE } from '@/utils/api'
 
 const PERIODS = [
   { label: 'วันนี้', key: 'today' },
@@ -53,6 +54,8 @@ export default function RiderDashboard() {
   }, [period])
 
   async function fetchStats() {
+    setLoading(true)
+    setStats(null)
     try {
       const uStr = localStorage.getItem('bs_user')
       if (!uStr) return
@@ -138,7 +141,8 @@ export default function RiderDashboard() {
       <div className={styles.statsGrid}>
         {(stats ? [
           { icon: '📦', val: stats.deliveries, lbl: 'ส่งสำเร็จ', unit: 'ออเดอร์', color: '#2a6129', bg: '#e8f5e9' },
-          { icon: '💰', val: `${stats.earnings.toLocaleString()} ฿`, lbl: 'รายได้', unit: 'บาท', color: '#e65100', bg: '#fff3e0' },
+          { icon: '💰', val: `${stats.gross?.toLocaleString()} ฿`, lbl: 'ค่าจัดส่งรวม', unit: 'บาท', color: '#888', bg: '#f5f5f5' },
+          { icon: '✅', val: `${stats.net?.toLocaleString()} ฿`, lbl: 'รายได้สุทธิ', unit: 'บาท', color: '#e65100', bg: '#fff3e0' },
           { icon: '📍', val: `${stats.distance}`, lbl: 'ระยะทาง', unit: 'กม.', color: '#1565c0', bg: '#e3f2fd' },
           { icon: '⭐', val: stats.rating, lbl: 'คะแนนเฉลี่ย', unit: '/5.0', color: '#856404', bg: '#fff9c4' },
         ] : [

@@ -49,7 +49,7 @@
 .foodImgWrap:hover .foodImg { transform:scale(1.08); }
 
 /* ── PARTNER ── */
-.partnerSection { display:grid; grid-template-columns:1fr 1fr; height:168px; }
+.partnerSection { display:grid; grid-template-columns:1fr 1fr; height:340px; }
 .partnerCard { position:relative; background-size:cover; background-position:center; cursor:pointer; }
 .partnerOverlay {
   position:absolute; inset:0;

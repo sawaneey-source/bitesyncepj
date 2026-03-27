@@ -114,7 +114,6 @@ export default function LoginPage() {
                     style={{accentColor:'var(--green)',marginRight:6}} />
                   จดจำฉัน
                 </label>
-                <a href="#" className={styles.forgotLink}>ลืมรหัสผ่าน?</a>
               </div>
 
               <button type="submit" disabled={loading} className={styles.btnSignIn}

@@ -53,16 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     // 2. Get Rider Details
-    $rSql = "SELECT RiderId, RiderVehicleType, RiderVehiclePlate, RiderVehicleColor, RiderBankName, RiderBankAccount, EmergencyPhone, RiderStatus FROM tbl_rider WHERE UsrId = ?";
+    $rSql = "SELECT RiderId, RiderVehicleType, RiderVehiclePlate, RiderVehicleColor, RiderBankName, RiderBankAccount, EmergencyPhone, RiderStatus, RiderBalance, RiderTotalSettled FROM tbl_rider WHERE UsrId = ?";
     $rStmt = $conn->prepare($rSql);
     $rStmt->bind_param("i", $usrId);
     $rStmt->execute();
     $rStmt->store_result();
     
-    $rRow = null;
-    $rId = 0;
+    $rRow = null; 
+    $rId = 0; $currentBalance = 0; $totalPaid = 0;
     if ($rStmt->num_rows > 0) {
-        $rStmt->bind_result($rId, $vType, $vPlate, $vColor, $vBank, $vAcc, $vEmer, $rStatus);
+        $rStmt->bind_result($rId, $vType, $vPlate, $vColor, $vBank, $vAcc, $vEmer, $rStatus, $currentBalance, $totalPaid);
         $rStmt->fetch();
         $rRow = [
             "RiderId"=>$rId, "RiderVehicleType"=>$vType, "RiderVehiclePlate"=>$vPlate, "RiderVehicleColor"=>$vColor, 
@@ -71,8 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     $rStmt->close();
 
-    // 3. Dynamically Calculate Stats from tbl_order
-    $rating = 0.0; $jobs = 0; $balance = 0.0;
+    // 3. Dynamically Calculate Stats from tbl_order (Rating and Jobs only)
+    $rating = 0.0; $jobs = 0;
     if ($rId) {
         // Average Rating
         $q1 = $conn->prepare("SELECT AVG(RiderRating) as avgR, COUNT(RiderRating) as cntR FROM tbl_order WHERE RiderId = ? AND RiderRating IS NOT NULL");
@@ -89,14 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $res2 = $q2->get_result()->fetch_assoc();
         $jobs = (int)($res2['totalJobs'] ?? 0);
         $q2->close();
-
-        // Total Earnings (Balance)
-        $q3 = $conn->prepare("SELECT SUM(OdrDelFee) as totalEarnings FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6");
-        $q3->bind_param("i", $rId);
-        $q3->execute();
-        $res3 = $q3->get_result()->fetch_assoc();
-        $balance = (float)($res3['totalEarnings'] ?? 0);
-        $q3->close();
     }
 
     // Map DB to Frontend JSON
@@ -114,7 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         "imgOri" => $uRow['UsrImageOriPath'] ? 'http://localhost/bitesync/public' . $uRow['UsrImageOriPath'] : null,
         "rating" => round($rating, 1),
         "ratingCount" => $jobs,
-        "balance" => $balance,
+        "balance" => (float)$totalPaid,
+        "outstanding" => (float)$currentBalance,
         "status" => $rRow['RiderStatus'] ?? 'Offline'
     ];
     
@@ -256,7 +249,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
 
     // 4. Return Fresh Data
     $sqlLoad = "SELECT u.UsrFullName, u.UsrPhone, u.UsrEmail, u.UsrImagePath, u.UsrImageOriPath, 
-                       r.RiderVehicleType, r.RiderVehiclePlate, r.RiderVehicleColor, r.RiderBankName, r.RiderBankAccount, r.EmergencyPhone
+                       r.RiderVehicleType, r.RiderVehiclePlate, r.RiderVehicleColor, r.RiderBankName, r.RiderBankAccount, r.EmergencyPhone,
+                       r.RiderBalance, r.RiderTotalSettled, r.RiderId
                 FROM tbl_userinfo u 
                 LEFT JOIN tbl_rider r ON u.UsrId = r.UsrId
                 WHERE u.UsrId = ?";
@@ -265,6 +259,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
     $sLoad->execute();
     $r = $sLoad->get_result()->fetch_assoc();
     
+    $rId = $r['RiderId'] ?? 0;
+    $rating = 0.0; $jobs = 0;
+    if ($rId) {
+        $q1 = $conn->prepare("SELECT AVG(RiderRating) as avgR, COUNT(RiderRating) as cntR FROM tbl_order WHERE RiderId = ? AND RiderRating IS NOT NULL");
+        $q1->bind_param("i", $rId); $q1->execute();
+        $res1 = $q1->get_result()->fetch_assoc();
+        $rating = (float)($res1['avgR'] ?? 0);
+        $q1->close();
+
+        $q2 = $conn->prepare("SELECT COUNT(*) as totalJobs FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6");
+        $q2->bind_param("i", $rId); $q2->execute();
+        $res2 = $q2->get_result()->fetch_assoc();
+        $jobs = (int)($res2['totalJobs'] ?? 0);
+        $q2->close();
+    }
+
     $fullData = [
         "name" => $r['UsrFullName'] ?? '',
         "phone" => $r['UsrPhone'] ?? '',
@@ -278,7 +288,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         "img" => $r['UsrImagePath'] ? 'http://localhost/bitesync/public' . $r['UsrImagePath'] : null,
         "imgOri" => $r['UsrImageOriPath'] ? 'http://localhost/bitesync/public' . $r['UsrImageOriPath'] : null,
         "rawImg" => $r['UsrImagePath'] ?? null,
-        "rawImgOri" => $r['UsrImageOriPath'] ?? null
+        "rawImgOri" => $r['UsrImageOriPath'] ?? null,
+        "rating" => round($rating, 1),
+        "ratingCount" => $jobs,
+        "balance" => (float)($r['RiderTotalSettled'] ?? 0),
+        "outstanding" => (float)($r['RiderBalance'] ?? 0)
     ];
 
     echo json_encode(["success"=>true, "message"=>"บันทึกข้อมูลส่วนตัวสำเร็จ ✅", "data"=>$fullData], JSON_UNESCAPED_UNICODE);

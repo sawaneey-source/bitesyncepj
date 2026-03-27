@@ -31,7 +31,17 @@ if ($riderStatus !== 'Online') {
     exit;
 }
 
-$sql = "SELECT o.OdrId, o.OdrGrandTotal as total, o.OdrDelFee as fee, o.OdrDistance as distance,
+function getDistance($lat1, $lon1, $lat2, $lon2) {
+    if (!$lat1 || !$lon1 || !$lat2 || !$lon2) return 999;
+    $theta = $lon1 - $lon2;
+    $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+    $dist = acos($dist);
+    $dist = rad2deg($dist);
+    $miles = $dist * 60 * 1.1515;
+    return ($miles * 1.609344); // Kilometers
+}
+
+$sql = "SELECT o.OdrId, o.OdrGrandTotal as total, o.OdrDelFee as fee, o.OdrDistance as distance, o.OdrNote,
                s.ShopName, s.ShopLogoPath as logo, s.ShopBannerPath as img, s.ShopPhone as shopPhone,
                sa.Province as shopProv, sa.District as shopDist, sa.SubDistrict as shopSub, sa.HouseNo as shopHouse, sa.Road as shopRoad, sa.Village as shopVillage,
                sa.AdrLat as shopLat, sa.AdrLng as shopLng,
@@ -75,6 +85,12 @@ if ($result && $result->num_rows > 0) {
         // Determine image
         $img = $row['img'] ? "http://localhost/bitesync/public" . $row['img'] : null;
 
+        // Distance from Rider to Shop
+        $distToShop = getDistance($riderLat, $riderLng, (float)$row['shopLat'], (float)$row['shopLng']);
+
+        // Only show jobs within 5km
+        if ($distToShop > 5.0) continue;
+
         $jobs[] = [
             'id' => "#" . $row['OdrId'],
             'rawId' => $row['OdrId'],
@@ -90,7 +106,9 @@ if ($result && $result->num_rows > 0) {
             'img' => $img,
             'logo' => $row['logo'] ? "http://localhost/bitesync/public" . $row['logo'] : null,
             'shopLat' => $row['shopLat'],
-            'shopLng' => $row['shopLng']
+            'shopLng' => $row['shopLng'],
+            'riderToShopDist' => round($distToShop, 2),
+            'note' => $row['OdrNote']
         ];
     }
 }

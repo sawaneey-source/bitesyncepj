@@ -98,3 +98,10 @@
 .shopNowBtn { background: #2a6129; color: #fff; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-family: 'Prompt', sans-serif; }
 .shopNowBtn:hover { background: #1a4119; transform: scale(1.05); box-shadow: 0 4px 15px rgba(42, 97, 41, 0.2); }
 
+.jobNote {
+  margin-top: 15px; background: #fff9c4; color: #856404;
+  padding: 12px 16px; border-radius: 12px; font-size: 14px;
+  line-height: 1.5; font-weight: 500; border-left: 4px solid #fecb2e;
+}
+.jobNote span { font-weight: 800; margin-right: 5px; color: #856404; }
+

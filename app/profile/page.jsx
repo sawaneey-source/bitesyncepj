@@ -440,10 +440,7 @@ export default function ProfilePage() {
                 <div style={{background:'#fdfdf2',border:'1px solid #f1f1d1',borderRadius:'12px',padding:'14px 16px',display:'flex',gap:'12px',alignItems:'flex-start',marginTop:'12px'}}>
                   <span style={{fontSize:'18px'}}>💡</span>
                   <div style={{fontSize:'13px',color:'#555',lineHeight:'1.6'}}>
-                    <strong>เปลี่ยนรหัสผ่าน:</strong> กรอกรหัสเดิมและรหัสใหม่แล้วกดบันทึกได้เลยครับ<br/>
-                    <a href="#" onClick={e=>{e.preventDefault();alert('ติดต่อแอดมินเพื่อรีเซ็ตรหัสผ่าน\n\nLine OA: @BiteSyncAdmin\nโทร: 02-123-4567');}} style={{color:'#2a6129',fontWeight:'700',textDecoration:'underline',display:'inline-block',marginTop:'4px'}}>
-                      ลืมรหัสผ่านเดิมใช่ไหม? คลิกที่นี่เพื่อติดต่อแอดมิน
-                    </a>
+                    <strong>เปลี่ยนรหัสผ่าน:</strong> กรอกรหัสเดิมและรหัสใหม่แล้วกดบันทึกได้เลยครับ
                   </div>
                 </div>
               </>

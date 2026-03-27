@@ -157,6 +157,12 @@ export default function OrdersPage() {
                       <div className={styles.dLbl}>📍 ที่อยู่จัดส่ง</div>
                       <div className={styles.dVal}>{o.address}</div>
                     </div>
+                    {o.OdrNote && (
+                      <div style={{ gridColumn: '1/-1', background: '#fff9c4', padding: '10px 14px', borderRadius: '10px', marginTop: '5px' }}>
+                        <div className={styles.dLbl}>📝 โน้ตจากลูกค้า</div>
+                        <div className={styles.dVal} style={{ fontWeight: '700', color: '#856404' }}>{o.OdrNote}</div>
+                      </div>
+                    )}
                     {o.RiderId && (
                       <div style={{gridColumn:'1/-1', borderTop:'1px solid #eee', paddingTop:'10px'}}>
                         <div className={styles.dLbl}>🛵 ข้อมูลไรเดอร์ที่รับงาน</div>

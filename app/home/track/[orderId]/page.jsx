@@ -198,7 +198,8 @@ export default function TrackPage() {
           } : null,
           RiderImage: d.RiderImage,
           ShopLogo: d.ShopLogo,
-          items: d.items
+          items: d.items,
+          note: d.OdrNote
         })
         setError(null)
       } else {
@@ -468,7 +469,7 @@ export default function TrackPage() {
                     <span className={styles.itemName}>{item.name}</span>
                   </div>
                   <span className={styles.itemQty}>x{item.qty}</span>
-                  <span className={styles.itemPrice}>{item.price * item.qty} THB</span>
+                  <span className={styles.itemPrice}>{Math.round(item.price * item.qty).toLocaleString()} ฿</span>
                 </div>
               ))}
               <div className={styles.divider} />
@@ -478,6 +479,12 @@ export default function TrackPage() {
               <div className={`${styles.item} ${styles.itemTotal}`}>
                 <span>ยอดรวมทั้งหมด:</span><span>{order.total} THB</span>
               </div>
+              
+              {order.note && (
+                <div className={styles.jobNote}>
+                  <span>📝 โน้ตของคุณ:</span> {order.note}
+                </div>
+              )}
             </div>
           </div>
         </div>

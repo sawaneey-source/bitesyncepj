@@ -292,6 +292,12 @@ export default function RiderActivePage() {
               <span>ค่าส่งที่ได้รับ</span>
               <span className={styles.feeVal}>+{job.fee} ฿</span>
             </div>
+
+            {job.OdrNote && (
+              <div className={styles.jobNote}>
+                <span>📝 โน้ตจากลูกค้า:</span> {job.OdrNote}
+              </div>
+            )}
           </div>
 
           {/* Action button */}

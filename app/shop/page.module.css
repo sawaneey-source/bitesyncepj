@@ -54,3 +54,8 @@
 .pageBtn  { width:27px; height:27px; border-radius:6px; border:1.5px solid #dde8dd; background:#fff; color:#374137; font-size:12.5px; font-weight:600; cursor:pointer; }
 .pageBtnOn { background:#2a6129 !important; color:#fff !important; border-color:#2a6129 !important; }
 
+.statBlue { background: #f0f7ff; border: 1.5px solid #1565c0; }
+.statNumBlue { color: #1565c0 !important; }
+.statLblBlue { color: #64748b !important; }
+.statIcoBlue { background: rgba(21, 101, 192, 0.1) !important; color: #1565c0 !important; }
+

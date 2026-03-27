@@ -116,6 +116,7 @@ if (!empty($newPw)) {
     }
     $userUpdates[] = "UsrPassword = ?"; $userParams[] = password_hash($newPw, PASSWORD_DEFAULT); $userTypes .= "s";
 }
+
 // Note: UsrAddress is deprecated and managed via tbl_address
 
 if (!empty($userUpdates)) {

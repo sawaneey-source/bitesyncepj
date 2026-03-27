@@ -81,3 +81,10 @@
   .divider { background:#eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
+.jobNote {
+  margin-top: 15px; background: #fff9c4; color: #856404;
+  padding: 12px 16px; border-radius: 12px; font-size: 14px;
+  line-height: 1.5; font-weight: 500; border-left: 4px solid #fecb2e;
+}
+.jobNote span { font-weight: 800; margin-right: 5px; color: #856404; }
+

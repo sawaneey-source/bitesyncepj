@@ -37,25 +37,25 @@ if ($rRow = $rRes->fetch_assoc()) {
 }
 
 // Date Filter Clause using MySQL dates to be safe
-$dateClause = "DATE(o.OdrUpdatedAt) = CURDATE()";
+$dateClause = "DATE(o.OdrCreatedAt) = CURDATE()";
 if ($period === '3 วันล่าสุด') {
-    $dateClause = "o.OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 3 DAY)";
+    $dateClause = "DATE(o.OdrCreatedAt) >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)";
 } else if ($period === '7 วันล่าสุด') {
-    $dateClause = "o.OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+    $dateClause = "DATE(o.OdrCreatedAt) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)";
 } else if ($period === '30 วันล่าสุด') {
-    $dateClause = "o.OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+    $dateClause = "DATE(o.OdrCreatedAt) >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)";
 } else if ($period === 'ทั้งหมด') {
     $dateClause = "1=1";
 }
 
 // 1. Fetch History List
-$sql = "SELECT o.OdrId, o.OdrUpdatedAt as date, o.OdrDelFee as fee, o.OdrDistance as distance, o.OdrStatus, o.RiderRating,
+$sql = "SELECT o.OdrId, o.OdrCreatedAt as date, o.OdrDelFee as fee, o.OdrRiderFee as riderFee, o.OdrDistance as distance, o.OdrStatus, o.RiderRating,
                s.ShopName, a.HouseNo, a.SubDistrict
         FROM tbl_order o
         LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
         LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
         WHERE o.RiderId = ? AND o.OdrStatus IN (6, 7) AND $dateClause
-        ORDER BY o.OdrUpdatedAt DESC";
+        ORDER BY o.OdrCreatedAt DESC";
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $riderId);
@@ -70,14 +70,15 @@ while ($row = $res->fetch_assoc()) {
     $statusStr = $isDelivered ? 'delivered' : 'cancelled';
     
     $ts = strtotime($row['date']);
-    $dateStr = date("H:i", $ts) . " (" . date("d/m", $ts) . ")";
+    $dateStr = date("d/m/Y H:i", $ts);
     if ($period === 'วันนี้') {
-        $dateStr = "เวลา " . date("H:i", $ts);
+        $dateStr = "วันนี้ " . date("H:i", $ts);
     }
     
     if ($isDelivered) {
         $summary['deliveries']++;
-        $summary['earnings'] += (float)$row['fee'];
+        $summary['gross'] = ($summary['gross'] ?? 0) + (float)$row['fee'];
+        $summary['earnings'] = ($summary['earnings'] ?? 0) + (float)$row['riderFee'];
         $summary['distance'] += (float)$row['distance'];
     } else {
         $summary['cancelled']++;

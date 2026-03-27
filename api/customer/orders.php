@@ -29,6 +29,7 @@ if ($method === 'POST') {
     $total      = $data['total'] ?? 0;
     $delFee     = $data['deliveryFee'] ?? 0;
     $distance   = $data['distance'] ?? 0;
+    $noteShop   = $data['noteShop'] ?? '';
     $shopId     = $items[0]['shopId'] ?? $items[0]['ShopId'] ?? 0;
 
     if (!$userId || !$shopId || empty($items) || !$addressRec) {
@@ -38,6 +39,16 @@ if ($method === 'POST') {
         if (empty($items)) $missing[] = 'items';
         if (!$addressRec) $missing[] = 'addressRecord';
         echo json_encode(['success' => false, 'message' => 'Missing fields: ' . implode(', ', $missing)]);
+        exit;
+    }
+
+    // --- BAN CHECK ---
+    $banStmt = $conn->prepare("SELECT UsrStatus FROM tbl_userinfo WHERE UsrId = ?");
+    $banStmt->bind_param("i", $userId);
+    $banStmt->execute();
+    $banRow = $banStmt->get_result()->fetch_assoc();
+    if ($banRow && (int)$banRow['UsrStatus'] === 0) {
+        echo json_encode(['success' => false, 'message' => 'บัญชีของคุณถูกระงับการใช้งาน ไม่สามารถสั่งซื้อได้']);
         exit;
     }
 
@@ -91,15 +102,15 @@ if ($method === 'POST') {
         $foodPrice = $total - $delFee;
         
         // Calculate Financial Splits
-        $gpRate = 0.30; // 30% Shop GP
+        $gpRate = 0.25; // 25% Shop GP
         $riderShareRate = 0.80; // 80% of Delivery Fee for Rider
         
         $odrGP       = $foodPrice * $gpRate;
         $odrRiderFee = $delFee * $riderShareRate;
         $odrAdminFee = $odrGP + ($delFee - $odrRiderFee); // GP + 20% of Delivery Fee
 
-        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrDistance, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("iiiiddddddd", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $distance, $total, $odrGP, $odrRiderFee, $odrAdminFee);
+        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrDistance, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee, OdrNote) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("iiiiddddddds", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $distance, $total, $odrGP, $odrRiderFee, $odrAdminFee, $noteShop);
         $stmt->execute();
         $orderId = $stmt->insert_id;
 

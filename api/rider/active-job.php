@@ -28,7 +28,7 @@ if ($rRow = $rRes->fetch_assoc()) {
 }
 
 // 3. Find active job strictly for this rider
-$sql = "SELECT o.OdrId as id, o.OdrStatus as status, o.OdrFoodPrice as subtotal, o.OdrDelFee as fee, o.OdrGrandTotal as total, o.OdrDistance as distance,
+$sql = "SELECT o.OdrId as id, o.OdrStatus as status, o.OdrFoodPrice as subtotal, o.OdrDelFee as fee, o.OdrGrandTotal as total, o.OdrDistance as distance, o.OdrNote,
                a.Province as custProv, a.District as custDist, a.SubDistrict as custSub, a.HouseNo as custHouse, a.Zipcode as custZip,
                u.UsrFullName as custName, u.UsrPhone as custPhone, u.UsrImagePath as custImage, a.AdrLat as custLat, a.AdrLng as custLng,
                s.ShopName as shopName, s.ShopPhone as shopPhone,

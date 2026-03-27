@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import styles from './layout.module.css'
 import Logo from '@/components/Logo'
+import { API_BASE, PUBLIC_URL } from '@/utils/api'
 
 const NAV = [
   { href: '/shop', icon: '🏠', label: 'ภาพรวม' },
@@ -12,6 +13,7 @@ const NAV = [
   { href: '/shop/menu', icon: '🍽️', label: 'จัดการเมนู' },
   { href: '/shop/reviews', icon: '⭐', label: 'การรีวิว' },
   { href: '/shop/riders',  icon: '🛵', label: 'ไรเดอร์' },
+  { href: '/chat',         icon: '🎧', label: 'แชทกับแอดมิน' },
 ]
 
 
@@ -67,7 +69,7 @@ export default function ShopLayout({ children }) {
     const savedUser = localStorage.getItem('bs_user')
     if (!savedUser) return
     const u = JSON.parse(savedUser)
-    fetch(`http://localhost/bitesync/api/shop/orders.php?usrId=${u.id}`)
+    fetch(`${API_BASE}/shop/orders.php?usrId=${u.id}`)
       .then(r => r.json())
       .then(d => {
         if (d.success) setOrderCount(d.data.filter(o => o.status === 'Pending').length)
@@ -114,7 +116,7 @@ export default function ShopLayout({ children }) {
 
   async function updateStatus(newStatus) {
     try {
-      const res = await fetch('http://localhost/bitesync/api/shop/status.php', {
+      const res = await fetch(`${API_BASE}/shop/status.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usrId: user.id, status: newStatus })
@@ -171,7 +173,7 @@ export default function ShopLayout({ children }) {
         <div className={styles.sideBottom}>
           <div className={styles.userBtn} onClick={() => setProfileOpen(v => !v)}>
             {shop.logo ? (
-              <img src={shop.logo} className={styles.userAvatar} style={{objectFit:'cover'}} alt="Logo" />
+              <img src={`${PUBLIC_URL}${shop.logo}`} className={styles.userAvatar} style={{objectFit:'cover'}} alt="Logo" />
             ) : (
               <div className={styles.userAvatar}>{(user?.name || 'R')[0].toUpperCase()}</div>
             )}

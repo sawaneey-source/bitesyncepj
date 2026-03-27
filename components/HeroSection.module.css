@@ -1,6 +1,6 @@
 .hero {
   position: relative;
-  min-height: 380px;
+  min-height: 420px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,7 +12,7 @@
 .heroBg {
   position: absolute;
   inset: 0;
-  background-image: url('/hero-bg.png');
+  background-image: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=90');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -27,8 +27,11 @@
 .heroOverlay {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(1px);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.30) 0%,
+    rgba(0, 0, 0, 0.50) 100%
+  );
 }
 
 /* เนื้อหากึ่งกลาง */
@@ -36,8 +39,8 @@
   position: relative;
   z-index: 2;
   text-align: center;
-  padding: 60px 24px;
-  max-width: 640px;
+  padding: 80px 24px;
+  max-width: 720px;
   width: 100%;
   animation: fadeUp .5s ease both;
 }
@@ -49,29 +52,32 @@
 
 .heroSmall {
   font-size: 13px;
-  color: var(--gray);
+  color: rgba(255,255,255,0.85);
   margin-bottom: 10px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
 
 .heroH1 {
   font-family: var(--fp);
-  font-size: 42px;
+  font-size: 54px;
   font-weight: 800;
-  line-height: 1.2;
-  color: var(--dark);
-  margin-bottom: 12px;
+  line-height: 1.15;
+  color: #fff;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.4);
 }
 
 .heroEm {
-  color: var(--green);
+  color: #ffe066;
   font-style: normal;
 }
 
 .heroSub {
-  font-size: 14px;
-  color: var(--gray);
-  line-height: 1.6;
-  margin-bottom: 28px;
+  font-size: 15px;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.7;
+  margin-bottom: 0;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
 }
 
 /* Search bar */

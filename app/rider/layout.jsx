@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import styles from './layout.module.css'
 import Logo from '@/components/Logo'
+import { API_BASE, PUBLIC_URL } from '@/utils/api'
 
 const NAV = [
   { href:'/rider', icon:'🏠', label:'หน้าหลัก' },
   { href:'/rider/jobs',      icon:'📋', label:'งานใหม่' },
   { href:'/rider/active',    icon:'🛵', label:'งานปัจจุบัน' },
   { href:'/rider/history',   icon:'📊', label:'ประวัติ' },
-  { href:'/rider/profile',   icon:'👤', label:'โปรไฟล์' },
+  { href:'/chat',            icon:'🎧', label:'แชทกับแอดมิน' },
 ]
 
 export default function RiderLayout({ children }) {
@@ -38,7 +39,7 @@ export default function RiderLayout({ children }) {
       setChecking(false)
 
       // Sync fresh profile from API to handle potential stale image in localStorage
-      fetch(`http://localhost/bitesync/api/customer/get_profile.php?userId=${u.id}`)
+      fetch(`${API_BASE}/customer/get_profile.php?userId=${u.id}`)
         .then(r => r.json())
         .then(d => {
           if (d.success && d.user) {
@@ -57,7 +58,7 @@ export default function RiderLayout({ children }) {
         const uStr = localStorage.getItem('bs_user')
         if (uStr) {
           const uid = JSON.parse(uStr).id
-          const res = await fetch(`http://localhost/bitesync/api/rider/active-job.php?usrId=${uid}`, {
+          const res = await fetch(`${API_BASE}/rider/active-job.php?usrId=${uid}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('bs_token')}` }
           })
           const data = await res.json()
@@ -79,7 +80,7 @@ export default function RiderLayout({ children }) {
     let uid = 0
     if (uStr) { try { uid = JSON.parse(uStr).id } catch(e){} }
 
-    fetch('http://localhost/bitesync/api/rider/status.php', {
+    fetch(`${API_BASE}/rider/status.php`, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('bs_token')}` },
       body: JSON.stringify({ status: next ? 'Online' : 'Offline', usrId: uid })
@@ -94,7 +95,7 @@ export default function RiderLayout({ children }) {
     let uid = 0
     if (uStr) { try { uid = JSON.parse(uStr).id } catch(e){} }
 
-    fetch('http://localhost/bitesync/api/rider/status.php', {
+    fetch(`${API_BASE}/rider/status.php`, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('bs_token')}` },
       body: JSON.stringify({ status: 'Offline', usrId: uid })
@@ -162,7 +163,7 @@ export default function RiderLayout({ children }) {
           <div className={styles.userRow} onClick={() => setShowUserMenu(!showUserMenu)} style={{cursor:'pointer'}}>
             <div className={styles.userAvatar}>
               {user?.image ? (
-                <img src={`http://localhost/bitesync/public${user.image}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                <img src={`${PUBLIC_URL}${user.image}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
               ) : (
                 (user?.name || 'R')[0].toUpperCase()
               )}

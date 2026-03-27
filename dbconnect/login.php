@@ -40,6 +40,14 @@ if($result->num_rows > 0){
 
     if(password_verify($password,$user['UsrPassword'])){
 
+        if (isset($user['UsrStatus']) && $user['UsrStatus'] == 0) {
+            echo json_encode([
+                "success" => false,
+                "message" => "บัญชีของคุณถูกระงับการใช้งาน กรุณาติดต่อแอดมิน"
+            ]);
+            exit;
+        }
+
         echo json_encode([
             "success"=>true,
             "user"=>[

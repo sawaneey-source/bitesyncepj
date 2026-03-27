@@ -1,0 +1,330 @@
+.page {
+  background: #f8fafc;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', 'Prompt', sans-serif;
+}
+
+.adminBody {
+  flex: 1;
+  display: flex;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  gap: 1.5rem;
+  padding: 24px;
+  height: calc(100vh - 72px);
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 380px;
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.sidebarHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: white;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  margin-bottom: 1.25rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.backBtn:hover {
+  background: #e2e8f0;
+  color: #1a1f1a;
+  transform: translateX(-3px);
+}
+
+.sidebarHeader h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+}
+
+.contactList {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid #f8fafc;
+  position: relative;
+}
+
+.contactItem:hover {
+  background: #f8fafc;
+}
+
+.activeContact {
+  background: #f0fdf4 !important;
+}
+
+.activeContact::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #16a34a;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 2px solid #fff;
+}
+
+.contactInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.contactInfo .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.name {
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.roleTag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.timeLabel {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.lastMsg {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.unread {
+  background: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.4);
+}
+
+.chatMain {
+  flex: 1;
+  background: white;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.mainHeader {
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: #fff;
+  z-index: 10;
+}
+
+.mainHeader h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.msgStream {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  background: #f1f5f9;
+  background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+  background-size: 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  scrollbar-width: thin;
+}
+
+.msgRow { 
+  display: flex;
+  width: 100%;
+}
+.msgRow.own { justify-content: flex-end; }
+
+.bubble {
+  max-width: 65%;
+  padding: 1rem 1.25rem;
+  border-radius: 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.6;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.own .bubble {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.their .bubble {
+  background: white;
+  color: #1e293b;
+  border-bottom-left-radius: 4px;
+  border: 1px solid #edf2f7;
+}
+
+.timeTip {
+  font-size: 0.65rem;
+  margin-top: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  opacity: 0.6;
+}
+
+.own .timeTip { text-align: right; }
+
+.inpRow {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  gap: 1rem;
+  background: white;
+}
+
+.inpRow input {
+  flex: 1;
+  padding: 0.85rem 1.5rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  outline: none;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+
+.inpRow input:focus { 
+  border-color: #16a34a; 
+  background: white;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
+}
+
+.inpRow button {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.inpRow button:hover {
+  background: #15803d;
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.3);
+}
+
+.noSelection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.noSelection i {
+  font-size: 5rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.noSelection p {
+  font-weight: 600;
+  font-size: 1.1rem;
+}

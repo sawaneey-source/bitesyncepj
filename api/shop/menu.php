@@ -218,6 +218,10 @@ if ($method === 'GET') {
     $id = $_GET['id'] ?? null;
     if(!$id) exit(json_encode(["success"=>false, "message"=>"ID required"]));
     
+    // Delete reviews and addons for this food first
+    $conn->query("DELETE FROM tbl_review WHERE FoodId = $id");
+    $conn->query("DELETE FROM tbl_addon WHERE FoodId = $id");
+
     $stmt = $conn->prepare("DELETE FROM tbl_food WHERE FoodId = ? AND ShopId = ?");
     $stmt->bind_param("ii", $id, $shopId);
     if($stmt->execute()){

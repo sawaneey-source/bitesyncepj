@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import styles from './page.module.css'
+import Navbar from '@/components/Navbar'
 
 
 
@@ -17,8 +18,8 @@ export default function FoodDetailPage() {
   const [toast, setToast]         = useState(null)
   const [cart, setCart]           = useState([])
   const [user, setUser]           = useState(null)
-  const [showDropdown, setShowDropdown] = useState(false)
   const [lastOrder, setLastOrder]       = useState(null)
+  const [showConfirm, setShowConfirm]   = useState(false)
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('bs_cart') || '[]')
@@ -82,7 +83,22 @@ export default function FoodDetailPage() {
       alert("ขออภัย ขณะนี้ร้านค้าปิดรับออเดอร์ชั่วคราว")
       return
     }
-    const nextCart = JSON.parse(localStorage.getItem('bs_cart') || '[]')
+    const currentCart = JSON.parse(localStorage.getItem('bs_cart') || '[]')
+    if (currentCart.length > 0) {
+      const firstItem = currentCart[0]
+      const cartShopId = firstItem.ShopId || firstItem.shopId
+      const foodShopId = food.ShopId || food.shopId
+      
+      if (cartShopId && foodShopId && cartShopId != foodShopId) {
+        setShowConfirm(true)
+        return
+      }
+    }
+    confirmAddToCart(currentCart)
+  }
+
+  function confirmAddToCart(currentCart) {
+    const nextCart = currentCart || JSON.parse(localStorage.getItem('bs_cart') || '[]')
     const item = {
       id: food.id, name: food.name, 
       price: Math.round(basePrice + addonPerUnit),
@@ -120,66 +136,12 @@ export default function FoodDetailPage() {
 
   return (
     <div className={styles.page}>
-      {toast && <div className={styles.toast}>✅ {toast}</div>}
-
-      {/* Nav */}
-      <header className={styles.nav}>
-        <div className={styles.navInner}>
-          <button onClick={() => router.back()} className={styles.backBtn}>
-            <i className="fa-solid fa-arrow-left" /> กลับ
-          </button>
-          <div className={styles.logo} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
-            <div className={styles.logoMark}><i className="fa-solid fa-leaf" style={{color: 'white', fontSize: '14px'}} /></div>
-            <span className={styles.logoTxt}>Bite<em>Sync</em></span>
-          </div>
-          <div className={styles.navRight}>
-            <div className={styles.cartBtn} onClick={() => router.push('/checkout')}>
-              <i className="fa-solid fa-basket-shopping" />
-              {totalItems > 0 && <span className={styles.cartDot}>{totalItems}</span>}
-            </div>
-            {user ? (
-              <div className={styles.userNavWrap}>
-                <div className={styles.userAvatarBtn} onClick={() => setShowDropdown(!showDropdown)}>
-                  <div className={styles.navAvatarCircle}>{(user.name || 'U')[0].toUpperCase()}</div>
-                  <i className={`fa-solid fa-chevron-down ${showDropdown ? styles.rotate : ''}`} />
-                </div>
-                {showDropdown && (
-                  <div className={`${styles.navDropdown} glass`}>
-                    <div className={styles.dropdownInfo}>
-                      <span className={styles.dropdownName}>{user.name}</span>
-                      <span className={styles.dropdownRole}>{user.role || 'ลูกค้าระดับ VIP'}</span>
-                    </div>
-                    <div className={styles.dropdownDivider} />
-                    <div className={styles.dropdownItem} onClick={() => router.push('/profile')}>
-                      <i className="fa-regular fa-circle-user" /> โปรไฟล์ของฉัน
-                    </div>
-                    {lastOrder && (
-                      <div className={styles.dropdownItem} onClick={() => router.push(`/home/track/${lastOrder}`)}>
-                        <i className="fa-solid fa-motorcycle" /> ติดตามออเดอร์
-                      </div>
-                    )}
-                    <div className={styles.dropdownItem} onClick={() => router.push('/home')}>
-                      <i className="fa-solid fa-utensils" /> สั่งอาหาร
-                    </div>
-                    <div className={styles.dropdownDivider} />
-                    <button onClick={() => {
-                      localStorage.removeItem('bs_user');
-                      localStorage.removeItem('bs_token');
-                      window.location.href = '/';
-                    }} className={`${styles.dropdownItem} ${styles.logout}`}>
-                      <i className="fa-solid fa-arrow-right-from-bracket" /> ออกจากระบบ
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button onClick={() => router.push('/login')} className={styles.loginBtn}>เข้าสู่ระบบ</button>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <div className={styles.body}>
+        <button onClick={() => router.back()} className={styles.backBtn} style={{ marginBottom: '20px' }}>
+          <i className="fa-solid fa-arrow-left" /> กลับ
+        </button>
         <div className={styles.layout}>
           {/* LEFT — image */}
           <div className={styles.imgSide}>
@@ -330,6 +292,41 @@ export default function FoodDetailPage() {
           <span className={styles.cartBarCount}>{totalItems}</span>
           <span className={styles.cartBarTxt}>{parseInt(food?.shopOpen) !== 0 ? 'ดูตะกร้า' : 'ร้านค้าปิดให้บริการ'}</span>
           <span className={styles.cartBarPrice}>{totalPrice} ฿</span>
+        </div>
+      )}
+
+      {/* ── Custom Confirm Modal ── */}
+      {showConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalIcon}>
+              <i className="fa-solid fa-circle-exclamation" />
+            </div>
+            <h3 className={styles.modalTitle}>สลับร้านอาหารใหม่?</h3>
+            <p className={styles.modalText}>
+              คุณมีหาสารจากร้านอื่นค้างอยู่ในตะกร้า <br/>
+              หากสั่งร้านนี้ ตะกร้าเดิมจะถูกล้างออกทั้งหมดครับ
+            </p>
+            <div className={styles.modalBtns}>
+              <button 
+                className={`${styles.modalBtn} ${styles.cancelBtn}`} 
+                onClick={() => setShowConfirm(false)}
+              >
+                ไว้วันหลัง
+              </button>
+              <button 
+                className={`${styles.modalBtn} ${styles.confirmBtn}`}
+                onClick={() => {
+                  setShowConfirm(false)
+                  localStorage.setItem('bs_cart', '[]')
+                  setCart([])
+                  confirmAddToCart([])
+                }}
+              >
+                ล้างตะกร้าและสั่งเลย
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

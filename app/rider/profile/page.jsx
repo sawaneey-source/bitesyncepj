@@ -3,12 +3,13 @@ import { useState, useEffect, useRef } from 'react'
 import Cropper from 'react-easy-crop'
 import { getCroppedImg } from '@/app/shop/menu/cropHelper'
 import styles from './page.module.css'
+import { API_BASE, PUBLIC_URL } from '@/utils/api'
 
 export default function RiderProfilePage() {
   const fileRef = useRef()
   const [form, setForm] = useState({ name:'', phone:'', email:'', vehicle:'', plate:'', color:'', bankName:'', bankAccount:'', emergency:'', preview:null, img:null, oldPw: '', userPw: '', userPwConfirm: '' })
-  const [stats, setStats] = useState({ rating:0.0, jobs:0, balance:0 })
-  const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState({ rating:0.0, jobs:0, settled:0, outstanding:0 })
+  const [loading, setLoading] = useState(true)
   const [toast, setToast]     = useState(null)
 
   // Cropper State
@@ -26,19 +27,19 @@ export default function RiderProfilePage() {
   function set(k,v){ setForm(f=>({...f,[k]:v})) }
 
   async function load() {
+    setLoading(true)
     try {
       const userStr = localStorage.getItem('bs_user')
       if (!userStr) { showToast('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่','err'); return }
       const user = JSON.parse(userStr)
       if (!user.id) { showToast('User ID ไม่ถูกต้อง','err'); return }
 
-      const res  = await fetch(`http://localhost/bitesync/api/rider/profile.php?usrId=${user.id}&t=${Date.now()}`, {
+      const res  = await fetch(`${API_BASE}/rider/profile.php?usrId=${user.id}&t=${Date.now()}`, {
         headers:{ Authorization:`Bearer ${localStorage.getItem('bs_token')}` }
       })
       const data = await res.json()
       if (data.success) {
         const r = data.data
-        console.log('Loaded Data:', r)
         setForm(f => ({ 
           ...f, 
           name:r.name||'', 
@@ -56,12 +57,20 @@ export default function RiderProfilePage() {
         if (r.vehicle && !['Honda PCX', 'Yamaha NMAX', 'Honda Click', 'Honda Wave', 'Yamaha Aerox', 'PCX 150'].includes(r.vehicle)) {
           setShowOtherVehicle(true)
         }
-        setStats({ rating:r.rating, jobs:r.ratingCount, balance:r.balance })
+        setStats({ 
+          rating: r.rating, 
+          jobs: r.ratingCount, 
+          settled: r.balance, 
+          outstanding: r.outstanding 
+        })
       } else {
         console.error('Load Error:', data.message)
+        showToast('ไม่สามารถโหลดข้อมูลโปรไฟล์ได้: ' + data.message, 'err')
       }
     } catch (e) {
       console.error('Fetch Load Error:', e)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -141,7 +150,7 @@ export default function RiderProfilePage() {
       
       console.log('Saving Rider Profile for UsrId:', user.id)
 
-      const res  = await fetch('http://localhost/bitesync/api/rider/profile.php', {
+      const res  = await fetch(`${API_BASE}/rider/profile.php`, {
         method:'POST',
         headers:{ Authorization:`Bearer ${localStorage.getItem('bs_token')}` }, 
         body:fd
@@ -166,8 +175,16 @@ export default function RiderProfilePage() {
           localStorage.setItem('bs_user', JSON.stringify(u))
         }
 
-        setForm(f => ({ ...f, img: null, oldPw: '', userPw: '', userPwConfirm: '' }))
-        load()
+        if (data.data) {
+          const r = data.data
+          setForm(f => ({ ...f, 
+            name: r.name, phone: r.phone, vehicle: r.vehicle, plate: r.plate, color: r.color,
+            bankName: r.bankName, bankAccount: r.bankAccount, emergency: r.emergency,
+            preview: r.img, imgOri: r.imgOri, img: null, oldPw: '', userPw: '', userPwConfirm: ''
+          }))
+          setStats({ rating: r.rating, jobs: r.ratingCount, settled: r.balance, outstanding: r.outstanding })
+        }
+        await load()
       } else {
         showToast(data.message||'เกิดข้อผิดพลาด','err')
       }
@@ -182,7 +199,13 @@ export default function RiderProfilePage() {
       {toast && <div className={`${styles.toast} ${toast.type==='err'?styles.toastErr:styles.toastOk}`}>{toast.type==='err'?'⚠️':'✅'} {toast.msg}</div>}
       <h1 className={styles.title}>โปรไฟล์ไรเดอร์</h1>
 
-      <div className={styles.layout}>
+      {loading && !form.name ? (
+        <div className={styles.loadingBox} style={{padding:'50px 0', textAlign:'center'}}>
+          <div className={styles.spinner} style={{margin:'0 auto 10px'}} />
+          <p>กำลังโหลดข้อมูลโปรไฟล์...</p>
+        </div>
+      ) : (
+        <div className={styles.layout}>
         {/* Avatar */}
         <div className={styles.avatarCard}>
           <div className={styles.avatarWrap}>
@@ -213,7 +236,12 @@ export default function RiderProfilePage() {
             <span>{stats.jobs} งาน</span>
           </div>
           <div style={{fontSize:12, color:'#666', marginTop:5}}>
-             ชำระแล้ว: <b style={{color:'#2a6129'}}>฿{stats.balance}</b>
+             ชำระแล้ว (สะสม): <b style={{color:'#2a6129'}}>฿{stats.settled?.toLocaleString()}</b>
+             {stats.outstanding > 0 && (
+               <div style={{color:'#e11d48', marginTop:2}}>
+                 ยอดค้างจ่าย: ฿{stats.outstanding?.toLocaleString()}
+               </div>
+             )}
           </div>
         </div>
 
@@ -324,10 +352,7 @@ export default function RiderProfilePage() {
           <div className={styles.pwdHintBox}>
             <div className={styles.pwdHintIcon}>💡</div>
             <div className={styles.pwdHintText}>
-              <strong>เปลี่ยนรหัสผ่าน:</strong> คุณสามารถพิมพ์รหัสผ่านใหม่ทับแล้วกดบันทึกได้เลยทันที<br/>
-              <a href="#" onClick={(e) => { e.preventDefault(); alert('ติดต่อแอดมินเพื่อรีเซ็ตรหัสผ่านไรเดอร์\n\nLine OA: @BiteSyncAdmin\nโทร: 02-123-4567'); }} className={styles.forgotLink}>
-                ลืมรหัสผ่านเดิมใช่ไหม? คลิกที่นี่เพื่อติดต่อแอดมิน
-              </a>
+              <strong>เปลี่ยนรหัสผ่าน:</strong> กรอกรหัสเดิมและรหัสใหม่แล้วกดบันทึกได้เลยครับ
             </div>
           </div>
 
@@ -336,6 +361,7 @@ export default function RiderProfilePage() {
           </button>
         </div>
       </div>
+      )}
 
       {imageToCrop && (
         <div className={styles.cropOverlay}>

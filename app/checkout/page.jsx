@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import Logo from '@/components/Logo'
+import { PUBLIC_URL } from '@/utils/api'
+
 
 export default function CheckoutPage() {
   const router  = useRouter()
@@ -10,14 +12,14 @@ export default function CheckoutPage() {
   const [shopLoc, setShopLoc] = useState(null)
   const [deliveryFee, setDeliveryFee] = useState(20)
   const [address, setAddress] = useState('')
-  const [note, setNote]       = useState('')
+  const [noteShop, setNoteShop] = useState('')
   const [step, setStep]       = useState(1) // 1=review, 2=payment QR
   const [loading, setLoading] = useState(false)
   const [orderId, setOrderId] = useState(null)
   const [user, setUser]       = useState(null)
-  const [showDropdown, setShowDropdown] = useState(false)
   const [lastOrder, setLastOrder]       = useState(null)
   const [isShopOpen, setIsShopOpen]     = useState(true)
+  const [showDropdown, setShowDropdown] = useState(false)
 
   // Address states
   const [provinces, setProvinces] = useState([])
@@ -39,103 +41,115 @@ export default function CheckoutPage() {
   const markerRef = useRef(null)
 
   useEffect(() => {
-    const cartItems = JSON.parse(localStorage.getItem('bs_cart') || '[]')
-    setCart(cartItems)
-    
-    if (cartItems.length > 0) {
-      const sId = cartItems[0].shopId || cartItems[0].ShopId
-      fetch(`http://localhost/bitesync/api/shop/profile.php?shopId=${sId}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success && data.data) {
-                setShopLoc({ lat: parseFloat(data.data.AdrLat), lng: parseFloat(data.data.AdrLng) })
-                setIsShopOpen(parseInt(data.data.ShopStatus) === 1)
-            }
-        })
+    const syncState = () => {
+      const u = localStorage.getItem('bs_user')
+      if (u) setUser(JSON.parse(u))
+      else setUser(null)
+
+      const cartItems = JSON.parse(localStorage.getItem('bs_cart') || '[]')
+      setCart(cartItems)
+      
+      setLastOrder(localStorage.getItem('bs_last_order') || null)
     }
 
-    const u = localStorage.getItem('bs_user')
-    if (u) {
-      const userData = JSON.parse(u)
-      if (userData.role === 'restaurant' || userData.role === 'shop') {
-        router.replace('/shop')
-        return
-      } else if (userData.role === 'rider') {
-        router.replace('/rider')
-        return
-      } else if (userData.role === 'admin') {
-        router.replace('/admin/dashboard')
+    syncState()
+    const interval = setInterval(syncState, 2000)
+    window.addEventListener('storage', syncState)
+
+    // Initial data fetch (Address, Shop info, Provinces)
+    const initData = async () => {
+      const cartItems = JSON.parse(localStorage.getItem('bs_cart') || '[]')
+      if (cartItems.length > 0) {
+        const sId = cartItems[0].shopId || cartItems[0].ShopId
+        fetch(`http://localhost/bitesync/api/shop/profile.php?shopId=${sId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.data) {
+              setShopLoc({ lat: parseFloat(data.data.AdrLat), lng: parseFloat(data.data.AdrLng) })
+              setIsShopOpen(parseInt(data.data.ShopStatus) === 1)
+            }
+          })
+      }
+
+      const u = localStorage.getItem('bs_user')
+      if (u) {
+        const userData = JSON.parse(u)
+        if (userData.role === 'restaurant' || userData.role === 'shop') {
+          router.replace('/shop')
+          return
+        } else if (userData.role === 'rider') {
+          router.replace('/rider')
+          return
+        } else if (userData.role === 'admin') {
+          router.replace('/admin/dashboard')
+          return
+        }
+        
+        // 1. Fetch Persistent Default Address from DB (Primary Source)
+        fetch(`http://localhost/bitesync/api/customer/address.php?usrId=${userData.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.data) {
+              const a = data.data
+              setAdrLat(parseFloat(a.AdrLat))
+              setAdrLng(parseFloat(a.AdrLng))
+              setHouseNo(a.HouseNo || '')
+              setVillage(a.Village || '')
+              setRoad(a.Road || '')
+              setSoi(a.Soi || '')
+              setMoo(a.Moo || '')
+              setSelProvince(a.Province || '')
+              setSelAmphure(a.District || '')
+              setSelTambon(a.SubDistrict || '')
+              setZipcode(a.Zipcode || '')
+              const full = `${a.HouseNo || ''} ${a.SubDistrict || ''} ${a.District || ''} ${a.Province || ''}`.trim()
+              setAddress(full)
+              
+              if (mapInstanceRef.current && markerRef.current) {
+                mapInstanceRef.current.setView([a.AdrLat, a.AdrLng], 16)
+                markerRef.current.setLatLng([a.AdrLat, a.AdrLng])
+              }
+              updateDeliveryFee(a.AdrLat, a.AdrLng)
+              initMap(parseFloat(a.AdrLat), parseFloat(a.AdrLng), true)
+            } else {
+              const saved = localStorage.getItem('bs_address_full')
+              if (saved) {
+                const s = JSON.parse(saved)
+                setSelProvince(s.province || '')
+                setSelAmphure(s.amphure || '')
+                setSelTambon(s.tambon || '')
+                setZipcode(s.zip || '')
+                setHouseNo(s.houseNo || '')
+                setVillage(s.village || '')
+                setRoad(s.road || '')
+                setSoi(s.soi || '')
+                setMoo(s.moo || '')
+                setAddress(s.full || '')
+                setAdrLat(s.lat || 7.0085)
+                setAdrLng(s.lng || 100.4734)
+                initMap(s.lat || 7.0085, s.lng || 100.4734, false)
+              } else {
+                initMap(7.0085, 100.4734, false, true)
+              }
+            }
+          })
+      } else {
+        router.replace('/login')
         return
       }
-      setUser(userData)
-      
-      // 1. Fetch Persistent Default Address from DB (Primary Source)
-      fetch(`http://localhost/bitesync/api/customer/address.php?usrId=${userData.id}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success && data.data) {
-                const a = data.data
-                console.log("Found Default Address in DB:", a);
-                setAdrLat(parseFloat(a.AdrLat))
-                setAdrLng(parseFloat(a.AdrLng))
-                setHouseNo(a.HouseNo || '')
-                setVillage(a.Village || '')
-                setRoad(a.Road || '')
-                setSoi(a.Soi || '')
-                setMoo(a.Moo || '')
-                setSelProvince(a.Province || '')
-                setSelAmphure(a.District || '')
-                setSelTambon(a.SubDistrict || '')
-                setZipcode(a.Zipcode || '')
-                const full = `${a.HouseNo || ''} ${a.SubDistrict || ''} ${a.District || ''} ${a.Province || ''}`.trim()
-                setAddress(full)
-                
-                // Set Map View if ready, otherwise initMap will handle it
-                if (mapInstanceRef.current && markerRef.current) {
-                    mapInstanceRef.current.setView([a.AdrLat, a.AdrLng], 16)
-                    markerRef.current.setLatLng([a.AdrLat, a.AdrLng])
-                }
-                updateDeliveryFee(a.AdrLat, a.AdrLng)
-                
-                // If we found a default, we successfully initialized
-                initMap(parseFloat(a.AdrLat), parseFloat(a.AdrLng), true)
-            } else {
-                // 2. Fallback to LocalStorage if no DB default found
-                const saved = localStorage.getItem('bs_address_full')
-                if (saved) {
-                    const s = JSON.parse(saved)
-                    console.log("No DB default, using LocalStorage:", s);
-                    setSelProvince(s.province || '')
-                    setSelAmphure(s.amphure || '')
-                    setSelTambon(s.tambon || '')
-                    setZipcode(s.zip || '')
-                    setHouseNo(s.houseNo || '')
-                    setVillage(s.village || '')
-                    setRoad(s.road || '')
-                    setSoi(s.soi || '')
-                    setMoo(s.moo || '')
-                    setAddress(s.full || '')
-                    setAdrLat(s.lat || 7.0085)
-                    setAdrLng(s.lng || 100.4734)
-                    initMap(s.lat || 7.0085, s.lng || 100.4734, false)
-                } else {
-                    // 3. Last Resort: Auto Geolocation (Only once)
-                    initMap(7.0085, 100.4734, false, true)
-                }
-            }
-        })
-    } else {
-      router.replace('/login')
-      return
-    }
-    
-    setLastOrder(localStorage.getItem('bs_last_order') || null)
 
-    // Fetch provinces (for reverse geocoding dropdowns)
-    fetch('http://localhost/bitesync/api/home/thai_address.php')
-      .then(res => res.json())
-      .then(data => setProvinces(data))
-      .catch(err => console.error("Province fetch failed", err))
+      fetch('http://localhost/bitesync/api/home/thai_address.php')
+        .then(res => res.json())
+        .then(data => setProvinces(data))
+        .catch(err => console.error("Province fetch failed", err))
+    }
+
+    initData()
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('storage', syncState)
+    }
   }, [router])
 
   // Reactively update delivery fee
@@ -514,6 +528,7 @@ export default function CheckoutPage() {
           addressRecord, // Real structured address
           total, 
           deliveryFee,
+          noteShop,
           distance: getDistance(adrLat, adrLng, shopLoc.lat, shopLoc.lng).toFixed(2)
         })
       })
@@ -612,7 +627,17 @@ export default function CheckoutPage() {
             {user ? (
               <div className={styles.userNavWrap}>
                 <div className={styles.userAvatarBtn} onClick={() => setShowDropdown(!showDropdown)}>
-                  <div className={styles.navAvatarCircle}>{(user.name || 'U')[0].toUpperCase()}</div>
+                  <div className={styles.navAvatarCircle}>
+                    {user.image ? (
+                      <img 
+                        src={`${PUBLIC_URL}${user.image}`} 
+                        alt="Profile" 
+                        style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      (user.name || 'U')[0].toUpperCase()
+                    )}
+                  </div>
                   <i className={`fa-solid fa-chevron-down ${showDropdown ? styles.rotate : ''}`} />
                 </div>
                 {showDropdown && (
@@ -622,9 +647,11 @@ export default function CheckoutPage() {
                       <span className={styles.dropdownRole}>{user.role || 'ลูกค้าระดับ VIP'}</span>
                     </div>
                     <div className={styles.dropdownDivider} />
-                    <div className={styles.dropdownItem} onClick={() => router.push('/profile')}>
-                      <i className="fa-regular fa-circle-user" /> โปรไฟล์ของฉัน
-                    </div>
+                    {user?.role !== 'admin' && (
+                      <div className={styles.dropdownItem} onClick={() => router.push('/profile')}>
+                        <i className="fa-regular fa-circle-user" /> โปรไฟล์ของฉัน
+                      </div>
+                    )}
                     {lastOrder && (
                       <div className={styles.dropdownItem} onClick={() => router.push(`/home/track/${lastOrder}`)}>
                         <i className="fa-solid fa-motorcycle" /> ติดตามออเดอร์
@@ -680,7 +707,7 @@ export default function CheckoutPage() {
                   {cart.length > 0 && (
                     <button 
                       className={styles.addMoreBtn} 
-                      onClick={() => router.push(`/home/restaurant/${cart[0].shopId}`)}
+                      onClick={() => router.push(`/home/restaurant/${cart[0].shopId || cart[0].ShopId}`)}
                     >
                       + เลือกอาหารเพิ่ม
                     </button>
@@ -715,7 +742,38 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              {/* Delivery */}
+              {/* Note to shop */}
+              <div className={styles.card}>
+                <div className={styles.cardHdr}>
+                  <h2 className={styles.cardTitle}>📝 โน้ตถึงร้านค้า</h2>
+                </div>
+                <textarea
+                  value={noteShop}
+                  onChange={e => setNoteShop(e.target.value)}
+                  placeholder="เช่น ไม่เอาเชอร์รี่, ขอซอสพิเศษ, แพ้ถั่ว..."
+                  rows={3}
+                  maxLength={200}
+                  className={styles.noteTextarea}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #e0e4e0',
+                    fontSize: '14px',
+                    fontFamily: 'Sarabun, sans-serif',
+                    resize: 'vertical',
+                    outline: 'none',
+                    background: '#fafdf9',
+                    color: '#1a1f1a',
+                    transition: 'border-color .2s',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <div style={{ textAlign: 'right', fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                  {noteShop.length}/200
+                </div>
+              </div>
+
               <div className={styles.card}>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                   <h2 className={styles.cardTitle}>📍 ที่อยู่จัดส่ง</h2>
@@ -894,7 +952,7 @@ export default function CheckoutPage() {
 
                 {address && <div className={styles.addrPreview}><strong>Preview:</strong> {address}</div>}
                 
-                {note && <div className={styles.noteRow}>📝 {note}</div>}
+                {noteShop && <div className={styles.noteRow}>📝 {noteShop}</div>}
               </div>
             </div>
 

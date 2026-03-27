@@ -23,22 +23,7 @@ export default function HeroSection() {
         <p className={styles.heroSub}>
           อาหารส่งถึงหน้าบ้านรวดเร็วทันใจ · ค้นหาร้านโปรดของคุณใกล้บ้านได้เลย
         </p>
-        <div className={styles.searchRow}>
-          <i className={`fa-solid fa-magnifying-glass ${styles.searchIcon}`} />
-          <input
-            className={styles.searchInput}
-            type="text"
-            placeholder="เช่น ส้มตำ, ข้าวผัด, พิซซ่า..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-          />
-          <button 
-            className={styles.searchBtn} 
-            onClick={() => router.push(`/home?q=${encodeURIComponent(query)}`)}
-          >
-            ค้นหา
-          </button>
-        </div>
+        {/* Search removed as requested */}
       </div>
     </section>
   )

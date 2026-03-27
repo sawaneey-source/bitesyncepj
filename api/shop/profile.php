@@ -206,6 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usrParams[] = password_hash($usrPassword, PASSWORD_DEFAULT); 
         $usrTypes .= "s"; 
     }
+
     if (!empty($usrUpdates)) {
         $usrParams[] = $usrId; 
         $usrTypes   .= "i";

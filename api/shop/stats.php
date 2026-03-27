@@ -29,18 +29,22 @@ if ($sRow = $sRes->fetch_assoc()) {
 
 // Define Date Clause
 $dateClause = "AND DATE(OdrCreatedAt) = CURDATE()";
-if ($period === '3days')  $dateClause = "AND OdrCreatedAt >= DATE_SUB(NOW(), INTERVAL 3 DAY)";
-if ($period === '7days')  $dateClause = "AND OdrCreatedAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-if ($period === '30days') $dateClause = "AND OdrCreatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+if ($period === '3days')  $dateClause = "AND DATE(OdrCreatedAt) >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)";
+if ($period === '7days')  $dateClause = "AND DATE(OdrCreatedAt) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)";
+if ($period === '30days') $dateClause = "AND DATE(OdrCreatedAt) >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)";
 if ($period === 'all')    $dateClause = ""; // No date filter
 
 // 1. Sales for Period (Status 6 = Completed)
-$sales = 0;
-$stmt = $conn->prepare("SELECT SUM(OdrGrandTotal - OdrDelFee) as total FROM tbl_order WHERE ShopId = ? AND OdrStatus = 6 $dateClause");
+// Gross is all completed, Net is only settled
+$stmt = $conn->prepare("SELECT SUM(OdrFoodPrice) as gross, 
+                               SUM(CASE WHEN OdrShopSettled = 1 THEN OdrFoodPrice - OdrGP ELSE 0 END) as net 
+                        FROM tbl_order 
+                        WHERE ShopId = ? AND OdrStatus = 6 $dateClause");
 $stmt->bind_param("i", $shopId);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
-$sales = (float)($row['total'] ?? 0);
+$grossSales = (float)($row['gross'] ?? 0);
+$netSales   = (float)($row['net'] ?? 0);
 
 // 2. Total Orders for Period (Paid, Status 2-6, exclude 7 cancelled)
 $orders = 0;
@@ -95,7 +99,8 @@ for ($i = 6; $i >= 0; $i--) {
 echo json_encode([
     'success' => true,
     'data' => [
-        'totalSales' => $sales,
+        'totalSales' => $grossSales,
+        'totalNetSales' => $netSales,
         'totalOrders' => $orders,
         'pendingOrdersCount' => $pendingCount,
         'recentOrders' => $recent,

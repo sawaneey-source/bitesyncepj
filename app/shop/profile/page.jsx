@@ -720,10 +720,7 @@ export default function ShopProfilePage() {
               <div className={styles.pwdHintBox}>
                 <div className={styles.pwdHintIcon}>💡</div>
                 <div className={styles.pwdHintText}>
-                  <strong>เปลี่ยนรหัสผ่าน:</strong> คุณสามารถพิมพ์รหัสผ่านใหม่ทับแล้วกดบันทึกได้เลยทันที<br/>
-                  <a href="#" onClick={(e) => { e.preventDefault(); alert('ติดต้อแอดมินเพื่อรีเซ็ตรหัสผ่านร้านค้า\n\nLine OA: @BiteSyncAdmin\nโทร: 02-123-4567'); }} className={styles.forgotLink}>
-                    ลืมรหัสผ่านเดิมใช่ไหม? คลิกที่นี่เพื่อติดต่อแอดมิน
-                  </a>
+                  <strong>เปลี่ยนรหัสผ่าน:</strong> กรอกรหัสเดิมและรหัสใหม่แล้วกดบันทึกได้เลยครับ
                 </div>
               </div>
 

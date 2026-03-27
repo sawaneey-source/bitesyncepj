@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import styles from './page.module.css'
+import { API_BASE, PUBLIC_URL } from '@/utils/api'
 
 const PERIODS = [
   { label: 'ยอดขายวันนี้', key: 'today' },
@@ -47,6 +48,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
+  const [shop, setShop] = useState({ logo: null })
 
   useEffect(() => {
     const u = localStorage.getItem('bs_user')
@@ -64,12 +66,19 @@ export default function DashboardPage() {
       const uStr = localStorage.getItem('bs_user')
       if (!uStr) return
       const uid = JSON.parse(uStr).id
-      const res = await fetch(`http://localhost/bitesync/api/shop/stats.php?usrId=${uid}&period=${period}`, {
+      const res = await fetch(`${API_BASE}/shop/stats.php?usrId=${uid}&period=${period}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('bs_token')}` }
       })
       const data = await res.json()
       if (data.success) {
         setStats(data.data)
+      }
+      
+      // Also fetch shop logo for greeting
+      const shopRes = await fetch(`${API_BASE}/shop/get_shop_info.php?usrId=${uid}`)
+      const shopData = await shopRes.json()
+      if (shopData.success) {
+        setShop({ logo: shopData.data.ShopLogoPath })
       }
     } catch (e) {
       console.error("Fetch stats error:", e)
@@ -86,10 +95,10 @@ export default function DashboardPage() {
         <h1 className={styles.title}>ภาพรวมร้านค้า</h1>
         <div className={styles.userGreeting}>
           <div className={styles.userAvatar}>
-            {user?.image ? (
-              <img src={`http://localhost/bitesync/public${user.image}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {shop.logo ? (
+              <img src={`${PUBLIC_URL}${shop.logo}`} alt="Shop Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
             ) : (
-              '👤'
+              '🏪'
             )}
           </div>
           สวัสดี, {user?.name || 'ร้านค้า'} 👋
@@ -105,7 +114,17 @@ export default function DashboardPage() {
       <div className={styles.statsRow}>
         <div className={`${styles.stat} ${styles.statGreen}`}>
           <div className={styles.statIco}>💰</div>
-          <div><div className={styles.statNum}>{stats.totalSales.toLocaleString()} ฿</div><div className={styles.statLbl}>{PERIODS.find(p => p.key === period)?.label}</div></div>
+          <div>
+            <div className={styles.statNum}>{stats.totalSales.toLocaleString()} ฿</div>
+            <div className={styles.statLbl}>ยอดขายรวม (Gross)</div>
+          </div>
+        </div>
+        <div className={`${styles.stat} ${styles.statBlue}`}>
+          <div className={`${styles.statIco} ${styles.statIcoBlue}`}>💎</div>
+          <div>
+            <div className={`${styles.statNum} ${styles.statNumBlue}`}>{stats.totalNetSales.toLocaleString()} ฿</div>
+            <div className={`${styles.statLbl} ${styles.statLblBlue}`}>รายได้สุทธิ (Net Profit)</div>
+          </div>
         </div>
         <div className={`${styles.stat} ${styles.statDark}`}>
           <div className={styles.statIco}>📦</div>

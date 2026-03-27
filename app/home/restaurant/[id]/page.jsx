@@ -7,30 +7,32 @@ import Navbar from '@/components/Navbar'
 
 
 export default function RestaurantPage() {
-  const router  = useRouter()
-  const params  = useParams()
-  const shopId  = params?.id
+  const router = useRouter()
+  const params = useParams()
+  const shopId = params?.id
 
-  const [tab, setTab]       = useState('Menu')
+  const [tab, setTab] = useState('Menu')
   const [catTab, setCatTab] = useState('ทั้งหมด')
-  const [cart, setCart]     = useState([])
-  const [user, setUser]     = useState(null)
-  const [showDropdown, setShowDropdown]     = useState(false)
+  const [cart, setCart] = useState([])
+  const [user, setUser] = useState(null)
+  const [showDropdown, setShowDropdown] = useState(false)
   const [shop, setShop] = useState(null)
   const [menus_raw, setMenusRaw] = useState([])
-  const [reviews, setReviews]     = useState([])
-  const [loading, setLoading]     = useState(true)
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
 
   // Review Form States
   const [showReviewForm, setShowReviewForm] = useState(false)
-  const [reviewNote, setReviewNote]         = useState('')
-  const [reviewScore, setReviewScore]       = useState(5)
-  const [reviewFoodId, setReviewFoodId]     = useState(0)
-  const [reviewImages, setReviewImages]     = useState([]) // up to 3 files
-  const [submitting, setSubmitting]         = useState(false)
+  const [reviewNote, setReviewNote] = useState('')
+  const [reviewScore, setReviewScore] = useState(5)
+  const [reviewFoodId, setReviewFoodId] = useState(0)
+  const [reviewImages, setReviewImages] = useState([]) // up to 3 files
+  const [submitting, setSubmitting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [pendingMenu, setPendingMenu] = useState(null)
 
-  const cats   = ['ทั้งหมด', ...new Set(menus_raw.map(m => m.category))]
-  const menus  = catTab === 'ทั้งหมด' ? menus_raw : menus_raw.filter(m => m.category === catTab)
+  const cats = ['ทั้งหมด', ...new Set(menus_raw.map(m => m.category))]
+  const menus = catTab === 'ทั้งหมด' ? menus_raw : menus_raw.filter(m => m.category === catTab)
   const totalItems = (cart || []).reduce((s, c) => s + (Number(c.qty) || 0), 0)
   const totalPrice = (cart || []).reduce((s, c) => {
     const p = parseFloat(c.price) || 0
@@ -56,7 +58,7 @@ export default function RestaurantPage() {
           if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
           return r.json();
         })
-        .then(d => { 
+        .then(d => {
           console.log('API Response:', d);
           if (d.success) {
             setShop(d.data);
@@ -80,11 +82,11 @@ export default function RestaurantPage() {
     setSubmitting(true);
     try {
       const form = new FormData();
-      form.append('usrId',  user.id);
+      form.append('usrId', user.id);
       form.append('foodId', reviewFoodId);
-      form.append('score',  reviewScore);
-      form.append('text',   reviewNote);
-      reviewImages.slice(0, 3).forEach((f, i) => form.append(`img${i+1}`, f));
+      form.append('score', reviewScore);
+      form.append('text', reviewNote);
+      reviewImages.slice(0, 3).forEach((f, i) => form.append(`img${i + 1}`, f));
 
       const res = await fetch('http://localhost/bitesync/api/home/submit_review.php', {
         method: 'POST',
@@ -116,9 +118,27 @@ export default function RestaurantPage() {
       alert("ขออภัย ขณะนี้ร้านค้าปิดรับออเดอร์ชั่วคราว")
       return
     }
+
+    const currentCart = JSON.parse(localStorage.getItem('bs_cart') || '[]')
+    if (currentCart.length > 0) {
+      const firstItem = currentCart[0]
+      const cartShopId = firstItem.ShopId || firstItem.shopId
+      const targetShopId = shop.id || shop.ShopId
+
+      if (cartShopId && targetShopId && cartShopId != targetShopId) {
+        setPendingMenu(menu)
+        setShowConfirm(true)
+        return
+      }
+    }
+
+    performAddToCart(menu)
+  }
+
+  function performAddToCart(menu) {
     setCart(prev => {
       const exists = prev.find(c => c.id === menu.id)
-      const next   = exists
+      const next = exists
         ? prev.map(c => c.id === menu.id ? { ...c, qty: c.qty + 1 } : c)
         : [...prev, { ...menu, qty: 1, shopId: shop.id }]
       localStorage.setItem('bs_cart', JSON.stringify(next))
@@ -199,14 +219,14 @@ export default function RestaurantPage() {
       <div className={styles.body}>
         {/* ── Tabs (Menu / Reviews) ── */}
         <div className={styles.mainTabs}>
-          <button 
-            onClick={() => setTab('Menu')} 
+          <button
+            onClick={() => setTab('Menu')}
             className={`${styles.tabBtn} ${tab === 'Menu' ? styles.tabBtnActive : ''}`}
           >
             📋 เมนูอาหาร
           </button>
-          <button 
-            onClick={() => setTab('Reviews')} 
+          <button
+            onClick={() => setTab('Reviews')}
             className={`${styles.tabBtn} ${tab === 'Reviews' ? styles.tabBtnActive : ''}`}
           >
             ⭐ รีวิว ({reviews.length})
@@ -218,9 +238,9 @@ export default function RestaurantPage() {
             {/* ── Categories ── */}
             <div className={styles.catTabs}>
               {cats.map(c => (
-                <button 
-                  key={c} 
-                  onClick={() => setCatTab(c)} 
+                <button
+                  key={c}
+                  onClick={() => setCatTab(c)}
                   className={`${styles.catTab} ${catTab === c ? styles.catTabActive : ''}`}
                 >
                   {c}
@@ -233,27 +253,27 @@ export default function RestaurantPage() {
               {menus.map(m => {
                 const qty = getQty(m.id)
                 return (
-                    <div key={m.id} className={`${styles.menuCard} ${!m.available ? styles.outOfStock : ''}`} onClick={() => router.push(`/food/${m.id}`)}>
-                      <div className={styles.menuImgWrap}>
-                        <img src={m.img} alt={m.name} className={styles.menuImg} />
-                        {qty > 0 && <div className={styles.qtyBadge}>x{qty}</div>}
-                        {!m.available && <div className={styles.outBadge}>หมด</div>}
-                      </div>
-                      <div className={styles.menuBody}>
-                        <div className={styles.menuName}>{m.name}</div>
-                        <div className={styles.menuDesc}>{m.desc || 'เมนูแนะนำยอดฮิต'}</div>
-                        <div className={styles.menuFoot}>
-                          <span className={styles.menuPrice}>฿{m.price}</span>
-                          <button 
-                            className={`${styles.addBtn} ${!m.available ? styles.addBtnOff : ''}`}
-                            disabled={!m.available}
-                            onClick={(e) => { e.stopPropagation(); m.available && addToCart(m); }}
-                          >
-                            {m.available ? '+' : '✕'}
-                          </button>
-                        </div>
+                  <div key={m.id} className={`${styles.menuCard} ${!m.available ? styles.outOfStock : ''}`} onClick={() => router.push(`/food/${m.id}`)}>
+                    <div className={styles.menuImgWrap}>
+                      <img src={m.img} alt={m.name} className={styles.menuImg} />
+                      {qty > 0 && <div className={styles.qtyBadge}>x{qty}</div>}
+                      {!m.available && <div className={styles.outBadge}>หมด</div>}
+                    </div>
+                    <div className={styles.menuBody}>
+                      <div className={styles.menuName}>{m.name}</div>
+                      <div className={styles.menuDesc}>{m.desc || 'เมนูแนะนำยอดฮิต'}</div>
+                      <div className={styles.menuFoot}>
+                        <span className={styles.menuPrice}>฿{m.price}</span>
+                        <button
+                          className={`${styles.addBtn} ${!m.available ? styles.addBtnOff : ''}`}
+                          disabled={!m.available}
+                          onClick={(e) => { e.stopPropagation(); m.available && addToCart(m); }}
+                        >
+                          {m.available ? '+' : '✕'}
+                        </button>
                       </div>
                     </div>
+                  </div>
                 )
               })}
             </div>
@@ -264,7 +284,7 @@ export default function RestaurantPage() {
           <div className={styles.reviewsList}>
             <div className={styles.reviewsHdrRow}>
               <h3 className={styles.revSectionTitle}>ความเห็นจากลูกค้า ({reviews.length})</h3>
-              <button 
+              <button
                 className={styles.writeRevBtn}
                 onClick={() => setShowReviewForm(true)}
               >
@@ -283,10 +303,10 @@ export default function RestaurantPage() {
                   <div className={styles.revUser}>
                     <div className={styles.revAvatar}>
                       {r.userImage ? (
-                        <img 
-                          src={r.userImage} 
-                          alt="Reviewer" 
-                          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                        <img
+                          src={r.userImage}
+                          alt="Reviewer"
+                          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
                         />
                       ) : (
                         r.userName ? r.userName[0] : '?'
@@ -330,8 +350,8 @@ export default function RestaurantPage() {
               <form onSubmit={handleSubmitReview} className={styles.reviewForm}>
                 <div className={styles.formGroup}>
                   <label>เลือกอาหารที่อยากรีวิว</label>
-                  <select 
-                    value={reviewFoodId} 
+                  <select
+                    value={reviewFoodId}
                     onChange={e => setReviewFoodId(e.target.value)}
                     className={styles.revSelect}
                   >
@@ -345,8 +365,8 @@ export default function RestaurantPage() {
                   <label>ความพึงพอใจ</label>
                   <div className={styles.scorePicker}>
                     {[1, 2, 3, 4, 5].map(s => (
-                      <button 
-                        key={s} 
+                      <button
+                        key={s}
                         type="button"
                         className={`${styles.scoreBtn} ${reviewScore >= s ? styles.scoreBtnActive : ''}`}
                         onClick={() => setReviewScore(s)}
@@ -359,7 +379,7 @@ export default function RestaurantPage() {
 
                 <div className={styles.formGroup}>
                   <label>แชร์ความรู้สึกของคุณ</label>
-                  <textarea 
+                  <textarea
                     value={reviewNote}
                     onChange={e => setReviewNote(e.target.value)}
                     placeholder="เล่าความรู้สึกหลังจากทานอาหาร..."
@@ -407,8 +427,8 @@ export default function RestaurantPage() {
 
       {/* ── Cart Bar ── */}
       {totalItems > 0 && (
-        <div 
-          className={`${styles.cartBar} ${!shop?.open ? styles.cartBarDisabled : ''}`} 
+        <div
+          className={`${styles.cartBar} ${!shop?.open ? styles.cartBarDisabled : ''}`}
           onClick={() => {
             if (shop?.open) router.push('/checkout')
             else alert("ขออภัย ขณะนี้ร้านค้าปิดรับออเดอร์ชั่วคราว")
@@ -419,6 +439,44 @@ export default function RestaurantPage() {
             <span className={styles.cartBarTxt}>{shop?.open ? 'ดูตะกร้าของฉัน' : 'ร้านค้าปิดให้บริการ'}</span>
           </div>
           <span className={styles.cartBarPrice}>฿{Math.round(totalPrice)}</span>
+        </div>
+      )}
+
+      {/* ── Custom Confirmation Modal ── */}
+      {showConfirm && (
+        <div className={styles.confirmModalOverlay}>
+          <div className={styles.confirmModalContent}>
+            <div className={styles.confirmModalIcon}>
+              <i className="fa-solid fa-circle-exclamation" />
+            </div>
+            <h3 className={styles.confirmModalTitle}>เปลี่ยนร้านอาหารใหม่?</h3>
+            <p className={styles.confirmModalText}>
+              คุณมีหาสารจากร้านอื่นค้างอยู่ในตะกร้า <br />
+              หากสั่งร้านนี้ ตะกร้าเดิมจะถูกล้างออกทั้งหมดครับ
+            </p>
+            <div className={styles.confirmModalBtns}>
+              <button
+                className={`${styles.confirmModalBtn} ${styles.confirmCancelBtn}`}
+                onClick={() => { setShowConfirm(false); setPendingMenu(null); }}
+              >
+                ไว้วันหลัง
+              </button>
+              <button
+                className={`${styles.confirmModalBtn} ${styles.confirmSubmitBtn}`}
+                onClick={() => {
+                  setShowConfirm(false)
+                  localStorage.setItem('bs_cart', '[]')
+                  setCart([])
+                  if (pendingMenu) {
+                    performAddToCart(pendingMenu)
+                    setPendingMenu(null)
+                  }
+                }}
+              >
+                ล้างตะกร้าและสั่งเลย
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

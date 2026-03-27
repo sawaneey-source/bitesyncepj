@@ -34,7 +34,7 @@ if ($method === 'GET') {
     $sql = "SELECT o.OdrId, u.UsrFullName as customer, u.UsrImagePath as customerImage, o.OdrCreatedAt, 
                    o.OdrStatus, (o.OdrGrandTotal - o.OdrDelFee) as total, o.OdrDelFee as deliveryFee, o.RiderId,
                    a.Province, a.District, a.SubDistrict, a.HouseNo as address, u.UsrPhone as phone,
-                   ru.UsrFullName as riderName, ru.UsrPhone as riderPhone
+                   ru.UsrFullName as riderName, ru.UsrPhone as riderPhone, o.OdrNote
             FROM tbl_order o
             LEFT JOIN tbl_userinfo u ON o.UsrId = u.UsrId
             LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
@@ -92,6 +92,10 @@ if ($method === 'GET') {
     $stmt = $conn->prepare("UPDATE tbl_order SET OdrStatus = ? WHERE OdrId = ?");
     $stmt->bind_param("ii", $odrStatus, $orderId);
     if ($stmt->execute()) {
+        if ($odrStatus === 6) {
+            include_once "../common/settlement_helper.php";
+            updateBalance($conn, $orderId);
+        }
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => $conn->error]);
