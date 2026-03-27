@@ -23,13 +23,17 @@ if (!$orderId || !$usrIdFromFrontend) {
     exit();
 }
 
-// 0. Find the actual RiderId from the UsrId
-$rStmt = $conn->prepare("SELECT RiderId FROM tbl_rider WHERE UsrId = ?");
+// 0. Find the actual RiderId and Check Status
+$rStmt = $conn->prepare("SELECT RiderId, RiderStatus FROM tbl_rider WHERE UsrId = ?");
 $rStmt->bind_param("i", $usrIdFromFrontend);
 $rStmt->execute();
 $rRes = $rStmt->get_result();
 if ($rRow = $rRes->fetch_assoc()) {
     $actualRiderId = $rRow['RiderId'];
+    if ($rRow['RiderStatus'] !== 'Online') {
+        echo json_encode(['success' => false, 'message' => 'กรุณาเปิดสถานะ Online ก่อนรับงานครับ']);
+        exit();
+    }
 } else {
     echo json_encode(['success' => false, 'message' => 'โปรไฟล์ไรเดอร์ไม่สมบูรณ์ (Rider not found)']);
     exit();

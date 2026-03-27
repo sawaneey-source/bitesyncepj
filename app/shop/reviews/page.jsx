@@ -119,8 +119,17 @@ export default function ShopReviewsPage() {
             <div key={r.ReviewId} className={styles.reviewCard}>
               <div className={styles.reviewTop}>
                 <div className={styles.userInfo}>
-                  <span className={styles.userName}>{r.userName}</span>
-                  <span className={styles.foodName}>สั่งเมนู: {r.FoodName}</span>
+                  <div className={styles.userAvatar}>
+                    {r.userImage ? (
+                      <img src={r.userImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      '👤'
+                    )}
+                  </div>
+                  <div>
+                    <span className={styles.userName}>{r.userName}</span>
+                    <span className={styles.foodName}>สั่งเมนู: {r.FoodName}</span>
+                  </div>
                 </div>
                 <div className={styles.rating}>
                   {'⭐'.repeat(r.ReviewScore)}
@@ -152,3 +161,4 @@ export default function ShopReviewsPage() {
     </div>
   )
 }
+

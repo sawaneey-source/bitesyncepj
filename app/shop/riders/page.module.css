@@ -2,21 +2,21 @@
 .hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .hdrDetail { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
 .title { font-family: 'Prompt', sans-serif; font-size: 22px; font-weight: 800; color: #1a1f1a; margin: 0; }
-.subtitle { color: #666; font-size: 14px; margin-top: 4px; font-family: 'Sarabun', sans-serif; }
+.subtitle { color: #666; font-size: 14px; margin-top: 4px; font-family: 'Prompt', sans-serif; }
 
 .refreshBtn {
   display: flex; align-items: center; gap: 8px;
   background: #fff; border: 1.5px solid #dde8dd; border-radius: 30px;
   padding: 8px 18px; font-size: 14px; font-weight: 600; color: #333;
   cursor: pointer; transition: all 0.2s;
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Prompt', sans-serif;
 }
 .refreshBtn:hover { border-color: #2a6129; color: #2a6129; background: #f9fbf9; transform: translateY(-1px); }
 .refreshBtn i { font-size: 14px; color: #333; }
 .refreshBtn:hover i { color: #2a6129; }
 
 .tabs { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
-.tab { padding: 5px 13px; border-radius: 18px; border: 1.5px solid #dde8dd; background: #fff; color: #374137; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: 'Sarabun', sans-serif; transition: .18s; display: flex; align-items: center; gap: 5px; }
+.tab { padding: 5px 13px; border-radius: 18px; border: 1.5px solid #dde8dd; background: #fff; color: #374137; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: 'Prompt', sans-serif; transition: .18s; display: flex; align-items: center; gap: 5px; }
 .tab:hover { border-color: #2a6129; color: #2a6129; }
 .tabOn { background: #2a6129 !important; color: #fff !important; border-color: #2a6129 !important; }
 .cnt { background: #dde8dd; color: #374137; border-radius: 18px; padding: 1px 6px; font-size: 10.5px; font-weight: 800; }
@@ -54,7 +54,8 @@
 
 .jobBottom { display: flex; justify-content: space-between; align-items: center; }
 .statusSimple { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #555; }
-.statusDotActive { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; animation: pulse 2s infinite; }
+.statusDotActive { width: 8px; height: 8px; border-radius: 50%; background: #e65100; animation: pulse 2s infinite; }
+.statusDotSuccess { width: 8px; height: 8px; border-radius: 50%; background: #2a6129; }
 @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 
 .btnTrack {
@@ -94,7 +95,7 @@
   border: none; border-radius: 100px; padding: 10px 22px; font-weight: 700; font-size: 14px;
   cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Prompt', sans-serif;
 }
 .actionBtnCall { background: #2a6129; color: #fff; }
 .actionBtnChat { background: #f0f4f0; color: #2a6129; border: 1.2px solid #dde8dd; }
@@ -130,7 +131,11 @@
 .totalVal { font-size: 22px; color: #2a6129; }
 
 .customerRow { display: flex; align-items: center; gap: 16px; }
-.customerIcon { width: 44px; height: 44px; border-radius: 12px; background: #fff5f5; color: #e53935; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.customerAvatar {
+  width: 50px; height: 50px; border-radius: 50%;
+  overflow: hidden; background: #e8f5e9; border: 1px solid #dde8dd;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
 
 .statusBadgeGlobal { background: #fff; border: 1.5px solid #2a6129; color: #2a6129; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; }
 .orderTitleWrap { display: flex; align-items: center; gap: 12px; }
@@ -140,7 +145,7 @@
   background: #fff; border: 1.5px solid #dde8dd; border-radius: 30px;
   padding: 8px 18px; font-size: 14px; font-weight: 600; color: #333;
   cursor: pointer; transition: all 0.2s;
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Prompt', sans-serif;
   max-width: fit-content;
 }
 .backBtn:hover { border-color: #2a6129; color: #2a6129; background: #f9fbf9; transform: translateY(-1px); }
@@ -168,3 +173,41 @@
   font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
   cursor: pointer;
 }
+
+.mapCompleted {
+  height: 260px; background: #fff; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; 
+  font-family: 'Prompt', sans-serif;
+}
+.completedIcon { font-size: 54px; margin-bottom: 5px; }
+.completedText { font-size: 18px; font-weight: 800; color: #2a6129; }
+.completedSub { font-size: 14px; color: #666; }
+
+.fullPageSuccess {
+  position: absolute; inset: 0; background: #fff; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.4s ease-out;
+}
+.successCard {
+  text-align: center; max-width: 400px; padding: 40px;
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+}
+.checkedCircle {
+  width: 100px; height: 100px; border-radius: 50%; background: #2a6129;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 50px; color: #fff; box-shadow: 0 10px 25px rgba(42,97,41,0.3);
+  animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.successTitle { font-family: 'Prompt', sans-serif; font-size: 28px; font-weight: 800; color: #1a1f1a; margin: 0; }
+.successSub { font-family: 'Prompt', sans-serif; font-size: 16px; color: #666; line-height: 1.6; }
+.btnDone {
+  background: #2a6129; color: #fff; border: none; border-radius: 30px;
+  padding: 12px 40px; font-size: 16px; font-weight: 700; cursor: pointer;
+  font-family: 'Prompt', sans-serif; transition: all 0.2s;
+  margin-top: 10px;
+}
+.btnDone:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); background: #224d21; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleUp { from { transform: scale(0); } to { transform: scale(1); } }
+

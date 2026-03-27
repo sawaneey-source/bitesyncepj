@@ -1,4 +1,4 @@
-.page { min-height: 100vh; background: var(--bg); font-family: 'Sarabun', sans-serif; }
+.page { min-height: 100vh; background: var(--bg); font-family: 'Prompt', sans-serif; }
 .nav { 
   background: var(--glass-bg); 
   backdrop-filter: var(--glass-blur);
@@ -72,3 +72,4 @@
   font-family: 'Prompt', sans-serif; margin-top: 8px; transition: color 0.2s;
 }
 .btnHome:hover { color: #1a1f1a; }
+

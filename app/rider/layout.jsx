@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import styles from './layout.module.css'
+import Logo from '@/components/Logo'
 
 const NAV = [
   { href:'/rider', icon:'🏠', label:'หน้าหลัก' },
@@ -35,6 +36,18 @@ export default function RiderLayout({ children }) {
       setUser(u)
       setOnline(localStorage.getItem('rider_online') === 'true')
       setChecking(false)
+
+      // Sync fresh profile from API to handle potential stale image in localStorage
+      fetch(`http://localhost/bitesync/api/customer/get_profile.php?userId=${u.id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && d.user) {
+            const fresh = { ...u, ...d.user }
+            setUser(fresh)
+            localStorage.setItem('bs_user', JSON.stringify(fresh))
+          }
+        }).catch(err => console.error("Sync profile error:", err))
+
     } catch { router.replace('/login') }
   }, [])
 
@@ -62,10 +75,14 @@ export default function RiderLayout({ children }) {
     setOnline(next)
     localStorage.setItem('rider_online', String(next))
     // อัปเดต status ใน API
+    const uStr = localStorage.getItem('bs_user')
+    let uid = 0
+    if (uStr) { try { uid = JSON.parse(uStr).id } catch(e){} }
+
     fetch('http://localhost/bitesync/api/rider/status.php', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('bs_token')}` },
-      body: JSON.stringify({ status: next ? 'Online' : 'Offline' })
+      body: JSON.stringify({ status: next ? 'Online' : 'Offline', usrId: uid })
     }).catch(() => {})
   }
 
@@ -73,10 +90,14 @@ export default function RiderLayout({ children }) {
     setShowConfirmOffline(false)
     setOnline(false)
     localStorage.setItem('rider_online', 'false')
+    const uStr = localStorage.getItem('bs_user')
+    let uid = 0
+    if (uStr) { try { uid = JSON.parse(uStr).id } catch(e){} }
+
     fetch('http://localhost/bitesync/api/rider/status.php', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('bs_token')}` },
-      body: JSON.stringify({ status: 'Offline' })
+      body: JSON.stringify({ status: 'Offline', usrId: uid })
     }).catch(() => {})
   }
 
@@ -101,10 +122,7 @@ export default function RiderLayout({ children }) {
       <aside className={styles.sidebar}>
         {/* Logo */}
         <div className={styles.sideTop}>
-          <div className={styles.logo}>
-            <div className={styles.logoMark}>🍃</div>
-            <span className={styles.logoTxt}>Bite<em>Sync</em></span>
-          </div>
+          <Logo theme="dark" size="small" />
           <div className={styles.riderTag}>
             <span>🛵</span><span>Rider</span>
           </div>
@@ -142,7 +160,13 @@ export default function RiderLayout({ children }) {
             </>
           )}
           <div className={styles.userRow} onClick={() => setShowUserMenu(!showUserMenu)} style={{cursor:'pointer'}}>
-            <div className={styles.userAvatar}>{(user?.name||'R')[0].toUpperCase()}</div>
+            <div className={styles.userAvatar}>
+              {user?.image ? (
+                <img src={`http://localhost/bitesync/public${user.image}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                (user?.name || 'R')[0].toUpperCase()
+              )}
+            </div>
             <div className={styles.userInfo}>
               <span className={styles.userName}>{user?.name || 'ไรเดอร์'}</span>
               <span className={styles.userRole}>Rider</span>
@@ -199,3 +223,4 @@ export default function RiderLayout({ children }) {
     </div>
   )
 }
+

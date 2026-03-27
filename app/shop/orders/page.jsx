@@ -105,7 +105,13 @@ export default function OrdersPage() {
           return (
             <div key={o.OdrId} className={styles.card}>
               <div className={styles.cardHead} onClick={()=>setOpenId(open?null:o.OdrId)}>
-                <img src={o.img} className={styles.cardImg}/>
+                <div className={styles.cardImgWrap}>
+                  {o.img ? (
+                    <img src={o.img} className={styles.cardImg} alt=""/>
+                  ) : (
+                    <div className={styles.cardImgPlaceholder}>👤</div>
+                  )}
+                </div>
                 <div className={styles.cardInfo}>
                   <div className={styles.cardTopRow}>
                     <span className={styles.ordId}>{o.OdrId}</span>
@@ -120,25 +126,48 @@ export default function OrdersPage() {
                     )}
                     <span className={styles.oTime}>{o.time}</span>
                   </div>
-                  <div className={styles.oCust}>👤 {o.customer}</div>
+                  <div className={styles.oCust}><strong>ลูกค้า:</strong> {o.customer}</div>
                   <div className={styles.oItems}>{o.items}</div>
                 </div>
                 <div className={styles.cardRight}>
-                  <div className={styles.oTotal}>{o.total} บาท</div>
+                  <div className={`${styles.oTotal} ${o.status === 'Cancelled' ? styles.strikePrice : ''}`}>
+                    {Number(o.total).toFixed(2)} บาท
+                  </div>
                   <div className={styles.oToggle}>{open?'▲':'▼'}</div>
                 </div>
               </div>
               {open&&(
                 <div className={styles.detail}>
                   <div className={styles.dGrid}>
-                    <div><div className={styles.dLbl}>📍 ที่อยู่จัดส่ง</div><div className={styles.dVal}>{o.address}</div></div>
+                    <div>
+                      <div className={styles.dLbl}>👤 ลูกค้า</div>
+                      <div className={styles.dVal} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className={styles.customerMiniAvatar}>
+                          {o.customerImage ? (
+                            <img src={o.customerImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            '👤'
+                          )}
+                        </div>
+                        {o.customer}
+                      </div>
+                    </div>
                     <div><div className={styles.dLbl}>📱 เบอร์โทรศัพท์</div><div className={styles.dVal}>{o.phone}</div></div>
+                    <div style={{ gridColumn: '1/-1' }}>
+                      <div className={styles.dLbl}>📍 ที่อยู่จัดส่ง</div>
+                      <div className={styles.dVal}>{o.address}</div>
+                    </div>
                     {o.RiderId && (
                       <div style={{gridColumn:'1/-1', borderTop:'1px solid #eee', paddingTop:'10px'}}>
                         <div className={styles.dLbl}>🛵 ข้อมูลไรเดอร์ที่รับงาน</div>
                         <div className={styles.dVal} style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                           <span>{o.riderName || 'Rider'}</span>
-                          {o.riderPhone && <a href={`tel:${o.riderPhone}`} style={{color:'#1e88e5', textDecoration:'none', fontWeight:'600'}}>📞 โทรหาไรเดอร์</a>}
+                          {o.riderPhone && (
+                            <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px'}}>
+                              <span style={{fontSize:'14px', fontWeight:'700', color:'#333', letterSpacing:'0.5px'}}>{o.riderPhone}</span>
+                              <a href={`tel:${o.riderPhone}`} style={{color:'#1e88e5', textDecoration:'none', fontWeight:'600', fontSize:'13px'}}>📞 โทรหาไรเดอร์</a>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -158,3 +187,4 @@ export default function OrdersPage() {
     </div>
   )
 }
+

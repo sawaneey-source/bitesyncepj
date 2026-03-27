@@ -38,10 +38,12 @@ if ($rRow = $rRes->fetch_assoc()) {
 
 // Date Filter Clause using MySQL dates to be safe
 $dateClause = "DATE(o.OdrUpdatedAt) = CURDATE()";
-if ($period === 'สัปดาห์นี้') {
-    $dateClause = "YEARWEEK(o.OdrUpdatedAt, 1) = YEARWEEK(CURDATE(), 1)";
-} else if ($period === 'เดือนนี้') {
-    $dateClause = "YEAR(o.OdrUpdatedAt) = YEAR(CURDATE()) AND MONTH(o.OdrUpdatedAt) = MONTH(CURDATE())";
+if ($period === '3 วันล่าสุด') {
+    $dateClause = "o.OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 3 DAY)";
+} else if ($period === '7 วันล่าสุด') {
+    $dateClause = "o.OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+} else if ($period === '30 วันล่าสุด') {
+    $dateClause = "o.OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
 } else if ($period === 'ทั้งหมด') {
     $dateClause = "1=1";
 }

@@ -41,6 +41,16 @@ if ($method === 'POST') {
         exit;
     }
 
+    // ── Pre-check: Verify Shop is Open ──
+    $shopStmt = $conn->prepare("SELECT ShopStatus FROM tbl_shop WHERE ShopId = ?");
+    $shopStmt->bind_param("i", $shopId);
+    $shopStmt->execute();
+    $shopRow = $shopStmt->get_result()->fetch_assoc();
+    if ($shopRow && (int)$shopRow['ShopStatus'] === 0) {
+        echo json_encode(['success' => false, 'message' => 'ขออภัย ขณะนี้ร้านค้าปิดรับออเดอร์ชั่วคราว']);
+        exit;
+    }
+
     $conn->begin_transaction();
     try {
         // 0. Pre-check: Verify all items are still available
@@ -116,7 +126,7 @@ if ($method === 'POST') {
         $sql = "SELECT o.*, s.ShopName, s.ShopPhone, s.ShopPrepTime, s.ShopLogoPath AS ShopLogo,
                        sa.AdrLat as ShopLat, sa.AdrLng as ShopLng,
                        a.Province, a.District, a.SubDistrict, a.HouseNo, a.Zipcode, a.AdrLat, a.AdrLng,
-                       ur.UsrFullName as RiderName, ur.UsrPhone as RiderPhone,
+                       ur.UsrFullName as RiderName, ur.UsrPhone as RiderPhone, ur.UsrImagePath as RiderImage,
                        r.RiderVehicleType, r.RiderVehiclePlate, r.RiderLat, r.RiderLng, r.RiderRatingAvg,
                        uc.UsrFullName as CustName
                 FROM tbl_order o 
@@ -158,6 +168,7 @@ if ($method === 'POST') {
                 ];
             }
             $order['ShopLogo'] = $order['ShopLogo'] ? 'http://localhost/bitesync/public' . $order['ShopLogo'] : null;
+            $order['RiderImage'] = $order['RiderImage'] ? 'http://localhost/bitesync/public' . $order['RiderImage'] : null;
             $order['items'] = $items;
             $order['MaxPrepTime'] = $maxPrep;
 
@@ -187,7 +198,7 @@ if ($method === 'POST') {
         exit;
     }
 
-    $sql = "SELECT o.*, s.ShopName as shopName, a.Province, a.District, a.SubDistrict, a.HouseNo, a.Zipcode 
+    $sql = "SELECT o.*, s.ShopName as shopName, s.ShopLogoPath as shopLogo, a.Province, a.District, a.SubDistrict, a.HouseNo, a.Zipcode 
             FROM tbl_order o 
             LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
             LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
@@ -216,6 +227,7 @@ if ($method === 'POST') {
             ];
         }
         $row['items'] = $items;
+        $row['shopLogo'] = $row['shopLogo'] ? 'http://localhost/bitesync/public' . $row['shopLogo'] : null;
         $orders[] = $row;
     }
     echo json_encode(['success' => true, 'data' => $orders]);

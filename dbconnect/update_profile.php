@@ -102,7 +102,7 @@ $newPw = $_POST['usrPassword'] ?? '';
 
 if ($fullName) { $userUpdates[] = "UsrFullName = ?"; $userParams[] = $fullName; $userTypes .= "s"; }
 if ($phone) { $userUpdates[] = "UsrPhone = ?"; $userParams[] = $phone; $userTypes .= "s"; }
-if ($logoPath) { $userUpdates[] = "UsrImage = ?"; $userParams[] = $logoPath; $userTypes .= "s"; }
+if ($logoPath) { $userUpdates[] = "UsrImagePath = ?"; $userParams[] = $logoPath; $userTypes .= "s"; }
 if ($logoOriPath) { $userUpdates[] = "UsrImageOri = ?"; $userParams[] = $logoOriPath; $userTypes .= "s"; }
 if (!empty($newPw)) {
     // Verify old password first
@@ -150,7 +150,7 @@ if (!empty($shopUpdates)) {
 
 // Refresh User Data (Join tbl_userinfo and tbl_shop)
 $sql_refresh = "SELECT u.UsrId as id, u.UsrFullName as name, u.UsrEmail as email, u.UsrPhone as phone, 
-                       u.UsrRole as role, u.UsrImage as image, u.UsrImageOri as imageOri,
+                       u.UsrRole as role, u.UsrImagePath as image, u.UsrImageOri as imageOri,
                        CONCAT(COALESCE(a.HouseNo,''), ' ', COALESCE(a.SubDistrict,''), ' ', COALESCE(a.District,''), ' ', COALESCE(a.Province,''), ' ', COALESCE(a.Zipcode,'')) as address,
                        s.ShopName as shopName, s.ShopPhone as shopPhone, s.ShopCatType as shopCatType, 
                        s.ShopStatus as shopStatus, s.ShopLat as shopLat, s.ShopLng as shopLng, 

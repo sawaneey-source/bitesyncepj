@@ -16,12 +16,18 @@
 }
 .navInner { max-width:1040px; margin:0 auto; padding:0 24px; height:68px; display:flex; align-items:center; gap:20px; }
 
-.backBtn { 
-  background: #00b14f; color: #fff; border: none; border-radius: 100px; 
-  padding: 8px 24px; font-size: 13.5px; cursor: pointer; font-weight: 700; 
-  transition: all 0.2s; display: flex; align-items: center; gap: 8px; 
+.backBtn {
+  border: 1.5px solid #dde8dd; border-radius: 9px;
+  padding: 8px 24px; background: #fff; font-size: 13.5px;
+  cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 700;
+  display: flex; align-items: center; gap: 8px; color: #374137;
+  transition: all 0.2s;
 }
-.backBtn:hover { background: #009341; transform: scale(1.05); }
+.backBtn:hover {
+  border-color: #00b14f;
+  color: #00b14f;
+  background: var(--glass-bg);
+}
 
 .logo { display:flex; align-items:center; gap:10px; cursor:pointer; transition:transform var(--t); }
 .logo:hover { transform: scale(1.02); }
@@ -150,8 +156,9 @@
 
 /* ── Floating cart bar ── */
 .cartBar { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--primary); color:#fff; border-radius:var(--r-xl); padding:15px 30px; display:flex; align-items:center; gap:15px; cursor:pointer; box-shadow:var(--sh-green); z-index:100; min-width:290px; transition:all var(--t); animation:slideUp .3s ease both; }
+.cartBarDisabled { background: var(--gray-mid)!important; box-shadow: none!important; cursor: not-allowed!important; }
 @keyframes slideUp { from{opacity:0;transform:translateX(-50%) translateY(16px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
-.cartBar:hover { background:var(--primary-mid); transform:translateX(-50%) translateY(-3px); box-shadow:0 12px 32px rgba(27,94,32,.4); }
+.cartBar:hover:not(.cartBarDisabled) { background:var(--primary-mid); transform:translateX(-50%) translateY(-3px); box-shadow:0 12px 32px rgba(27,94,32,.4); }
 .cartBarCount { background:var(--accent); color:var(--dark); border-radius:50%; width:26px; height:26px; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .cartBarTxt   { flex:1; font-size:14px; font-weight:700; font-family:var(--fp); }
 .cartBarPrice { font-family:var(--fp); font-size:16px; font-weight:800; }
@@ -180,7 +187,4 @@
 } 
 .notFound h2 { color: #333; } 
 
-.backBtn { 
-  background: #00b14f; color: white; border: none; border-radius: 100px; padding: 10px 24px; cursor: pointer; font-weight: 700; transition: all 0.2s;
-}
-.backBtn:hover { background: #009341; transform: scale(1.05); }
+

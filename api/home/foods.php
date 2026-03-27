@@ -43,7 +43,7 @@ while($row = $res->fetch_assoc()) {
     $row['reviews'] = $row['total_reviews'] ?: 0;
     
     $row['deliveryTime'] = $row['deliveryTime'] ?: 30;
-    $row['deliveryFee'] = 15;
+    $row['deliveryFee'] = 20;
     $row['minOrder'] = 50;
 
     $data[] = $row;

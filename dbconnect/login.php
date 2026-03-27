@@ -48,7 +48,7 @@ if($result->num_rows > 0){
                 "email"=>$user['UsrEmail'],
                 "phone"=>$user['UsrPhone'],
                 "role"=>$user['UsrRole'],
-                "image"=>$user['UsrImage'],
+                "image"=>$user['UsrImagePath'],
                 "address"=>$user['address']
             ],
             "token"=>"bitesync_login_token"

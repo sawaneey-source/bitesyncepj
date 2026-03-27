@@ -41,12 +41,15 @@ export default function RidersPage() {
     }
   }, [selected])
 
-  // Periodic marker update
+  // Update markers
   useEffect(() => {
-    if (selected && mapInstanceRef.current) {
-      updateMarkers();
+    if (selected && orders.length > 0) {
+      const currentOrder = orders.find(o => o.OdrId === selected);
+      if (currentOrder && currentOrder.step < 5 && mapInstanceRef.current) {
+        updateMarkers();
+      }
     }
-  }, [orders])
+  }, [orders, selected])
 
   async function initMap() {
     if (typeof window === 'undefined') return;
@@ -85,10 +88,8 @@ export default function RidersPage() {
 
     const points = [];
 
-    const createIcon = (emoji, iconUrl = null, size = 48) => {
-      const content = iconUrl
-        ? `<img src="${iconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);" />`
-        : `<span style="font-size: ${size}px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex; align-items: center; justify-content: center;">${emoji}</span>`;
+    const createIcon = (emoji, size = 60) => {
+      const content = `<span style="font-size: ${size}px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex; align-items: center; justify-content: center;">${emoji}</span>`;
 
       const iconHtml = `<div style="width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center;">
           ${content}
@@ -106,10 +107,10 @@ export default function RidersPage() {
     if (sel.shop?.lat) {
       const pos = [sel.shop.lat, sel.shop.lng];
       if (!markersRef.current.shop) {
-        markersRef.current.shop = L.marker(pos, { icon: createIcon('🏪', sel.shop.logo) }).addTo(map).bindPopup("ร้านของคุณ");
+        markersRef.current.shop = L.marker(pos, { icon: createIcon('🏪') }).addTo(map).bindPopup("ร้านของคุณ");
       } else {
         markersRef.current.shop.setLatLng(pos);
-        markersRef.current.shop.setIcon(createIcon('🏪', sel.shop.logo));
+        markersRef.current.shop.setIcon(createIcon('🏪'));
       }
       markersRef.current.shop.setZIndexOffset(100);
       points.push(pos);
@@ -131,7 +132,7 @@ export default function RidersPage() {
     if (sel.rider?.lat) {
       const pos = [sel.rider.lat, sel.rider.lng];
       if (!markersRef.current.rider) {
-        markersRef.current.rider = L.marker(pos, { icon: createIcon('🛵', null, 54) }).addTo(map).bindPopup(`ไรเดอร์: ${sel.rider.name}`);
+        markersRef.current.rider = L.marker(pos, { icon: createIcon('🛵') }).addTo(map).bindPopup(`ไรเดอร์: ${sel.rider.name}`);
       } else {
         markersRef.current.rider.setLatLng(pos);
       }
@@ -267,7 +268,7 @@ export default function RidersPage() {
                       </div>
                     </div>
                     <div className={styles.etaBadge}>
-                      <i className="fa-solid fa-clock" /> {o.rider ? 'กำลังมา' : 'รอรับงาน'}
+                      <i className="fa-solid fa-clock" /> {o.step === 5 ? 'ส่งสำเร็จแล้ว' : o.rider ? 'กำลังมา' : 'รอรับงาน'}
                     </div>
                   </div>
 
@@ -283,7 +284,7 @@ export default function RidersPage() {
 
                   <div className={styles.jobBottom}>
                     <div className={styles.statusSimple}>
-                      <div className={styles.statusDotActive} />
+                      <div className={o.step === 5 ? styles.statusDotSuccess : styles.statusDotActive} />
                       {STATUS_STEPS[o.step]}
                     </div>
                     <button className={styles.btnTrack}>ติดตามละเอียด <i className="fa-solid fa-chevron-right" /></button>
@@ -305,7 +306,22 @@ export default function RidersPage() {
             </div>
           </div>
 
-          <div className={styles.detailGrid}>
+          {sel.step === 5 ? (
+            <div className={styles.fullPageSuccess} style={{ position: 'relative', marginTop: '-20px', minHeight: '500px' }}>
+              <div className={styles.successCard}>
+                <div className={styles.checkedCircle}>✓</div>
+                <h1 className={styles.successTitle}>ภารกิจเสร็จสมบูรณ์!</h1>
+                <p className={styles.successSub}>
+                  ออเดอร์ <strong>{sel.OdrId}</strong> จัดส่งถึงมือลูกค้าเรียบร้อยแล้ว<br />
+                  ขอบคุณที่ร่วมเป็นส่วนหนึ่งในการส่งต่อความอร่อยครับ
+                </p>
+                <button className={styles.btnDone} onClick={() => setSelected(null)}>
+                  ตกลง / กลับหน้าหลัก
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.detailGrid}>
             <div className={styles.detailMain}>
               {/* Real Map Container */}
               <div className={styles.mapCard}>
@@ -411,7 +427,13 @@ export default function RidersPage() {
               <div className={styles.detailCard}>
                 <h2 className={styles.cardTitle}>ข้อมูลลูกค้า</h2>
                 <div className={styles.customerRow}>
-                  <div className={styles.customerIcon}><i className="fa-solid fa-user-tag" /></div>
+                  <div className={styles.customerAvatar}>
+                    {sel.customer.image ? (
+                      <img src={sel.customer.image} alt="Customer" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      '👤'
+                    )}
+                  </div>
                   <div>
                     <div className={styles.personName}>{sel.customer.name}</div>
                     <div className={styles.personPhone}>{sel.customer.phone}</div>
@@ -420,8 +442,10 @@ export default function RidersPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
     </div>
   )
 }
+

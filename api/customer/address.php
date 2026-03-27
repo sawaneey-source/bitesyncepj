@@ -42,6 +42,8 @@ if ($method === 'GET') {
     $houseNo     = $data['houseNo']     ?? '';
     $village     = $data['village']     ?? '';
     $road        = $data['road']        ?? '';
+    $soi         = $data['soi']         ?? '';
+    $moo         = $data['moo']         ?? '';
     $subDistrict = $data['subDistrict'] ?? '';
     $district    = $data['district']    ?? '';
     $province    = $data['province']    ?? '';
@@ -57,12 +59,12 @@ if ($method === 'GET') {
     if ($existing) {
         // Update
         $adrId = $existing['AdrId'];
-        $stmt = $conn->prepare("UPDATE tbl_address SET AdrLat=?, AdrLng=?, HouseNo=?, Village=?, Road=?, SubDistrict=?, District=?, Province=?, Zipcode=? WHERE AdrId=?");
-        $stmt->bind_param("ddsssssssi", $lat, $lng, $houseNo, $village, $road, $subDistrict, $district, $province, $zipcode, $adrId);
+        $stmt = $conn->prepare("UPDATE tbl_address SET AdrLat=?, AdrLng=?, HouseNo=?, Village=?, Road=?, Soi=?, Moo=?, SubDistrict=?, District=?, Province=?, Zipcode=? WHERE AdrId=?");
+        $stmt->bind_param("ddsssssssssi", $lat, $lng, $houseNo, $village, $road, $soi, $moo, $subDistrict, $district, $province, $zipcode, $adrId);
     } else {
         // Insert
-        $stmt = $conn->prepare("INSERT INTO tbl_address (UsrId, AdrLat, AdrLng, HouseNo, Village, Road, SubDistrict, District, Province, Zipcode, IsDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
-        $stmt->bind_param("iddsssssss", $usrId, $lat, $lng, $houseNo, $village, $road, $subDistrict, $district, $province, $zipcode);
+        $stmt = $conn->prepare("INSERT INTO tbl_address (UsrId, AdrLat, AdrLng, HouseNo, Village, Road, Soi, Moo, SubDistrict, District, Province, Zipcode, IsDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
+        $stmt->bind_param("iddsssssssss", $usrId, $lat, $lng, $houseNo, $village, $road, $soi, $moo, $subDistrict, $district, $province, $zipcode);
     }
 
     if ($stmt->execute()) {

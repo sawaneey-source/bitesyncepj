@@ -28,7 +28,7 @@ if ($sRow = $sRes->fetch_assoc()) {
 
 // Fetch active orders (Status 3, 4, 5)
 $sql = "SELECT o.OdrId, o.OdrStatus, o.OdrGrandTotal, o.OdrCreatedAt, o.OdrDistance,
-               u.UsrFullName as customer, u.UsrPhone as phone,
+               u.UsrFullName as customer, u.UsrPhone as phone, u.UsrImagePath as customerImage,
                a.HouseNo, a.SubDistrict, a.District, a.Province, a.AdrLat as custLat, a.AdrLng as custLng,
                r.RiderId, r.RiderVehicleType, r.RiderVehiclePlate, r.RiderLat, r.RiderLng, r.RiderRatingAvg,
                ru.UsrFullName as riderName, ru.UsrPhone as riderPhone, ru.UsrImagePath as riderImage,
@@ -40,7 +40,7 @@ $sql = "SELECT o.OdrId, o.OdrStatus, o.OdrGrandTotal, o.OdrCreatedAt, o.OdrDista
         LEFT JOIN tbl_userinfo ru ON r.UsrId = ru.UsrId
         LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
         LEFT JOIN tbl_address sa ON s.AdrId = sa.AdrId
-        WHERE o.ShopId = ? AND o.OdrStatus IN (3, 4, 5)
+        WHERE o.ShopId = ? AND (o.OdrStatus IN (3, 4, 5) OR (o.OdrStatus = 6 AND o.OdrCreatedAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR)))
         ORDER BY o.OdrId DESC";
 
 $stmt = $conn->prepare($sql);
@@ -66,6 +66,7 @@ while ($row = $res->fetch_assoc()) {
     $step = 1; // Default to Preparing (Status 3)
     if ($os === 4) $step = 2; // Waiting for Rider
     if ($os === 5) $step = 4; // Picked Up (Delivering)
+    if ($os === 6) $step = 5; // Delivered (Completed)
     
     // If rider assigned but not picked up yet
     if ($os === 4 && !empty($row['RiderId'])) $step = 3;
@@ -107,6 +108,7 @@ while ($row = $res->fetch_assoc()) {
         'customer' => [
             'name' => $row['customer'],
             'phone' => $row['phone'],
+            'image' => $row['customerImage'] ? 'http://localhost/bitesync/public' . $row['customerImage'] : null,
             'lat' => (float)$row['custLat'],
             'lng' => (float)$row['custLng']
         ],

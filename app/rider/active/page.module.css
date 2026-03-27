@@ -67,3 +67,16 @@
   z-index: 10;
 }
 
+
+.placeAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid #eee;
+  flex-shrink: 0;
+  background: #f8f9f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

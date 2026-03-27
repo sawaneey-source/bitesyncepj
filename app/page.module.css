@@ -22,7 +22,7 @@
   flex: 1; max-width: 260px;
   border: 1.5px solid #d8ddd8; border-radius: 10px;
   padding: 11px 16px; font-size: 14px;
-  font-family: 'Sarabun', sans-serif; outline: none;
+  font-family: 'Prompt', sans-serif; outline: none;
   transition: border .2s; background: #fff;
 }
 .searchInput:focus { border-color: var(--green); }
@@ -31,7 +31,7 @@
   background: var(--green); color: #fff; border: none;
   border-radius: 10px; padding: 11px 22px;
   font-size: 14px; font-weight: 700;
-  font-family: 'Sarabun', sans-serif; cursor: pointer; transition: all .2s;
+  font-family: 'Prompt', sans-serif; cursor: pointer; transition: all .2s;
 }
 .searchBtn:hover { background: var(--green2); }
 .heroIllus { display: flex; align-items: center; justify-content: center; }
@@ -79,7 +79,7 @@
   background: var(--yellow); color: var(--dark);
   border-radius: 20px; padding: 7px 18px;
   font-size: 12px; font-weight: 700;
-  font-family: 'Sarabun', sans-serif; border: none;
+  font-family: 'Prompt', sans-serif; border: none;
   cursor: pointer; width: fit-content; transition: all .2s;
 }
 .partnerBtn:hover { background: var(--yellow2); color: #fff; }
@@ -97,7 +97,7 @@
   font-size: 13px; font-weight: 500;
   border: none; background: transparent;
   cursor: pointer; color: var(--gray);
-  font-family: 'Sarabun', sans-serif; transition: all .2s;
+  font-family: 'Prompt', sans-serif; transition: all .2s;
 }
 .faqTabActive { background: var(--green); color: #fff; }
 .faqTab:hover:not(.faqTabActive) { background: var(--green-pale); color: var(--green); }
@@ -165,13 +165,13 @@
   flex: 1; background: rgba(255,255,255,.1);
   border: 1px solid rgba(255,255,255,.15); border-radius: 8px;
   padding: 9px 12px; font-size: 13px; color: #fff;
-  font-family: 'Sarabun', sans-serif; outline: none;
+  font-family: 'Prompt', sans-serif; outline: none;
 }
 .emailRow input::placeholder { color: rgba(255,255,255,.35); }
 .emailRow button {
   background: var(--green); color: #fff; border: none;
   border-radius: 8px; padding: 9px 16px; font-size: 13px;
-  font-weight: 700; font-family: 'Sarabun', sans-serif; cursor: pointer; white-space: nowrap;
+  font-weight: 700; font-family: 'Prompt', sans-serif; cursor: pointer; white-space: nowrap;
 }
 .appBtns { display: flex; gap: 8px; margin-top: 14px; }
 .appBtn {
@@ -204,3 +204,4 @@
 .footerBottomLinks { display: flex; gap: 16px; }
 .footerBottomLinks a { color: rgba(255,255,255,.35); text-decoration: none; transition: color .2s; }
 .footerBottomLinks a:hover { color: #fff; }
+

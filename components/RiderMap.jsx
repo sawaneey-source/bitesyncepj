@@ -36,10 +36,8 @@ export default function RiderMap({ riderLoc, shopLoc, custLoc, step }) {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map)
 
-    const createIcon = (emoji, iconUrl = null, size = 42) => {
-      const content = iconUrl 
-        ? `<img src="${iconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);" />`
-        : `<span style="font-size: ${size}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex;">${emoji}</span>`;
+    const createIcon = (emoji, size = 60) => {
+      const content = `<span style="font-size: ${size}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex;">${emoji}</span>`;
       return L.divIcon({
         className: '',
         html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;">${content}</div>`,
@@ -51,7 +49,7 @@ export default function RiderMap({ riderLoc, shopLoc, custLoc, step }) {
 
     // Shop Marker
     if (isValid(shopLoc)) {
-      const m = L.marker([shopLoc.lat, shopLoc.lng], { icon: createIcon('🏪', shopLoc.logo) })
+      const m = L.marker([shopLoc.lat, shopLoc.lng], { icon: createIcon('🏪') })
                  .addTo(map).bindPopup(`<b>ร้านค้า: ${shopLoc.name}</b>`);
       m.setZIndexOffset(100);
     }
@@ -65,7 +63,7 @@ export default function RiderMap({ riderLoc, shopLoc, custLoc, step }) {
 
     // Rider Marker
     if (isValid(riderLoc)) {
-      riderMarkerRef.current = L.marker([riderLoc.lat, riderLoc.lng], { icon: createIcon('🛵', null, 48) })
+      riderMarkerRef.current = L.marker([riderLoc.lat, riderLoc.lng], { icon: createIcon('🛵') })
                  .addTo(map).bindPopup(`<b>ตำแหน่งของคุณ</b>`);
       riderMarkerRef.current.setZIndexOffset(1000); // 🛵 Always on top
     }

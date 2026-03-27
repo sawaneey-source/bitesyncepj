@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import styles from './page.module.css'
 import Navbar from '@/components/Navbar'
+import Logo from '@/components/Logo'
 
 const STATUS_MAP = {
   1: { lbl: 'รอรับออเดอร์', color: '#856404' },
@@ -114,8 +115,7 @@ export default function ReceiptPage() {
         <div className={styles.receiptCard}>
           <div className={styles.rcptHdr}>
             <div className={styles.rcptLogoRow}>
-              <div className={styles.rcptLogoMark}>🍃</div>
-              <span className={styles.rcptLogoTxt}>Bite<em>Sync</em></span>
+              <Logo theme="dark" size="small" />
             </div>
             <h2 className={styles.rcptTitle}>ใบแจ้งหนี้ / ใบเสร็จ</h2>
           </div>
@@ -251,3 +251,4 @@ export default function ReceiptPage() {
     </div>
   )
 }
+

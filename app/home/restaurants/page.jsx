@@ -1,13 +1,14 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import Logo from '@/components/Logo'
 import Navbar from '@/components/Navbar'
 
 export default function RestaurantsListPage() {
   const router = useRouter()
-  const [search, setSearch] = useState('')
+  const searchParams = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('q') || '')
   const [shops, setShops] = useState([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
@@ -58,22 +59,34 @@ export default function RestaurantsListPage() {
           {filtered.map(s => (
             <div key={s.id} className={styles.shopCard} onClick={() => router.push(`/home/restaurant/${s.id}`)}>
               <div className={styles.shopImgWrap}>
-                <img src={s.img} alt={s.name} className={styles.shopImg} />
+                {s.img ? (
+                  <img src={s.img} alt={s.name} className={styles.shopImg} />
+                ) : (
+                  <div className={styles.placeholderImg}>
+                    {s.name ? s.name[0].toUpperCase() : 'B'}
+                  </div>
+                )}
                 {s.tag && <span className={styles.shopTag}>{s.tag}</span>}
                 {!s.open && <div className={styles.closedOverlay}>ร้านปิดอยู่</div>}
               </div>
               <div className={styles.shopBody}>
                 <h3 className={styles.shopName}>{s.name}</h3>
-                <div className={styles.shopMeta}>
-                  <span className={styles.rating}>⭐ {s.rating}</span>
-                  <span className={styles.dot}>·</span>
-                  <span>{s.reviews} รีวิว</span>
-                  <span className={styles.dot}>·</span>
-                  <span>{s.deliveryTime} นาที</span>
-                </div>
+                {(s.rating > 0 || s.reviews > 0 || s.deliveryTime) && (
+                  <div className={styles.shopMeta}>
+                    {s.rating > 0 && <span className={styles.rating}>⭐ {s.rating}</span>}
+                    {s.rating > 0 && s.reviews > 0 && <span className={styles.dot}>·</span>}
+                    {s.reviews > 0 && <span>{s.reviews} รีวิว</span>}
+                    {(s.rating > 0 || s.reviews > 0) && s.deliveryTime && <span className={styles.dot}>·</span>}
+                    {s.deliveryTime && <span>{s.deliveryTime} นาที</span>}
+                  </div>
+                )}
                 <div className={styles.shopFoot}>
-                  <span className={styles.fee}>ค่าส่ง ฿{s.deliveryFee}</span>
-                  <span className={styles.min}>ขั้นต่ำ ฿{s.minOrder}</span>
+                  {s.deliveryFee > 0 ? (
+                    <span className={styles.fee}>ค่าส่ง ฿{s.deliveryFee}</span>
+                  ) : (
+                    <span className={styles.feeFree}>ส่งฟรี</span>
+                  )}
+                  {s.minOrder > 0 && <span className={styles.min}>ขั้นต่ำ ฿{s.minOrder}</span>}
                 </div>
               </div>
             </div>
@@ -83,3 +96,4 @@ export default function RestaurantsListPage() {
     </div>
   )
 }
+

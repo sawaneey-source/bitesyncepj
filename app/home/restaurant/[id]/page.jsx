@@ -111,7 +111,11 @@ export default function RestaurantPage() {
   };
 
   function addToCart(menu) {
-    if (!menu.available) return // Prevent adding out of stock items
+    if (!menu.available) return
+    if (shop && !shop.open) {
+      alert("ขออภัย ขณะนี้ร้านค้าปิดรับออเดอร์ชั่วคราว")
+      return
+    }
     setCart(prev => {
       const exists = prev.find(c => c.id === menu.id)
       const next   = exists
@@ -141,7 +145,7 @@ export default function RestaurantPage() {
 
       <div className={styles.actionBar}>
         <div className={styles.actionBarInner}>
-          <button onClick={() => router.push('/home')} className={styles.backBtn}>
+          <button onClick={() => router.back()} className={styles.backBtn}>
             <i className="fa-solid fa-arrow-left" /> กลับ
           </button>
         </div>
@@ -149,11 +153,21 @@ export default function RestaurantPage() {
 
       {/* ── Hero ── */}
       <div className={styles.hero}>
-        <img src={shop.banner} alt={shop.name} className={styles.heroImg} />
+        {shop.banner ? (
+          <img src={shop.banner} alt={shop.name} className={styles.heroImg} />
+        ) : (
+          <div className={styles.heroPlaceholder} />
+        )}
         <div className={styles.heroOverlay} />
         <div className={styles.heroInfo}>
           <div className={styles.shopMetaTop}>
-            <img src={shop.img} alt="Logo" className={styles.heroLogo} />
+            {shop.img ? (
+              <img src={shop.img} alt="Logo" className={styles.heroLogo} />
+            ) : (
+              <div className={styles.heroLogoPlaceholder}>
+                {shop.name ? shop.name[0].toUpperCase() : 'B'}
+              </div>
+            )}
             <h1 className={styles.shopName}>{shop.name}</h1>
           </div>
           <div className={styles.shopMeta}>
@@ -172,7 +186,12 @@ export default function RestaurantPage() {
             )}
             <span>🕐 {shop.deliveryTime || 30} นาที</span>
             <span>·</span>
-            <span>ค่าส่ง ฿{shop.deliveryFee || 15}</span>
+            <span className={styles.deliveryFee}>
+              {shop.deliveryFee > 0 ? `ค่าส่งเริ่มต้น ฿${shop.deliveryFee}` : 'ส่งฟรี'}
+            </span>
+            {!shop.open && (
+              <span className={styles.closedTag}>ปิดรับออเดอร์</span>
+            )}
           </div>
         </div>
       </div>
@@ -262,7 +281,17 @@ export default function RestaurantPage() {
               <div key={r.ReviewId} className={styles.reviewCard}>
                 <div className={styles.revHdr}>
                   <div className={styles.revUser}>
-                    <div className={styles.revAvatar}>{r.userName ? r.userName[0] : '?'}</div>
+                    <div className={styles.revAvatar}>
+                      {r.userImage ? (
+                        <img 
+                          src={r.userImage} 
+                          alt="Reviewer" 
+                          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        r.userName ? r.userName[0] : '?'
+                      )}
+                    </div>
                     <div>
                       <div className={styles.revName}>{r.userName || 'Anonymous'}</div>
                       <div className={styles.revDate}>{new Date(r.ReviewAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
@@ -281,7 +310,7 @@ export default function RestaurantPage() {
                 {(r.ReviewImg1 || r.ReviewImg2 || r.ReviewImg3) && (
                   <div className={styles.revImgs}>
                     {[r.ReviewImg1, r.ReviewImg2, r.ReviewImg3].filter(Boolean).map((img, i) => (
-                      <img key={i} src={`/${img}`} alt={`review-img-${i}`} className={styles.revImg} />
+                      <img key={i} src={img} alt={`review-img-${i}`} className={styles.revImg} />
                     ))}
                   </div>
                 )}
@@ -378,10 +407,16 @@ export default function RestaurantPage() {
 
       {/* ── Cart Bar ── */}
       {totalItems > 0 && (
-        <div className={styles.cartBar} onClick={() => router.push('/checkout')}>
+        <div 
+          className={`${styles.cartBar} ${!shop?.open ? styles.cartBarDisabled : ''}`} 
+          onClick={() => {
+            if (shop?.open) router.push('/checkout')
+            else alert("ขออภัย ขณะนี้ร้านค้าปิดรับออเดอร์ชั่วคราว")
+          }}
+        >
           <div className={styles.cartBarLeft}>
             <div className={styles.cartCount}>{totalItems}</div>
-            <span className={styles.cartBarTxt}>ดูตะกร้าของฉัน</span>
+            <span className={styles.cartBarTxt}>{shop?.open ? 'ดูตะกร้าของฉัน' : 'ร้านค้าปิดให้บริการ'}</span>
           </div>
           <span className={styles.cartBarPrice}>฿{Math.round(totalPrice)}</span>
         </div>
@@ -389,3 +424,4 @@ export default function RestaurantPage() {
     </div>
   )
 }
+

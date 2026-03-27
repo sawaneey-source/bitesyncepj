@@ -23,22 +23,22 @@ $data = [];
 
 while($row = $res->fetch_assoc()) {
     // Mapping & Formatting
-    if (empty($row['img'])) {
-        $row['img'] = 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&q=80'; // Default
-    } else {
+    if (!empty($row['img'])) {
         $row['img'] = 'http://localhost/bitesync/public' . $row['img'];
+    } else {
+        $row['img'] = null;
     }
     
     $row['open'] = ($row['open'] == 1);
-    $row['category'] = strtolower($row['category']);
+    $row['category'] = strtolower($row['category'] ?? '');
     
-    // Add missing fields for frontend (using defaults for now)
-    $row['rating'] = 4.5; // Dummy
-    $row['reviews'] = rand(50, 200); // Dummy
-    $row['deliveryTime'] = ($row['deliveryTime'] ?: 20) . "-" . (($row['deliveryTime'] ?: 20) + 10);
-    $row['deliveryFee'] = 15;
-    $row['minOrder'] = 50;
-    $row['tag'] = ($row['id'] % 3 == 0) ? 'แนะนำ' : '';
+    // Remove all dummy data
+    $row['rating'] = 0; 
+    $row['reviews'] = 0;
+    $row['deliveryTime'] = $row['deliveryTime'] ?: 0;
+    $row['deliveryFee'] = 0;
+    $row['minOrder'] = 0;
+    $row['tag'] = null;
 
     $data[] = $row;
 }

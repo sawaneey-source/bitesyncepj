@@ -21,6 +21,7 @@ $sql = "SELECT f.FoodId as id, f.FoodName as name, f.FoodPrice as price,
                (SELECT CatName FROM tbl_menu_category WHERE tbl_menu_category.CatId = f.CatId) as category,
                f.FoodDetail as `desc`, f.FoodImagePath as img, f.FoodStatus as available,
                f.ShopId, (SELECT ShopName FROM tbl_shop WHERE tbl_shop.ShopId = f.ShopId) as shopName,
+               (SELECT ShopStatus FROM tbl_shop WHERE tbl_shop.ShopId = f.ShopId) as shopOpen,
                (SELECT ShopPrepTime FROM tbl_shop WHERE tbl_shop.ShopId = f.ShopId) as deliveryTime,
                (SELECT AVG(ReviewScore) FROM tbl_review WHERE FoodId = f.FoodId) as avg_rating,
                (SELECT COUNT(ReviewId) FROM tbl_review WHERE FoodId = f.FoodId) as total_reviews

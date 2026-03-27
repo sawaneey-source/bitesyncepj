@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import Logo from '@/components/Logo'
 import styles from './login.module.css'
 
 export default function LoginPage() {
@@ -53,8 +54,7 @@ export default function LoginPage() {
         {/* LEFT */}
         <div className={styles.pageLeft}>
           <div className={styles.bigLogo}>
-            <span className={styles.bigLogoIcon}>🍃</span>
-            <span className={styles.bigLogoTxt}>Bite<span>Sync</span></span>
+            <Logo size="large" theme="dark" />
           </div>
           <h1 className={styles.bigTitle}>
             เอาใจสัมผัส<br/>
@@ -70,8 +70,7 @@ export default function LoginPage() {
         <div className={styles.pageRight}>
           <div className={styles.card}>
             <div className={styles.cardLogo}>
-              <span className={styles.cardLogoIcon}>🍃</span>
-              <span className={styles.cardLogoTxt}>Bite<span>Sync</span></span>
+              <Logo size="small" />
             </div>
             <h2 className={styles.cardTitle}>ยินดีต้อนรับกลับ!!!</h2>
             <p className={styles.cardSub}>เข้าสู่ระบบด้วยอีเมลและรหัสผ่านของคุณ</p>
@@ -134,3 +133,4 @@ export default function LoginPage() {
     </div>
   )
 }
+

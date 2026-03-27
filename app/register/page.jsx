@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import styles from './register.module.css'
+import Logo from '@/components/Logo'
 
 const ROLES = [
   { value:'customer',   label:'ลูกค้า',       icon:'fa-user' },
@@ -84,8 +85,7 @@ export default function RegisterPage() {
 
           {/* Logo */}
           <div className={styles.modalLogo}>
-            <span className={styles.modalLogoIcon}>🍃</span>
-            <span className={styles.modalLogoTxt}>Bite<span>Sync</span></span>
+            <Logo size="medium" />
           </div>
           <h2 className={styles.modalTitle}>สร้างบัญชีผู้ใช้</h2>
 
@@ -194,3 +194,4 @@ export default function RegisterPage() {
     </div>
   )
 }
+

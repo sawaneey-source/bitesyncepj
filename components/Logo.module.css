@@ -10,33 +10,39 @@
 }
 
 .logoMark {
-  background: #1a4d2e; /* Dark green icon background */
+  background: #f0c419; /* Yellow icon background */
   color: #fff;
-  border-radius: 25%; /* Rounded square */
+  border-radius: 7px; /* Rounded square */
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  flex-shrink: 0;
 }
 
 .logoText {
   display: flex;
   align-items: center;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: -0.5px;
+  font-family: 'Prompt', sans-serif;
 }
 
-.bite { color: #1a1f1a; } /* Black text */
-.sync { color: #00b14f; } /* Green text */
+.bite { transition: color 0.2s; }
+.sync { color: #f0c419; } /* Yellow "Sync" */
+
+/* Themes */
+.light .bite { color: #1a1f1a; } /* Black on light bg */
+.dark .bite { color: #fff; }     /* White on dark bg */
 
 /* Sizes */
-.small .logoMark { width: 28px; height: 28px; font-size: 14px; }
-.small .logoText { font-size: 16px; }
+.small .logoMark { width: 30px; height: 30px; font-size: 15px; border-radius: 6px; }
+.small .logoText { font-size: 17px; }
 
-.medium .logoMark { width: 36px; height: 36px; font-size: 18px; }
+.medium .logoMark { width: 38px; height: 38px; font-size: 19px; border-radius: 8px; }
 .medium .logoText { font-size: 22px; }
 
-.large .logoMark { width: 44px; height: 44px; font-size: 22px; }
-.large .logoText { font-size: 26px; }
+.large .logoMark { width: 52px; height: 52px; font-size: 26px; border-radius: 11px; }
+.large .logoText { font-size: 32px; }
 
 @keyframes bounce { to { transform: translateY(-10px); } }

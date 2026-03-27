@@ -14,15 +14,34 @@ $conn->set_charset("utf8mb4");
 
 $usrId = $_GET['usrId'] ?? 0;
 
+// 0. Check Rider Status
+$riderStatus = 'Offline';
+$riderLat = 0; $riderLng = 0;
+$st = $conn->prepare("SELECT RiderStatus, RiderLat, RiderLng FROM tbl_rider WHERE UsrId = ?");
+$st->bind_param("i", $usrId);
+$st->execute();
+$resSt = $st->get_result();
+if ($rowSt = $resSt->fetch_assoc()) {
+    $riderStatus = $rowSt['RiderStatus'];
+    $riderLat = (float)$rowSt['RiderLat'];
+    $riderLng = (float)$rowSt['RiderLng'];
+}
+if ($riderStatus !== 'Online') {
+    echo json_encode(['success' => true, 'data' => [], 'status' => $riderStatus]);
+    exit;
+}
+
 $sql = "SELECT o.OdrId, o.OdrGrandTotal as total, o.OdrDelFee as fee, o.OdrDistance as distance,
-               s.ShopName, s.ShopBannerPath as img,
+               s.ShopName, s.ShopLogoPath as logo, s.ShopBannerPath as img, s.ShopPhone as shopPhone,
                sa.Province as shopProv, sa.District as shopDist, sa.SubDistrict as shopSub, sa.HouseNo as shopHouse, sa.Road as shopRoad, sa.Village as shopVillage,
                sa.AdrLat as shopLat, sa.AdrLng as shopLng,
-               a.Province as custProv, a.District as custDist, a.SubDistrict as custSub, a.HouseNo as custHouse
+               a.Province as custProv, a.District as custDist, a.SubDistrict as custSub, a.HouseNo as custHouse,
+               ui.UsrPhone as custPhone
         FROM tbl_order o
         LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
         LEFT JOIN tbl_address sa ON s.AdrId = sa.AdrId
         LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
+        LEFT JOIN tbl_userinfo ui ON o.UsrId = ui.UsrId
         WHERE o.OdrStatus = 4 
           AND (o.RiderId IS NULL OR o.RiderId = 0)
           AND o.OdrId NOT IN (SELECT OdrId FROM tbl_order_cancel_history WHERE RiderId = (SELECT RiderId FROM tbl_rider WHERE UsrId = ?))
@@ -54,24 +73,32 @@ if ($result && $result->num_rows > 0) {
         $custAddr = $row['custHouse'] . ' ' . $row['custSub'] . ' ' . $row['custDist'] . ' ' . $row['custProv'];
 
         // Determine image
-        $img = $row['img'] ? "http://localhost/bitesync/public" . $row['img'] : "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=100&q=70";
+        $img = $row['img'] ? "http://localhost/bitesync/public" . $row['img'] : null;
 
         $jobs[] = [
             'id' => "#" . $row['OdrId'],
             'rawId' => $row['OdrId'],
             'shopName' => $row['ShopName'],
             'shopAddr' => $shopAddr,
+            'shopPhone' => $row['shopPhone'] ?? null,
             'custAddr' => $custAddr,
+            'custPhone' => $row['custPhone'] ?? null,
             'items' => $itemsCountStr,
             'total' => number_format((float)$row['total'], 2),
             'distance' => number_format((float)$row['distance'], 1) . ' กม.',
             'fee' => number_format((float)$row['fee'], 0),
             'img' => $img,
+            'logo' => $row['logo'] ? "http://localhost/bitesync/public" . $row['logo'] : null,
             'shopLat' => $row['shopLat'],
             'shopLng' => $row['shopLng']
         ];
     }
 }
 
-echo json_encode(['success' => true, 'data' => $jobs]);
+echo json_encode([
+    'success' => true, 
+    'data' => $jobs, 
+    'status' => $riderStatus,
+    'riderPos' => ['lat' => $riderLat, 'lng' => $riderLng]
+]);
 ?>

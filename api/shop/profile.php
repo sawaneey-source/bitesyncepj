@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                    s.ShopLogoPath, s.ShopBannerPath, s.ShopLogoOriPath, s.ShopBannerOriPath, s.ShopPrepTime,
                    a.AdrId, a.HouseNo, a.Village, a.Road, a.Soi, a.Moo,
                    a.SubDistrict, a.District, a.Province, a.Zipcode, a.AdrLat, a.AdrLng,
+                   s.ShopBankName, s.ShopBankAccount,
                    u.UsrFullName, u.UsrEmail, u.UsrPhone
             FROM tbl_shop s
             LEFT JOIN tbl_address a ON s.AdrId = a.AdrId
@@ -79,6 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         else $shopStatus = 0;
     }
     $prepTime   = $_POST['shopPrepTime'] ?? null;
+    $bankName   = $_POST['shopBankName'] ?? null;
+    $bankAcc    = $_POST['shopBankAccount'] ?? null;
 
     // Address fields
     $houseNo     = $_POST['houseNo']     ?? '';
@@ -163,6 +166,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($bannerPath)          { $shopUpdates[] = "ShopBannerPath = ?";$shopParams[] = $bannerPath;$shopTypes .= "s"; }
     if ($logoOriPath)         { $shopUpdates[] = "ShopLogoOriPath = ?";$shopParams[] = $logoOriPath; $shopTypes .= "s"; }
     if ($bannerOriPath)       { $shopUpdates[] = "ShopBannerOriPath = ?";$shopParams[] = $bannerOriPath;$shopTypes .= "s"; }
+    if ($bankName   !== null) { $shopUpdates[] = "ShopBankName = ?";   $shopParams[] = $bankName;   $shopTypes .= "s"; }
+    if ($bankAcc    !== null) { $shopUpdates[] = "ShopBankAccount = ?";$shopParams[] = $bankAcc;    $shopTypes .= "s"; }
 
     if (!empty($shopUpdates)) {
         $shopParams[] = $shopId;
@@ -237,6 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     s.ShopLogoPath, s.ShopBannerPath, s.ShopLogoOriPath, s.ShopBannerOriPath, s.ShopPrepTime,
                     a.AdrId, a.HouseNo, a.Village, a.Road, a.Soi, a.Moo,
                     a.SubDistrict, a.District, a.Province, a.Zipcode, a.AdrLat, a.AdrLng,
+                    s.ShopBankName, s.ShopBankAccount,
                     u.UsrFullName, u.UsrEmail, u.UsrPhone
              FROM tbl_shop s 
              LEFT JOIN tbl_address a ON s.AdrId = a.AdrId

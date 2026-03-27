@@ -60,10 +60,8 @@ export default function TrackPage() {
       const map = mapInstanceRef.current
       const bounds = []
 
-      const createIcon = (emoji, iconUrl = null, size = 42) => {
-        const content = iconUrl
-          ? `<img src="${iconUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);" />`
-          : `<span style="font-size: ${size}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex;">${emoji}</span>`;
+      const createIcon = (emoji, size = 60) => {
+        const content = `<span style="font-size: ${size}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex;">${emoji}</span>`;
         return L.divIcon({
           className: '',
           html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;">${content}</div>`,
@@ -76,11 +74,11 @@ export default function TrackPage() {
       // 1. Rider Marker - 🛵
       if (order.rider && isValid(order.rider)) {
         if (!riderMarkerRef.current) {
-          riderMarkerRef.current = L.marker([order.rider.lat, order.rider.lng], { icon: createIcon('🛵', null, 48) }).addTo(map)
+          riderMarkerRef.current = L.marker([order.rider.lat, order.rider.lng], { icon: createIcon('🛵') }).addTo(map)
           riderMarkerRef.current.bindPopup(`<b>ผู้ส่ง: ${order.rider.name}</b>`)
         } else {
           riderMarkerRef.current.setLatLng([order.rider.lat, order.rider.lng])
-          riderMarkerRef.current.setIcon(createIcon('🛵', null, 48))
+          riderMarkerRef.current.setIcon(createIcon('🛵'))
         }
         riderMarkerRef.current.setZIndexOffset(1000); // 🛵 Always on top
         bounds.push([order.rider.lat, order.rider.lng])
@@ -89,17 +87,17 @@ export default function TrackPage() {
       // 2. Shop Marker - 🏪
       if (order.shop && isValid(order.shop)) {
         if (!shopMarkerRef.current) {
-          shopMarkerRef.current = L.marker([order.shop.lat, order.shop.lng], { icon: createIcon('🏪', order.ShopLogo) }).addTo(map)
+          shopMarkerRef.current = L.marker([order.shop.lat, order.shop.lng], { icon: createIcon('🏪') }).addTo(map)
           shopMarkerRef.current.bindPopup(`<b>ร้านค้า: ${order.shop.name}</b>`)
         } else {
           shopMarkerRef.current.setLatLng([order.shop.lat, order.shop.lng])
-          shopMarkerRef.current.setIcon(createIcon('🏪', order.ShopLogo))
+          shopMarkerRef.current.setIcon(createIcon('🏪'))
         }
         shopMarkerRef.current.setZIndexOffset(100);
         bounds.push([order.shop.lat, order.shop.lng])
       }
 
-      // 3. Customer Marker - 🏠
+      // 3. Customer Marker - 📍
       if (order.customer && isValid(order.customer)) {
         if (!customerMarkerRef.current) {
           customerMarkerRef.current = L.marker([order.customer.lat, order.customer.lng], { icon: createIcon('📍') }).addTo(map)
@@ -198,6 +196,8 @@ export default function TrackPage() {
             lat: (d.RiderLat && parseFloat(d.RiderLat) !== 0) ? parseFloat(d.RiderLat) : (parseFloat(d.ShopLat) || 0),
             lng: (d.RiderLng && parseFloat(d.RiderLng) !== 0) ? parseFloat(d.RiderLng) : (parseFloat(d.ShopLng) || 0)
           } : null,
+          RiderImage: d.RiderImage,
+          ShopLogo: d.ShopLogo,
           items: d.items
         })
         setError(null)
@@ -331,8 +331,8 @@ export default function TrackPage() {
       <Navbar />
       <div className={styles.actionBar}>
         <div className={styles.actionBarInner}>
-          <button onClick={() => router.push('/home')} className={styles.backBtn}>
-            <i className="fa-solid fa-arrow-left" /> กลับหน้าหลัก
+          <button onClick={() => router.back()} className={styles.backBtn}>
+            <i className="fa-solid fa-arrow-left" /> กลับ
           </button>
           <div className={styles.navTitle}>ติดตามออเดอร์ #{order.id}</div>
         </div>
@@ -437,7 +437,17 @@ export default function TrackPage() {
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>ข้อมูลคนขับ</h2>
                 <div className={styles.riderRow}>
-                  <div className={styles.riderAvatar}>{order.rider.name[0]}</div>
+                  <div className={styles.riderAvatar}>
+                    {order.RiderImage ? (
+                      <img 
+                        src={order.RiderImage} 
+                        alt="Rider" 
+                        style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      order.rider.name[0]
+                    )}
+                  </div>
                   <div className={styles.riderInfo}>
                     <div className={styles.riderName}>{order.rider.name}</div>
                     <div className={styles.riderSub}>📱 {order.rider.phone}</div>
@@ -475,3 +485,4 @@ export default function TrackPage() {
     </div>
   )
 }
+

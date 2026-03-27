@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import Logo from '@/components/Logo'
 import Navbar from '@/components/Navbar'
@@ -36,8 +36,9 @@ const CATS = [
 
 export default function HomePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [cat, setCat] = useState('all')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('q') || '')
   const [user, setUser] = useState(null)
   const [cartCount, setCartCount] = useState(0)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -71,7 +72,8 @@ export default function HomePage() {
 
   const filtered = foods.filter(r => {
     const matchCat = cat === 'all' || r.shopCategory === cat || r.category === cat
-    const matchSearch = r.name.toLowerCase().includes(search.toLowerCase())
+    const s = search.toLowerCase()
+    const matchSearch = r.name.toLowerCase().includes(s) || (r.shopName || '').toLowerCase().includes(s)
     return matchCat && matchSearch
   })
 
@@ -200,7 +202,7 @@ export default function HomePage() {
                     <span className={styles.restDot}>·</span>
                     {r.deliveryFee === 0
                       ? <span className={styles.restFeeFree}>ส่งฟรี</span>
-                      : <span>ค่าส่ง {r.deliveryFee} ฿</span>
+                      : <span>ค่าส่งเริ่มต้น {r.deliveryFee} ฿</span>
                     }
                   </div>
                 </div>
@@ -213,3 +215,4 @@ export default function HomePage() {
     </div>
   )
 }
+

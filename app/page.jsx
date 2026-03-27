@@ -80,7 +80,7 @@ export default function HomePage() {
         <div className={styles.footerGrid}>
           <div>
             <div className={styles.footerLogo}>
-              <Logo size="medium" />
+              <Logo size="medium" theme="dark" />
             </div>
             <p className={styles.footerDesc}>รับดีลพิเศษในกล่องจดหมาย</p>
             <div className={styles.emailRow}>
@@ -130,3 +130,4 @@ export default function HomePage() {
     </div>
   )
 }
+

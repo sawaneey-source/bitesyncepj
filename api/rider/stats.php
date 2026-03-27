@@ -13,6 +13,7 @@ include "../../dbconnect/dbconnect.php";
 $conn->set_charset("utf8mb4");
 
 $usrId = $_GET['usrId'] ?? 0;
+$period = $_GET['period'] ?? 'today';
 
 if (!$usrId) {
     echo json_encode(['success' => false, 'message' => 'Missing UsrId']);
@@ -32,11 +33,16 @@ if ($rRow = $rRes->fetch_assoc()) {
     exit();
 }
 
-// 2. Aggregate Today's Stats
-// We only count completed orders (Status 5) for earnings/deliveries today
+// 2. Aggregate Stats by Period
+$dateFilter = "DATE(OdrUpdatedAt) = CURDATE()"; // default today
+if ($period === '3days') $dateFilter = "OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 3 DAY)";
+else if ($period === '7days') $dateFilter = "OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+else if ($period === '30days') $dateFilter = "OdrUpdatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+else if ($period === 'all') $dateFilter = "1=1";
+
 $sql = "SELECT COUNT(*) as deliveries, SUM(OdrDelFee) as earnings, SUM(OdrDistance) as distance
         FROM tbl_order 
-        WHERE RiderId = ? AND OdrStatus = 6 AND DATE(OdrUpdatedAt) = CURDATE()";
+        WHERE RiderId = ? AND OdrStatus = 6 AND $dateFilter";
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $riderId);

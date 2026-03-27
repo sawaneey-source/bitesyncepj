@@ -11,7 +11,7 @@
 .backBtn {
   border: 1.5px solid #dde8dd; border-radius: 9px;
   padding: 6px 14px; background: #fff; font-size: 13.5px;
-  cursor: pointer; font-family: 'Sarabun', sans-serif; font-weight: 700;
+  cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 700;
   display: flex; align-items: center; gap: 8px; color: #374137;
   transition: all 0.2s;
 }
@@ -23,10 +23,7 @@
 
 /* Header */
 .rcptHdr { background:linear-gradient(135deg,#1e4d1e,#2a6129); padding:24px; text-align:center; }
-.rcptLogoRow { display:flex; align-items:center; justify-content:center; gap:7px; margin-bottom:10px; }
-.rcptLogoMark { width:26px; height:26px; background:#f0c419; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:13px; }
-.rcptLogoTxt { font-family:'Prompt',sans-serif; font-weight:800; font-size:16px; color:#fff; }
-.rcptLogoTxt em { color:#f0c419; font-style:normal; }
+.rcptLogoRow { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
 .rcptTitle { font-family:'Prompt',sans-serif; font-size:20px; font-weight:900; color:#fff; margin:0; }
 
 /* Meta */
@@ -74,8 +71,13 @@
 .btnHome  { background:#f4f7f4; color:#374137; border:1.5px solid #dde8dd; border-radius:10px; padding:11px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Sarabun',sans-serif; }
 
 @media print {
-  .nav, .actions { display:none !important; }
-  .page { background:#fff; }
-  .receiptCard { box-shadow:none; border-radius:0; }
-  .body { padding:0; max-width:100%; }
+  .page :global(nav) { display:none !important; }
+  .actionBar, .ratingSection, .actions { display:none !important; }
+  .page { background:#fff !important; min-height:auto !important; }
+  .body { padding:0 !important; margin:0 !important; max-width:100% !important; }
+  .receiptCard { box-shadow:none !important; border-radius:0 !important; width:100% !important; border:none !important; }
+  .rcptHdr { background:#2a6129 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rcptTitle, .rcptLogoTxt { color:#fff !important; }
+  .divider { background:#eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+

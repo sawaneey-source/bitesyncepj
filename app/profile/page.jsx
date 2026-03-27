@@ -539,7 +539,16 @@ export default function ProfilePage() {
                   <div key={orderId || idx} className={styles.historyItem}>
                     <div className={styles.histHeader}>
                       <div className={styles.histMain}>
-                        <div className={styles.histShop}>{order.shopName || order.ShopName || 'ร้านอาหาร'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div className={styles.histShopLogo}>
+                            {order.shopLogo ? (
+                              <img src={order.shopLogo} alt="Shop" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                              '🏪'
+                            )}
+                          </div>
+                          <div className={styles.histShop}>{order.shopName || order.ShopName || 'ร้านอาหาร'}</div>
+                        </div>
                         <div className={styles.histDate}>{order.OdrCreatedAt || order.date}</div>
                       </div>
                       <div className={styles.histPrice}>{(order.OdrGrandTotal || order.total).toLocaleString()} ฿</div>
@@ -652,3 +661,4 @@ export default function ProfilePage() {
     </div>
   )
 }
+

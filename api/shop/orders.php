@@ -31,8 +31,8 @@ if ($method === 'GET') {
         exit();
     }
 
-    $sql = "SELECT o.OdrId, u.UsrFullName as customer, o.OdrCreatedAt, 
-                   o.OdrStatus, o.OdrGrandTotal as total, o.RiderId,
+    $sql = "SELECT o.OdrId, u.UsrFullName as customer, u.UsrImagePath as customerImage, o.OdrCreatedAt, 
+                   o.OdrStatus, (o.OdrGrandTotal - o.OdrDelFee) as total, o.OdrDelFee as deliveryFee, o.RiderId,
                    a.Province, a.District, a.SubDistrict, a.HouseNo as address, u.UsrPhone as phone,
                    ru.UsrFullName as riderName, ru.UsrPhone as riderPhone
             FROM tbl_order o
@@ -57,17 +57,24 @@ if ($method === 'GET') {
         $row['time'] = date("H:i", $ts) . " (" . date("d/m", $ts) . ")";
         
         $orderId = (int)$row['OdrId'];
-        $stmtItems = $conn->prepare("SELECT f.FoodName, od.OdtQty FROM tbl_order_detail od LEFT JOIN tbl_food f ON od.FoodId = f.FoodId WHERE od.OdrId = ?");
+        $stmtItems = $conn->prepare("SELECT f.FoodName, f.FoodImagePath, od.OdtQty FROM tbl_order_detail od LEFT JOIN tbl_food f ON od.FoodId = f.FoodId WHERE od.OdrId = ?");
         $stmtItems->bind_param("i", $orderId);
         $stmtItems->execute();
         $resItems = $stmtItems->get_result();
         $itemsArr = [];
+        $foodImg = null;
         while($it = $resItems->fetch_assoc()) {
             $itemsArr[] = (int)$it['OdtQty'] . "x " . $it['FoodName'];
+            if (!$foodImg && !empty($it['FoodImagePath'])) {
+                $foodImg = 'http://localhost/bitesync/public' . $it['FoodImagePath'];
+            }
         }
         $row['items'] = implode(", ", $itemsArr);
         $row['OdrId'] = "#" . $row['OdrId'];
-        $row['img'] = "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=100&q=70";
+        if (!empty($row['customerImage'])) {
+            $row['customerImage'] = 'http://localhost/bitesync/public' . $row['customerImage'];
+        }
+        $row['img'] = $foodImg; // Use food image for the card
         $orders[] = $row;
     }
     echo json_encode(['success' => true, 'data' => $orders]);

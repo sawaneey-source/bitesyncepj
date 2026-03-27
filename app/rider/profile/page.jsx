@@ -17,6 +17,9 @@ export default function RiderProfilePage() {
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
   const [originalImageUrl, setOriginalImageUrl] = useState(null)  // blob URL of local file chosen this session
+  const [showOtherVehicle, setShowOtherVehicle] = useState(false)
+
+  const VEHICLE_MODELS = ['Honda PCX', 'Yamaha NMAX', 'Honda Click', 'Honda Wave', 'Yamaha Aerox', 'PCX 150']
 
   useEffect(() => { load() }, [])
   function showToast(msg,type='ok'){ setToast({msg,type}); setTimeout(()=>setToast(null),2500) }
@@ -50,6 +53,9 @@ export default function RiderProfilePage() {
           preview: r.img || null,
           imgOri: r.imgOri || null
         }))
+        if (r.vehicle && !['Honda PCX', 'Yamaha NMAX', 'Honda Click', 'Honda Wave', 'Yamaha Aerox', 'PCX 150'].includes(r.vehicle)) {
+          setShowOtherVehicle(true)
+        }
         setStats({ rating:r.rating, jobs:r.ratingCount, balance:r.balance })
       } else {
         console.error('Load Error:', data.message)
@@ -151,11 +157,12 @@ export default function RiderProfilePage() {
       if(data.success) {
         showToast(data.message || 'บันทึกข้อมูลสำเร็จ!')
         
-        // Sync new name to localStorage for Sidebar/Navbar
+        // Sync new data to localStorage for Sidebar/Navbar
         const userStr = localStorage.getItem('bs_user')
         if (userStr) {
           const u = JSON.parse(userStr)
           u.name = form.name
+          if (data.data.rawImg) u.image = data.data.rawImg
           localStorage.setItem('bs_user', JSON.stringify(u))
         }
 
@@ -232,10 +239,34 @@ export default function RiderProfilePage() {
           <div className={styles.row2}>
             <div className={styles.field}>
               <label className={styles.label}>ชนิดรถ</label>
-              <select value={form.vehicle} onChange={e=>set('vehicle',e.target.value)} className={styles.inp}>
+              <select 
+                value={showOtherVehicle ? 'Other' : (VEHICLE_MODELS.includes(form.vehicle) ? form.vehicle : '')} 
+                onChange={e => {
+                  const val = e.target.value
+                  if (val === 'Other') {
+                    setShowOtherVehicle(true)
+                    set('vehicle', '')
+                  } else {
+                    setShowOtherVehicle(false)
+                    set('vehicle', val)
+                  }
+                }} 
+                className={styles.inp}
+              >
                 <option value="">เลือกชนิดรถ</option>
-                {['Honda PCX','Yamaha NMAX','Honda Click','Honda Wave','Yamaha Aerox','PCX 150','Other'].map(v=><option key={v} value={v}>{v}</option>)}
+                {VEHICLE_MODELS.map(v => <option key={v} value={v}>{v}</option>)}
+                <option value="Other">อื่นๆ (ระบุเอง)</option>
               </select>
+              {showOtherVehicle && (
+                <input 
+                  value={form.vehicle} 
+                  onChange={e => set('vehicle', e.target.value)} 
+                  placeholder="ระบุยี่ห้อ/รุ่นรถของคุณ" 
+                  className={styles.inp} 
+                  style={{ marginTop: 8 }}
+                  autoFocus
+                />
+              )}
             </div>
             <div className={styles.field}>
               <label className={styles.label}>ทะเบียนรถ (และสี)</label>
@@ -256,8 +287,14 @@ export default function RiderProfilePage() {
               </select>
             </div>
             <div className={styles.field}>
-              <label className={styles.label}>เลขบัญชี (จำกัดขนาด)</label>
-              <input value={form.bankAccount} onChange={e=>set('bankAccount',e.target.value)} placeholder="xxx-x-xxxxx-x" className={styles.inp} maxLength={15}/>
+              <label className={styles.label}>เลขที่บัญชี</label>
+              <input 
+                value={form.bankAccount} 
+                onChange={e => set('bankAccount', e.target.value.replace(/[^0-9]/g, ''))} 
+                placeholder="xxxxxxxxxxxx" 
+                className={styles.inp} 
+                maxLength={12}
+              />
             </div>
           </div>
 
@@ -342,3 +379,4 @@ export default function RiderProfilePage() {
     </div>
   )
 }
+

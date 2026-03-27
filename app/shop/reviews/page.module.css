@@ -92,8 +92,21 @@
 
 .userInfo {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 12px;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #e8f5e9;
+  border: 1px solid #dde8dd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .userName {
@@ -269,3 +282,4 @@
   font-weight: 700;
   cursor: pointer;
 }
+

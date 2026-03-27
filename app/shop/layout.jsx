@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import styles from './layout.module.css'
+import Logo from '@/components/Logo'
 
 const NAV = [
   { href: '/shop', icon: '🏠', label: 'ภาพรวม' },
@@ -22,6 +23,9 @@ export default function ShopLayout({ children }) {
   const [profileOpen, setProfileOpen] = useState(false)
   const searchParams = useSearchParams()
   const [searchValue, setSearchValue] = useState(searchParams.get('q') || '')
+  const [isOpen, setIsOpen] = useState(true) // ShopStatus (1=true, 0=false)
+  const [showConfirmClose, setShowConfirmClose] = useState(false)
+  const [showBlockClose, setShowBlockClose] = useState(false)
 
   
   const [shop, setShop] = useState({ name: 'กำลังโหลด...', id: null, logo: null })
@@ -43,8 +47,12 @@ export default function ShopLayout({ children }) {
       fetch(`http://localhost/bitesync/api/shop/get_shop_info.php?usrId=${u.id}`)
         .then(r => r.json())
         .then(d => {
-          if (d.success) setShop({ name: d.data.ShopName, id: d.data.ShopId, logo: d.data.ShopLogoPath })
-          else setShop({ name: u.name, id: null, logo: null })
+          if (d.success) {
+            setShop({ name: d.data.ShopName, id: d.data.ShopId, logo: d.data.ShopLogoPath })
+            setIsOpen(parseInt(d.data.ShopStatus) === 1)
+          } else {
+            setShop({ name: u.name, id: null, logo: null })
+          }
         })
         .catch(() => setShop({ name: u.name, id: null, logo: null }))
 
@@ -96,6 +104,38 @@ export default function ShopLayout({ children }) {
     router.push('/login')
   }
 
+  async function toggleStatus() {
+    if (isOpen) {
+      setShowConfirmClose(true)
+    } else {
+      updateStatus(1)
+    }
+  }
+
+  async function updateStatus(newStatus) {
+    try {
+      const res = await fetch('http://localhost/bitesync/api/shop/status.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usrId: user.id, status: newStatus })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setIsOpen(newStatus === 1)
+        setShowConfirmClose(false)
+      } else {
+        if (data.message.includes("active orders")) {
+          setShowConfirmClose(false)
+          setShowBlockClose(true)
+        } else {
+          alert(data.message)
+        }
+      }
+    } catch (err) {
+      alert("ไม่สามารถเปลี่ยนสถานะได้")
+    }
+  }
+
   if (checking) return (
     <div className={styles.loadingScreen}>
       <div className={styles.loadingInner}>
@@ -109,10 +149,7 @@ export default function ShopLayout({ children }) {
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.sideTop}>
-          <div className={styles.logo}>
-            <div className={styles.logoMark}>🍃</div>
-            <span className={styles.logoText}>Bite<em>Sync</em></span>
-          </div>
+          <Logo theme="dark" size="small" />
           <div className={styles.storeTag}>
             <span>🏪</span><span>ร้านค้า</span>
           </div>
@@ -165,9 +202,47 @@ export default function ShopLayout({ children }) {
             />
           </div>
 
+          <div className={styles.topRight}>
+             <div className={`${styles.statusPill} ${isOpen ? styles.pillOpen : styles.pillClosed}`} onClick={toggleStatus}>
+                <span className={styles.pillDot} />
+                <span className={styles.pillText}>{isOpen ? 'เปิดร้านอยู่' : 'ปิดร้านอยู่'}</span>
+                <span className={styles.pillToggle}>{isOpen ? '🟢' : '⚫'}</span>
+             </div>
+          </div>
+
         </header>
         <main key={pathname} className={styles.content}>{children}</main>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmClose && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox}>
+            <div className={styles.modalIcon}>🌙</div>
+            <h3 className={styles.modalTitle}>ต้องการปิดร้านหรือไม่?</h3>
+            <p className={styles.modalDesc}>ลูกค้าจะไม่สามารถสั่งอาหารจากร้านของคุณได้จนกว่าคุณจะกดเปิดร้านอีกครั้ง</p>
+            <div className={styles.modalBtns}>
+              <button className={styles.modalBtnCancel} onClick={() => setShowConfirmClose(false)}>ยกเลิก</button>
+              <button className={styles.modalBtnConfirm} onClick={() => updateStatus(0)}>ปิดร้าน</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blocked Modal */}
+      {showBlockClose && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox}>
+            <div className={styles.modalIcon}>🛑</div>
+            <h3 className={styles.modalTitle} style={{color:'#d32f2f'}}>ไม่สามารถปิดร้านได้</h3>
+            <p className={styles.modalDesc}>คุณยังมีออเดอร์ที่ค้างการจัดเตรียมอยู่ครับ<br/>กรุณาทำรายการให้เสร็จสิ้นก่อนปิดร้านนะครับ 🍳</p>
+            <div className={styles.modalBtns}>
+              <button className={styles.modalBtnConfirm} style={{width:'100%', padding:'14px'}} onClick={() => setShowBlockClose(false)}>ตกลง, กลับไปทำงาน</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

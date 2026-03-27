@@ -3,14 +3,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 
-const PERIOD_TABS = ['วันนี้', 'สัปดาห์นี้', 'เดือนนี้', 'ทั้งหมด']
+const PERIOD_TABS = ['วันนี้', '3 วันล่าสุด', '7 วันล่าสุด', '30 วันล่าสุด', 'ทั้งหมด']
 
 function Chart({ pts = [] }) {
   // Use 7 zeros as default if pts is missing or not an array
   const data = Array.isArray(pts) && pts.length > 0 ? pts : [0, 0, 0, 0, 0, 0, 0]
   const W = 520, H = 100, P = 10
   const maxVal = Math.max(...data, 100)
-  
+
   const points = data.map((v, i) => {
     const x = P + (i / (data.length - 1)) * (W - P * 2)
     const y = H - P - ((v / maxVal) * (H - P * 2))
@@ -84,12 +84,7 @@ export default function RiderHistoryPage() {
   return (
     <div>
       <div className={styles.hdr}>
-        <button onClick={() => router.back()} className={styles.backBtn} title="กลับ">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h1 className={styles.title}>ประวัติและผลงาน (Dashboard)</h1>
+        <h1 className={styles.title}>ประวัติและผลงาน</h1>
       </div>
 
       {/* Period selector */}
@@ -123,7 +118,7 @@ export default function RiderHistoryPage() {
           </div>
         </div>
         <div className={`${styles.summCard} ${styles.summYellow}`}>
-          <div className={styles.summIcon} style={{background:'rgba(240,196,25,0.2)', color:'#856404'}}>⭐</div>
+          <div className={styles.summIcon} style={{ background: 'rgba(240,196,25,0.2)', color: '#856404' }}>⭐</div>
           <div>
             <div className={`${styles.summVal} ${styles.summValDark}`}>{summary.rating ? parseFloat(summary.rating).toFixed(1) : '5.0'}</div>
             <div className={`${styles.summLbl} ${styles.summLblDark}`}>เรตติ้งของคุณ</div>
@@ -159,7 +154,7 @@ export default function RiderHistoryPage() {
         </div>
 
         {loading ? (
-             <div className={styles.loading}>กำลังดึงข้อมูล...</div>
+          <div className={styles.loading}>กำลังดึงข้อมูล...</div>
         ) : (
           <div className={styles.list}>
             {filteredHistory.length === 0 ? (
@@ -194,3 +189,4 @@ export default function RiderHistoryPage() {
     </div>
   )
 }
+

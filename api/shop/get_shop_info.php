@@ -17,7 +17,7 @@ include dirname(__FILE__) . "/../../dbconnect/dbconnect.php";
 $usrId = $_GET['usrId'] ?? null;
 if (!$usrId) exit(json_encode(["success"=>false, "message"=>"User ID required"]));
 
-$sql = "SELECT ShopId, ShopName, ShopLogoPath FROM tbl_shop WHERE UsrId = ? LIMIT 1";
+$sql = "SELECT ShopId, ShopName, ShopLogoPath, ShopStatus FROM tbl_shop WHERE UsrId = ? LIMIT 1";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $usrId);
 $stmt->execute();

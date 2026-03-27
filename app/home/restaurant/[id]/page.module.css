@@ -19,12 +19,17 @@
 }
 
 .backBtn {
-  background: #00b14f; color: #fff; border: none; border-radius: 100px;
-  padding: 8px 24px; font-size: 13.5px;
-  cursor: pointer; font-weight: 700;
-  transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+  border: 1.5px solid #dde8dd; border-radius: 9px;
+  padding: 8px 24px; background: #fff; font-size: 13.5px;
+  cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 700;
+  display: flex; align-items: center; gap: 8px; color: #374137;
+  transition: all 0.2s;
 }
-.backBtn:hover { background: #009341; transform: scale(1.05); }
+.backBtn:hover {
+  border-color: #00b14f;
+  color: #00b14f;
+  background: #f8fbf8;
+}
 
 
 /* ── Hero Section ── */
@@ -34,12 +39,24 @@
   overflow: hidden;
 }
 .heroImg { width: 100%; height: 100%; object-fit: cover; }
+.heroPlaceholder {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+}
 .heroOverlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%); }
-.heroInfo { position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; color: #fff; max-width: 1140px; margin: 0 auto; }
+.heroInfo { position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; color: #fff; max-width: 1140px; margin: 0 auto; z-index: 2; }
 .shopMetaTop { display: flex; align-items: center; gap: 15px; margin-bottom: 8px; }
 .heroLogo { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; border: 2px solid #fff; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+.heroLogoPlaceholder {
+  width: 60px; height: 60px; border-radius: 12px; 
+  background: #00b14f; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 900;
+  border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
 .shopName { font-size: 32px; font-weight: 900; margin-bottom: 0px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 .shopMeta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.9; }
+.deliveryFee { font-weight: 700; color: #fff; }
 
 /* ── Body ── */
 .body { max-width: 1140px; margin: 0 auto; padding: 30px 24px 100px; }
@@ -219,3 +236,16 @@
 
 @keyframes fadeInModal { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
 @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+.closedTag {
+  background: #d32f2f; color: #fff;
+  padding: 4px 10px; border-radius: 6px;
+  font-weight: 800; font-size: 11px;
+  text-transform: uppercase; margin-left: 8px;
+}
+
+.cartBarDisabled {
+  background: #9e9e9e !important;
+  cursor: not-allowed !important;
+}
+

@@ -23,7 +23,7 @@ function get_auth_header() {
 
 $data = json_decode(file_get_contents("php://input"), true);
 $status = $data['status'] ?? 'Offline';
-$usrId = null;
+$usrId = $data['usrId'] ?? null;
 
 $auth = get_auth_header();
 if ($auth) {

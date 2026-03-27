@@ -41,6 +41,8 @@ export default function ShopProfilePage() {
   const [originalBanner, setOriginalBanner] = useState(null)
   const [logoFileOri, setLogoFileOri] = useState(null)
   const [bannerFileOri, setBannerFileOri] = useState(null)
+  const [shopBankName, setShopBankName] = useState('')
+  const [shopBankAccount, setShopBankAccount] = useState('')
 
   // Cropper State
   const [imageToCrop, setImageToCrop] = useState(null)
@@ -131,6 +133,8 @@ export default function ShopProfilePage() {
           setUsrFullName(s.UsrFullName || '')
           setUsrEmail(s.UsrEmail || '')
           setUsrPhone(s.UsrPhone || '')
+          setShopBankName(s.ShopBankName || '')
+          setShopBankAccount(s.ShopBankAccount || '')
         }
         setLoading(false)
       })
@@ -181,6 +185,17 @@ export default function ShopProfilePage() {
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
     })
 
+    const createIcon = (emoji, size = 60) => {
+      const content = `<span style="font-size: ${size}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex;">${emoji}</span>`;
+      return L.divIcon({
+        className: '',
+        html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;">${content}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2]
+      });
+    };
+
     if (!mapRef.current || mapInstanceRef.current) return
 
     const initialLat = adrLat || 7.0085
@@ -191,7 +206,7 @@ export default function ShopProfilePage() {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map)
 
-    const marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map)
+    const marker = L.marker([initialLat, initialLng], { draggable: true, icon: createIcon('🏪') }).addTo(map)
     marker.on('dragend', () => {
       const pos = marker.getLatLng()
       setAdrLat(pos.lat.toFixed(7))
@@ -352,6 +367,8 @@ export default function ShopProfilePage() {
       if (logoFileOri) fd.append('logoOri', logoFileOri)
       if (bannerFile) fd.append('banner', bannerFile)
       if (bannerFileOri) fd.append('bannerOri', bannerFileOri)
+      if (shopBankName) fd.append('shopBankName', shopBankName)
+      if (shopBankAccount) fd.append('shopBankAccount', shopBankAccount)
 
       const res = await fetch(API, { method: 'POST', body: fd })
       const data = await res.json()
@@ -380,6 +397,8 @@ export default function ShopProfilePage() {
           if (s.ShopBannerPath) setBannerPreview(s.ShopBannerPath)
           if (s.ShopBannerOriPath || s.ShopBannerPath) setOriginalBanner(s.ShopBannerOriPath || s.ShopBannerPath)
           if (s.UsrPhone) setUsrPhone(s.UsrPhone)
+          if (s.ShopBankName) setShopBankName(s.ShopBankName)
+          if (s.ShopBankAccount) setShopBankAccount(s.ShopBankAccount)
         }
       } else {
         showToast(data.message || 'เกิดข้อผิดพลาด', false)
@@ -631,6 +650,33 @@ export default function ShopProfilePage() {
                   </div>
                 </div>
 
+              {/* ── ข้อมูลบัญชีธนาคาร ── */}
+              <div className={styles.divider} />
+              <div className={styles.sectionHeader}>
+                <span><i className="fa-solid fa-building-columns" /></span>
+                <span className={styles.sectionTitle}>ข้อมูลบัญชีธนาคาร (สำหรับรับเงิน)</span>
+              </div>
+              <div className={styles.twoCol}>
+                <div className={styles.infoItem}>
+                  <label className={styles.resLabel}>ชื่อธนาคาร</label>
+                  <select className={styles.resSelect} value={shopBankName} onChange={e => setShopBankName(e.target.value)}>
+                    <option value="">-- เลือกธนาคาร --</option>
+                    {['กสิกรไทย','กรุงไทย','กรุงเทพ','ไทยพาณิชย์','ออมสิน','ทหารไทย'].map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div className={styles.infoItem}>
+                  <label className={styles.resLabel}>เลขที่บัญชี</label>
+                  <input 
+                    type="text" 
+                    className={styles.resInput} 
+                    value={shopBankAccount} 
+                    onChange={e => setShopBankAccount(e.target.value.replace(/[^0-9]/g, ''))} 
+                    placeholder="xxxxxxxxxxxx" 
+                    maxLength={12}
+                  />
+                </div>
+              </div>
+
               {/* ── ตั้งค่าบัญชีความปลอดภัย ── */}
               <div className={styles.divider} />
               <div className={styles.sectionHeader}>
@@ -734,3 +780,4 @@ export default function ShopProfilePage() {
     </div>
   )
 }
+

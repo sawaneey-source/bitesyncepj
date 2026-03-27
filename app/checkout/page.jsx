@@ -17,6 +17,7 @@ export default function CheckoutPage() {
   const [user, setUser]       = useState(null)
   const [showDropdown, setShowDropdown] = useState(false)
   const [lastOrder, setLastOrder]       = useState(null)
+  const [isShopOpen, setIsShopOpen]     = useState(true)
 
   // Address states
   const [provinces, setProvinces] = useState([])
@@ -48,6 +49,7 @@ export default function CheckoutPage() {
         .then(data => {
             if (data.success && data.data) {
                 setShopLoc({ lat: parseFloat(data.data.AdrLat), lng: parseFloat(data.data.AdrLng) })
+                setIsShopOpen(parseInt(data.data.ShopStatus) === 1)
             }
         })
     }
@@ -67,28 +69,59 @@ export default function CheckoutPage() {
       }
       setUser(userData)
       
-      // Fetch Persistent Default Address from DB
+      // 1. Fetch Persistent Default Address from DB (Primary Source)
       fetch(`http://localhost/bitesync/api/customer/address.php?usrId=${userData.id}`)
         .then(res => res.json())
         .then(data => {
             if (data.success && data.data) {
                 const a = data.data
+                console.log("Found Default Address in DB:", a);
                 setAdrLat(parseFloat(a.AdrLat))
                 setAdrLng(parseFloat(a.AdrLng))
                 setHouseNo(a.HouseNo || '')
                 setVillage(a.Village || '')
                 setRoad(a.Road || '')
+                setSoi(a.Soi || '')
+                setMoo(a.Moo || '')
                 setSelProvince(a.Province || '')
                 setSelAmphure(a.District || '')
                 setSelTambon(a.SubDistrict || '')
                 setZipcode(a.Zipcode || '')
-                setAddress(`${a.HouseNo || ''} ${a.SubDistrict || ''} ${a.District || ''} ${a.Province || ''}`)
+                const full = `${a.HouseNo || ''} ${a.SubDistrict || ''} ${a.District || ''} ${a.Province || ''}`.trim()
+                setAddress(full)
                 
+                // Set Map View if ready, otherwise initMap will handle it
                 if (mapInstanceRef.current && markerRef.current) {
                     mapInstanceRef.current.setView([a.AdrLat, a.AdrLng], 16)
                     markerRef.current.setLatLng([a.AdrLat, a.AdrLng])
                 }
                 updateDeliveryFee(a.AdrLat, a.AdrLng)
+                
+                // If we found a default, we successfully initialized
+                initMap(parseFloat(a.AdrLat), parseFloat(a.AdrLng), true)
+            } else {
+                // 2. Fallback to LocalStorage if no DB default found
+                const saved = localStorage.getItem('bs_address_full')
+                if (saved) {
+                    const s = JSON.parse(saved)
+                    console.log("No DB default, using LocalStorage:", s);
+                    setSelProvince(s.province || '')
+                    setSelAmphure(s.amphure || '')
+                    setSelTambon(s.tambon || '')
+                    setZipcode(s.zip || '')
+                    setHouseNo(s.houseNo || '')
+                    setVillage(s.village || '')
+                    setRoad(s.road || '')
+                    setSoi(s.soi || '')
+                    setMoo(s.moo || '')
+                    setAddress(s.full || '')
+                    setAdrLat(s.lat || 7.0085)
+                    setAdrLng(s.lng || 100.4734)
+                    initMap(s.lat || 7.0085, s.lng || 100.4734, false)
+                } else {
+                    // 3. Last Resort: Auto Geolocation (Only once)
+                    initMap(7.0085, 100.4734, false, true)
+                }
             }
         })
     } else {
@@ -98,40 +131,11 @@ export default function CheckoutPage() {
     
     setLastOrder(localStorage.getItem('bs_last_order') || null)
 
-    // Load saved address
-    const saved = localStorage.getItem('bs_address_full')
-    if (saved) {
-      const s = JSON.parse(saved)
-      setSelProvince(s.province || '')
-      setSelAmphure(s.amphure || '')
-      setSelTambon(s.tambon || '')
-      setZipcode(s.zip || '')
-      setHouseNo(s.houseNo || '')
-      setVillage(s.village || '')
-      setRoad(s.road || '')
-      setSoi(s.soi || '')
-      setMoo(s.moo || '')
-      setAddress(s.full || '')
-    } else {
-      setAddress(localStorage.getItem('bs_order_address') || '')
-    }
-
-    // Fetch provinces
-    console.log("Triggering Fetch: http://localhost/bitesync/api/home/thai_address.php");
+    // Fetch provinces (for reverse geocoding dropdowns)
     fetch('http://localhost/bitesync/api/home/thai_address.php')
-      .then(res => {
-        console.log("Fetch response received. Status:", res.status);
-        return res.json();
-      })
-      .then(data => {
-        console.log("Provinces data loaded. Count:", data.length);
-        setProvinces(data);
-      })
-      .catch((err) => {
-        console.error("FAILED TO FETCH PROVINCES:", err);
-      });
-
-    initMap()
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .catch(err => console.error("Province fetch failed", err))
   }, [router])
 
   // Reactively update delivery fee
@@ -334,7 +338,7 @@ export default function CheckoutPage() {
     setDeliveryFee(fee);
   }
 
-  async function initMap() {
+  async function initMap(initialLat, initialLng, skipAutoLocate = false, forceAutoLocate = false) {
     if (typeof window === 'undefined') return
     const L = (await import('leaflet')).default
     await import('leaflet/dist/leaflet.css')
@@ -348,34 +352,53 @@ export default function CheckoutPage() {
 
     if (!mapRef.current || mapInstanceRef.current) return
 
-    const map = L.map(mapRef.current).setView([adrLat, adrLng], 16)
+    const startLat = initialLat || adrLat
+    const startLng = initialLng || adrLng
+
+    const createIcon = (emoji, size = 60) => {
+      const content = `<span style="font-size: ${size}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); text-shadow: 0 0 4px white, 0 0 10px white; display: flex;">${emoji}</span>`;
+      return L.divIcon({
+        className: '',
+        html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;">${content}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2]
+      });
+    };
+
+    const map = L.map(mapRef.current).setView([startLat, startLng], 16)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map)
 
-    const marker = L.marker([adrLat, adrLng], { draggable: true }).addTo(map)
+    const marker = L.marker([startLat, startLng], { draggable: true, icon: createIcon('📍') }).addTo(map)
     marker.on('dragend', () => {
       const pos = marker.getLatLng()
-      setAdrLat(pos.lat.toFixed(7))
-      setAdrLng(pos.lng.toFixed(7))
-      reverseGeocode(pos.lat, pos.lng)
-      updateDeliveryFee(pos.lat, pos.lng)
+      const lat = pos.lat.toFixed(7)
+      const lng = pos.lng.toFixed(7)
+      setAdrLat(lat)
+      setAdrLng(lng)
+      reverseGeocode(lat, lng)
+      updateDeliveryFee(lat, lng)
     })
 
     map.on('click', (e) => {
       marker.setLatLng(e.latlng)
-      setAdrLat(e.latlng.lat.toFixed(7))
-      setAdrLng(e.latlng.lng.toFixed(7))
-      reverseGeocode(e.latlng.lat, e.latlng.lng)
-      updateDeliveryFee(e.latlng.lat, e.latlng.lng)
+      const lat = e.latlng.lat.toFixed(7)
+      const lng = e.latlng.lng.toFixed(7)
+      setAdrLat(lat)
+      setAdrLng(lng)
+      reverseGeocode(lat, lng)
+      updateDeliveryFee(lat, lng)
     })
 
     mapInstanceRef.current = map
     markerRef.current = marker
     setMapReady(true)
 
-    // Only get real location automatically if adrLat is at default
-    if (adrLat === 7.0085 && !houseNo) {
+    // Logic for auto-locating
+    if (forceAutoLocate || (startLat === 7.0085 && !skipAutoLocate)) {
+        console.log("Triggering auto-location...");
         handleGetCurrentLocation();
     }
   }
@@ -571,7 +594,7 @@ export default function CheckoutPage() {
     localStorage.removeItem('bs_order_note')
     localStorage.setItem('bs_last_order', orderId)
     setLoading(false)
-    router.push('/order-complete')
+    router.push(`/order-complete?id=${orderId}`)
   }
 
   return (
@@ -898,10 +921,13 @@ export default function CheckoutPage() {
                 </div>
                 <button 
                   onClick={placeOrder} 
-                  disabled={loading || !isAddressValid || cart.length === 0} 
+                  disabled={loading || !isAddressValid || cart.length === 0 || !isShopOpen} 
                   className={styles.payBtn}
                 >
-                  {loading ? '⏳ กำลังดำเนินการ...' : (!isAddressValid ? '⚠️ กรุณาใส่ที่อยู่ให้ครบ' : `ยืนยันออเดอร์ — ${Math.round(total).toLocaleString()} ฿`)}
+                  {loading ? '⏳ กำลังดำเนินการ...' : (
+                    !isShopOpen ? '🌙 ขออภัย ร้านปิดให้บริการ' : 
+                    (!isAddressValid ? '⚠️ กรุณาใส่ที่อยู่ให้ครบ' : `ยืนยันออเดอร์ — ${Math.round(total).toLocaleString()} ฿`)
+                  )}
                 </button>
               </div>
             </div>
@@ -948,3 +974,4 @@ export default function CheckoutPage() {
     </div>
   )
 }
+

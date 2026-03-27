@@ -75,3 +75,4 @@ const createImage = (url) =>
     }
     image.src = url
   })
+

@@ -1,17 +1,19 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import Logo from '@/components/Logo'
 
-export default function OrderCompletePage() {
-  const router  = useRouter()
+function OrderCompleteContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [orderId, setOrderId] = useState('')
 
   useEffect(() => {
-    const id = localStorage.getItem('bs_last_order') || 'ORD-XXXXX'
-    setOrderId(id)
-  }, [])
+    const urlId = searchParams.get('id')
+    const localId = localStorage.getItem('bs_last_order')
+    setOrderId(urlId || localId || 'ORD-XXXXX')
+  }, [searchParams])
 
   return (
     <div className={styles.page}>
@@ -71,5 +73,13 @@ export default function OrderCompletePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OrderCompletePage() {
+  return (
+    <Suspense fallback={<div className={styles.loading}>กำลังโหลดข้อมูล...</div>}>
+      <OrderCompleteContent />
+    </Suspense>
   )
 }

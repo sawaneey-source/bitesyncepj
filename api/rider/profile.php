@@ -276,7 +276,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         "bankAccount" => $r['RiderBankAccount'] ?? '',
         "emergency" => $r['EmergencyPhone'] ?? '',
         "img" => $r['UsrImagePath'] ? 'http://localhost/bitesync/public' . $r['UsrImagePath'] : null,
-        "imgOri" => $r['UsrImageOriPath'] ? 'http://localhost/bitesync/public' . $r['UsrImageOriPath'] : null
+        "imgOri" => $r['UsrImageOriPath'] ? 'http://localhost/bitesync/public' . $r['UsrImageOriPath'] : null,
+        "rawImg" => $r['UsrImagePath'] ?? null,
+        "rawImgOri" => $r['UsrImageOriPath'] ?? null
     ];
 
     echo json_encode(["success"=>true, "message"=>"บันทึกข้อมูลส่วนตัวสำเร็จ ✅", "data"=>$fullData], JSON_UNESCAPED_UNICODE);

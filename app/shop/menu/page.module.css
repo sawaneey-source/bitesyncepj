@@ -37,3 +37,4 @@
 .mBtns{display:flex;gap:5px;}
 .btnEdit{flex:1;padding:5px 0;border-radius:7px;border:1.5px solid #2a6129;background:#e8f5e9;color:#2a6129;font-size:11.5px;font-weight:700;cursor:pointer;}
 .btnDelSm{width:28px;padding:5px 0;border-radius:7px;border:1.5px solid #fcc;background:#fff5f5;color:#e53935;font-size:12px;cursor:pointer;}
+

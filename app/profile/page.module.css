@@ -238,6 +238,20 @@
 }
 .historyItem:hover { border-color: var(--primary-light); transform: translateY(-2px); box-shadow: var(--sh-1); }
 .histHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.histShopLogo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f8e9;
+  border: 1px solid #eef2ee;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
 .histShop { font-weight: 800; font-size: 16px; color: var(--dark); font-family: var(--fp); }
 .histDate { font-size: 12px; color: var(--gray-mid); margin-top: 2px; }
 .histPrice { font-weight: 800; color: var(--primary); font-size: 17px; }
@@ -373,3 +387,4 @@
   .actions { flex-direction: column; }
   .logoutBtn { margin: 20px auto 0; }
 }
+

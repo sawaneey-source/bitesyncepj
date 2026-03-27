@@ -40,7 +40,7 @@ if ($method === 'GET') {
     // Fetch all reviews for this shop
     $sql = "SELECT r.ReviewId, r.ReviewScore, r.ReviewText, r.ReviewAt,
                    r.ReviewImg1, r.ReviewImg2, r.ReviewImg3,
-                   u.UsrFullName as userName, f.FoodName
+                   u.UsrFullName as userName, u.UsrImagePath as userImage, f.FoodName
             FROM tbl_review r
             JOIN tbl_userinfo u ON r.UsrId = u.UsrId
             JOIN tbl_food f ON r.FoodId = f.FoodId
@@ -54,6 +54,9 @@ if ($method === 'GET') {
     
     $reviews = [];
     while ($row = $res->fetch_assoc()) {
+        if (!empty($row['userImage'])) {
+            $row['userImage'] = 'http://localhost/bitesync/public' . $row['userImage'];
+        }
         $reviews[] = $row;
     }
     

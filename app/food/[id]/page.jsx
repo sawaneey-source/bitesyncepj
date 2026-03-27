@@ -78,6 +78,10 @@ export default function FoodDetailPage() {
 
   function addToCart() {
     if (!food || !food.available) return;
+    if (parseInt(food.shopOpen) === 0) {
+      alert("ขออภัย ขณะนี้ร้านค้าปิดรับออเดอร์ชั่วคราว")
+      return
+    }
     const nextCart = JSON.parse(localStorage.getItem('bs_cart') || '[]')
     const item = {
       id: food.id, name: food.name, 
@@ -121,7 +125,7 @@ export default function FoodDetailPage() {
       {/* Nav */}
       <header className={styles.nav}>
         <div className={styles.navInner}>
-          <button onClick={() => router.push(`/home/restaurant/${food.ShopId}`)} className={styles.backBtn}>
+          <button onClick={() => router.back()} className={styles.backBtn}>
             <i className="fa-solid fa-arrow-left" /> กลับ
           </button>
           <div className={styles.logo} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
@@ -266,11 +270,11 @@ export default function FoodDetailPage() {
 
               {/* Add to cart */}
               <button 
-                onClick={food.available ? addToCart : null} 
-                className={`${styles.addCartBtn} ${!food.available ? styles.addCartBtnOff : ''}`}
-                disabled={!food.available}
+                onClick={(food.available && parseInt(food.shopOpen) !== 0) ? addToCart : null} 
+                className={`${styles.addCartBtn} ${(!food.available || parseInt(food.shopOpen) === 0) ? styles.addCartBtnOff : ''}`}
+                disabled={!food.available || parseInt(food.shopOpen) === 0}
               >
-                {food.available ? `Add to Cart — ${Math.round(total)} ฿` : 'สินค้าหมด'}
+                {parseInt(food.shopOpen) === 0 ? 'ร้านปิดให้บริการ' : (food.available ? `Add to Cart — ${Math.round(total)} ฿` : 'สินค้าหมด')}
               </button>
             </div>
           </div>
@@ -316,12 +320,19 @@ export default function FoodDetailPage() {
 
       {/* Floating cart bar */}
       {totalItems > 0 && (
-        <div className={styles.cartBar} onClick={() => router.push('/checkout')}>
+        <div 
+          className={`${styles.cartBar} ${parseInt(food?.shopOpen) === 0 ? styles.cartBarDisabled : ''}`} 
+          onClick={() => {
+            if (parseInt(food?.shopOpen) !== 0) router.push('/checkout')
+            else alert("ขออภัย ขณะนี้ร้านค้าปิดรับออเดอร์ชั่วคราว")
+          }}
+        >
           <span className={styles.cartBarCount}>{totalItems}</span>
-          <span className={styles.cartBarTxt}>ดูตะกร้า</span>
+          <span className={styles.cartBarTxt}>{parseInt(food?.shopOpen) !== 0 ? 'ดูตะกร้า' : 'ร้านค้าปิดให้บริการ'}</span>
           <span className={styles.cartBarPrice}>{totalPrice} ฿</span>
         </div>
       )}
     </div>
   )
 }
+

@@ -32,7 +32,12 @@ export default function HeroSection() {
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
-          <button className={styles.searchBtn} onClick={() => router.push('/home')}>ค้นหา</button>
+          <button 
+            className={styles.searchBtn} 
+            onClick={() => router.push(`/home?q=${encodeURIComponent(query)}`)}
+          >
+            ค้นหา
+          </button>
         </div>
       </div>
     </section>

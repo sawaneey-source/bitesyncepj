@@ -90,7 +90,17 @@ export default function Navbar({ showSearch = false, searchValue = '', onSearchC
 
               <div className={styles.userNavWrap}>
                 <div className={styles.userAvatarBtn} onClick={() => setShowDropdown(!showDropdown)}>
-                  <div className={styles.avatarCircle}>{user.name?.[0].toUpperCase() || 'U'}</div>
+                  <div className={styles.avatarCircle}>
+                    {user.image ? (
+                      <img 
+                        src={`http://localhost/bitesync/public${user.image}`} 
+                        alt="Profile" 
+                        style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      user.name?.[0].toUpperCase() || 'U'
+                    )}
+                  </div>
                   <i className={`fa-solid fa-chevron-down ${showDropdown ? styles.rotate : ''}`} />
                 </div>
 

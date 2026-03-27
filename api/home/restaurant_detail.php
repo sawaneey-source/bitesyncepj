@@ -33,16 +33,16 @@ $res = $stmt->get_result();
 $shop = $res->fetch_assoc();
 
 if ($shop) {
-    if (empty($shop['img'])) {
-        $shop['img'] = 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&q=80'; // Default
-    } else {
+    if (!empty($shop['img'])) {
         $shop['img'] = 'http://localhost/bitesync/public' . $shop['img'];
+    } else {
+        $shop['img'] = null;
     }
 
-    if (empty($shop['banner'])) {
-        $shop['banner'] = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1500&q=80'; // Default
-    } else {
+    if (!empty($shop['banner'])) {
         $shop['banner'] = 'http://localhost/bitesync/public' . $shop['banner'];
+    } else {
+        $shop['banner'] = null;
     }
     
     $shop['open'] = ($shop['open'] == 1);
@@ -59,7 +59,7 @@ if ($shop) {
 
     $shop['rating'] = $row_r['avg_rating'] ? round($row_r['avg_rating'], 1) : 0;
     $shop['reviews'] = $row_r['total_reviews'] ?: 0;
-    $shop['deliveryFee'] = 15;
+    $shop['deliveryFee'] = 20;
 
     // Fetch Menus
     $menus = [];
@@ -72,10 +72,10 @@ if ($shop) {
     $stmt_m->execute();
     $res_m = $stmt_m->get_result();
     while($row_m = $res_m->fetch_assoc()) {
-        if (empty($row_m['img'])) {
-            $row_m['img'] = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&q=80';
-        } else {
+        if (!empty($row_m['img'])) {
             $row_m['img'] = 'http://localhost/bitesync/public' . $row_m['img'];
+        } else {
+            $row_m['img'] = null;
         }
         $row_m['available'] = ($row_m['available'] == 1);
         $menus[] = $row_m;
@@ -85,7 +85,7 @@ if ($shop) {
     $reviewsList = [];
     $sql_rev = "SELECT r.ReviewId, r.ReviewScore, r.ReviewText, r.ReviewAt,
                        r.ReviewImg1, r.ReviewImg2, r.ReviewImg3,
-                       u.UsrFullName as userName, f.FoodName
+                       u.UsrFullName as userName, u.UsrImagePath as userImage, f.FoodName
                 FROM tbl_review r
                 JOIN tbl_userinfo u ON r.UsrId = u.UsrId
                 JOIN tbl_food f ON r.FoodId = f.FoodId
@@ -96,6 +96,12 @@ if ($shop) {
     $stmt_rev->execute();
     $res_rev = $stmt_rev->get_result();
     while($row_rev = $res_rev->fetch_assoc()) {
+        if (!empty($row_rev['userImage'])) {
+            $row_rev['userImage'] = 'http://localhost/bitesync/public' . $row_rev['userImage'];
+        }
+        if (!empty($row_rev['ReviewImg1'])) $row_rev['ReviewImg1'] = 'http://localhost/bitesync/public' . $row_rev['ReviewImg1'];
+        if (!empty($row_rev['ReviewImg2'])) $row_rev['ReviewImg2'] = 'http://localhost/bitesync/public' . $row_rev['ReviewImg2'];
+        if (!empty($row_rev['ReviewImg3'])) $row_rev['ReviewImg3'] = 'http://localhost/bitesync/public' . $row_rev['ReviewImg3'];
         $reviewsList[] = $row_rev;
     }
     
