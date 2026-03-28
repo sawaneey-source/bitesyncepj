@@ -71,8 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     $rStmt->close();
 
-    // 3. Dynamically Calculate Stats from tbl_order (Rating and Jobs only)
-    $rating = 0.0; $jobs = 0;
+    // 3. Dynamically Calculate Stats from tbl_order (Rating, Jobs, and Balances)
+    $rating = 0.0; $jobs = 0; $outstanding = 0.0; $settledBalance = 0.0;
     if ($rId) {
         // Average Rating
         $q1 = $conn->prepare("SELECT AVG(RiderRating) as avgR, COUNT(RiderRating) as cntR FROM tbl_order WHERE RiderId = ? AND RiderRating IS NOT NULL");
@@ -89,6 +89,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $res2 = $q2->get_result()->fetch_assoc();
         $jobs = (int)($res2['totalJobs'] ?? 0);
         $q2->close();
+
+        // --- NEW: Dynamic Balance Calculation ---
+        // 1. Outstanding (Finished but not yet paid by Admin)
+        $q3 = $conn->prepare("SELECT IFNULL(SUM(OdrRiderFee), 0) as amt FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6 AND OdrRiderSettled = 0");
+        $q3->bind_param("i", $rId);
+        $q3->execute();
+        $outstanding = (float)($q3->get_result()->fetch_assoc()['amt'] ?? 0);
+        $q3->close();
+
+        // 2. Total Settled (Already paid by Admin)
+        $q4 = $conn->prepare("SELECT IFNULL(SUM(OdrRiderFee), 0) as amt FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6 AND OdrRiderSettled = 1");
+        $q4->bind_param("i", $rId);
+        $q4->execute();
+        $settledBalance = (float)($q4->get_result()->fetch_assoc()['amt'] ?? 0);
+        $q4->close();
     }
 
     // Map DB to Frontend JSON
@@ -106,8 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         "imgOri" => $uRow['UsrImageOriPath'] ? 'http://localhost/bitesync/public' . $uRow['UsrImageOriPath'] : null,
         "rating" => round($rating, 1),
         "ratingCount" => $jobs,
-        "balance" => (float)$totalPaid,
-        "outstanding" => (float)$currentBalance,
+        "balance" => $settledBalance,
+        "outstanding" => $outstanding,
         "status" => $rRow['RiderStatus'] ?? 'Offline'
     ];
     
@@ -273,6 +288,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         $res2 = $q2->get_result()->fetch_assoc();
         $jobs = (int)($res2['totalJobs'] ?? 0);
         $q2->close();
+
+        // Dynamic Balance for Update Sync
+        $q3 = $conn->prepare("SELECT IFNULL(SUM(OdrRiderFee), 0) as amt FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6 AND OdrRiderSettled = 0");
+        $q3->bind_param("i", $rId); $q3->execute();
+        $outstanding = (float)($q3->get_result()->fetch_assoc()['amt'] ?? 0);
+        $q3->close();
+
+        $q4 = $conn->prepare("SELECT IFNULL(SUM(OdrRiderFee), 0) as amt FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6 AND OdrRiderSettled = 1");
+        $q4->bind_param("i", $rId); $q4->execute();
+        $settledBalance = (float)($q4->get_result()->fetch_assoc()['amt'] ?? 0);
+        $q4->close();
     }
 
     $fullData = [
@@ -291,8 +317,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         "rawImgOri" => $r['UsrImageOriPath'] ?? null,
         "rating" => round($rating, 1),
         "ratingCount" => $jobs,
-        "balance" => (float)($r['RiderTotalSettled'] ?? 0),
-        "outstanding" => (float)($r['RiderBalance'] ?? 0)
+        "balance" => $settledBalance,
+        "outstanding" => $outstanding
     ];
 
     echo json_encode(["success"=>true, "message"=>"บันทึกข้อมูลส่วนตัวสำเร็จ ✅", "data"=>$fullData], JSON_UNESCAPED_UNICODE);

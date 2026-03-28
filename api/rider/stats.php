@@ -20,18 +20,24 @@ if (!$usrId) {
     exit();
 }
 
-// 1. Get RiderId and Current Rating
-$rStmt = $conn->prepare("SELECT RiderId, RiderRatingAvg FROM tbl_rider WHERE UsrId = ?");
+// 1. Get RiderId
+$rStmt = $conn->prepare("SELECT RiderId FROM tbl_rider WHERE UsrId = ?");
 $rStmt->bind_param("i", $usrId);
 $rStmt->execute();
 $rRes = $rStmt->get_result();
 if ($rRow = $rRes->fetch_assoc()) {
     $riderId = $rRow['RiderId'];
-    $currentRating = (float)$rRow['RiderRatingAvg'];
 } else {
     echo json_encode(['success' => false, 'message' => 'Rider not found']);
     exit();
 }
+
+// 1.1 Calculate Dynamic Rating
+$qRate = $conn->prepare("SELECT AVG(RiderRating) as avgR FROM tbl_order WHERE RiderId = ? AND RiderRating IS NOT NULL");
+$qRate->bind_param("i", $riderId);
+$qRate->execute();
+$currentRating = (float)($qRate->get_result()->fetch_assoc()['avgR'] ?? 0);
+$qRate->close();
 
 // 2. Aggregate Stats by Period
 $dateFilter = "DATE(OdrCreatedAt) = CURDATE()"; // default today
@@ -68,11 +74,12 @@ if ($row = $res->fetch_assoc()) {
     $stats['distance'] = number_format((float)$row['distance'], 1);
 }
 
-// 3. Get total historical settled amount from tbl_rider
-$bStmt = $conn->prepare("SELECT RiderTotalSettled FROM tbl_rider WHERE RiderId = ?");
+// 3. Get total historical settled amount (Dynamic)
+$bStmt = $conn->prepare("SELECT IFNULL(SUM(OdrRiderFee), 0) as total FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6 AND OdrRiderSettled = 1");
 $bStmt->bind_param("i", $riderId);
 $bStmt->execute();
-$stats['totalSettled'] = (float)($bStmt->get_result()->fetch_assoc()['RiderTotalSettled'] ?? 0);
+$stats['totalSettled'] = (float)($bStmt->get_result()->fetch_assoc()['total'] ?? 0);
+$bStmt->close();
 
 echo json_encode(['success' => true, 'data' => $stats]);
 ?>

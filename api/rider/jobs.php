@@ -88,8 +88,8 @@ if ($result && $result->num_rows > 0) {
         // Distance from Rider to Shop
         $distToShop = getDistance($riderLat, $riderLng, (float)$row['shopLat'], (float)$row['shopLng']);
 
-        // Only show jobs within 5km
-        if ($distToShop > 5.0) continue;
+        // Only show jobs within 15km
+        if ($distToShop > 15.0) continue;
 
         $jobs[] = [
             'id' => "#" . $row['OdrId'],

@@ -45,13 +45,13 @@ if ($action === 'ban') {
         $conn->query("DELETE FROM tbl_address WHERE UsrId = $usrId");
         
         // 3. Keep order history but anonymize (User and Rider)
-        $conn->query("UPDATE tbl_order SET UsrId = 0 WHERE UsrId = $usrId");
+        $conn->query("UPDATE tbl_order SET UsrId = NULL WHERE UsrId = $usrId");
 
         // If this user is a rider, clear RiderId from orders and delete cancel history
         $riderRes = $conn->query("SELECT RiderId FROM tbl_rider WHERE UsrId = $usrId");
         if ($riderRes && $riderRow = $riderRes->fetch_assoc()) {
             $rId = $riderRow['RiderId'];
-            $conn->query("UPDATE tbl_order SET RiderId = 0 WHERE RiderId = $rId");
+            $conn->query("UPDATE tbl_order SET RiderId = NULL WHERE RiderId = $rId");
             $conn->query("DELETE FROM tbl_order_cancel_history WHERE RiderId = $rId");
         }
         

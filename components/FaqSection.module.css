@@ -4,12 +4,12 @@
 
 .faqTabs { display: flex; justify-content: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .faqTab {
-  padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
-  border: none; background: transparent; color: var(--gray);
+  padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+  border: none; background: transparent; color: var(--text);
   font-family: var(--fs); cursor: pointer; transition: all .2s;
 }
-.faqTab:hover { background: var(--green-pale); color: var(--green); }
-.faqTabActive { background: var(--green) !important; color: #fff !important; }
+.faqTab:hover { background: var(--primary-pale); color: var(--primary); }
+.faqTabActive { background: var(--primary) !important; color: #fff !important; }
 
 .faqContent {
   display: grid;
@@ -31,40 +31,40 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 4px;
+  padding: 16px 4px;
   background: transparent;
   border: none;
-  font-size: 14px;
+  font-size: 15px;
   font-family: var(--fs);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--dark);
   cursor: pointer;
   text-align: left;
   gap: 12px;
   transition: color .2s;
 }
-.faqQ:hover { color: var(--green); }
-.faqItemOpen .faqQ { color: var(--green); font-weight: 700; }
+.faqQ:hover { color: var(--primary); }
+.faqItemOpen .faqQ { color: var(--primary); font-weight: 700; }
 
 .faqChevron {
   font-size: 12px;
-  color: var(--gray);
+  color: var(--text);
   flex-shrink: 0;
   transition: color .2s;
 }
-.faqItemOpen .faqChevron { color: var(--green); }
+.faqItemOpen .faqChevron { color: var(--primary); }
 
 /* คำตอบ slide in */
 .faqAnswer {
   padding: 0 4px 16px;
-  font-size: 13px;
-  color: var(--gray);
+  font-size: 14px;
+  color: var(--text);
   line-height: 1.75;
-  background: var(--green-pale);
+  background: var(--primary-bg);
   border-radius: 10px;
   padding: 14px 16px;
   margin-bottom: 12px;
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--primary);
   animation: slideDown .22s ease both;
 }
 
@@ -75,31 +75,32 @@
 
 /* ── HOW IT WORKS (right) ── */
 .faqHow {
-  background: var(--green-pale);
-  border-radius: var(--radius);
-  padding: 20px;
+  background: var(--primary-bg);
+  border-radius: var(--r-m);
+  padding: 24px;
 }
 .faqBadge {
-  background: var(--yellow); color: var(--dark);
-  font-size: 11px; font-weight: 700;
-  padding: 4px 12px; border-radius: 20px;
-  display: inline-block; margin-bottom: 14px;
+  background: var(--accent); color: var(--dark);
+  font-size: 11px; font-weight: 800;
+  padding: 5px 14px; border-radius: 20px;
+  display: inline-block; margin-bottom: 16px;
 }
 .stepsGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-top: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .stepCard {
-  background: #fff; border-radius: 10px; padding: 14px 12px;
-  text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  background: #fff; border-radius: 12px; padding: 16px 10px;
+  text-align: center; box-shadow: var(--sh-1);
 }
-.stepIcon  { font-size: 28px; margin-bottom: 8px; }
-.stepTitle { font-size: 12px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
-.stepDesc  { font-size: 11px; color: var(--gray); line-height: 1.4; }
+.stepIcon  { font-size: 30px; margin-bottom: 10px; }
+.stepTitle { font-size: 13px; font-weight: 800; color: var(--dark); margin-bottom: 4px; }
+.stepDesc  { font-size: 12px; color: var(--text); line-height: 1.5; font-weight: 500; }
 .howDesc {
-  font-size: 12px; color: var(--gray); line-height: 1.7;
-  background: #fff; border-radius: 10px; padding: 12px 14px;
+  font-size: 12px; color: var(--text); line-height: 1.8;
+  background: #fff; border-radius: 12px; padding: 14px 16px;
+  font-weight: 500;
 }

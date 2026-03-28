@@ -3,8 +3,38 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import Logo from '@/components/Logo'
-import PremiumModal from '@/components/PremiumModal'
 import { PUBLIC_URL } from '@/utils/api'
+import PremiumModal from '@/components/PremiumModal'
+
+// --- PromptPay QR Logic ---
+const crc16 = (data) => {
+  let crc = 0xFFFF;
+  for (let i = 0; i < data.length; i++) {
+    let x = ((crc >> 8) ^ data.charCodeAt(i)) & 0xFF;
+    x ^= x >> 4;
+    crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ x) & 0xFFFF;
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+};
+
+const generatePromptPayPayload = (id, amount) => {
+  let target = id.replace(/[^0-9]/g, "");
+  let payload = "000201010212"; 
+  if (target.length === 10) {
+    target = "0066" + target.substring(1);
+    payload += "29370016A000000677010111" + "0113" + target;
+  } else {
+    payload += "29370016A000000677010111" + "02" + target.length.toString().padStart(2, '0') + target;
+  }
+  payload += "53037645802TH";
+  if (amount) {
+    const amountStr = parseFloat(amount).toFixed(2);
+    payload += "54" + amountStr.length.toString().padStart(2, '0') + amountStr;
+  }
+  payload += "6304";
+  payload += crc16(payload);
+  return payload;
+};
 
 
 export default function CheckoutPage() {
@@ -22,6 +52,12 @@ export default function CheckoutPage() {
   const [isShopOpen, setIsShopOpen]     = useState(true)
   const [showDropdown, setShowDropdown] = useState(false)
   const [finalTotal, setFinalTotal]     = useState(0)
+  
+  // Payment states
+  const [pmtMethod, setPmtMethod]     = useState('qr') // 'qr' or 'bank'
+  const [pmtSettings, setPmtSettings] = useState(null)
+  const [verifying, setVerifying]     = useState(false)
+  const [slipFile, setSlipFile]       = useState(null)
   const searchParams = useSearchParams()
   const existingOrderIdParam = searchParams.get('id')
   
@@ -170,6 +206,18 @@ export default function CheckoutPage() {
       window.removeEventListener('storage', syncState)
     }
   }, [router])
+
+  // Fetch payment settings when entering step 2
+  useEffect(() => {
+    if (step === 2) {
+      fetch('http://localhost/bitesync/api/customer/get-settings.php')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setPmtSettings(data.data)
+        })
+        .catch(err => console.error("Settings fetch failed", err))
+    }
+  }, [step])
 
   // New Effect for Loading Existing Order from URL
   useEffect(() => {
@@ -692,6 +740,51 @@ export default function CheckoutPage() {
     router.push(`/order-complete?id=${orderId}`)
   }
 
+  async function handleSlipUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setSlipFile(file)
+    await verifyPayment(file)
+  }
+
+  async function verifyPayment(file) {
+    setVerifying(true)
+    const fd = new FormData()
+    fd.append('orderId', orderId)
+    fd.append('method', pmtMethod === 'qr' ? 'PromptPay' : 'BankTransfer')
+    fd.append('amount', finalTotal)
+    fd.append('slip', file)
+
+    try {
+      const res = await fetch('http://localhost/bitesync/api/customer/verify-payment.php', {
+        method: 'POST',
+        body: fd
+      })
+      const data = await res.json()
+      if (data.success) {
+        // Automatically proceed to success page
+        router.push(`/order-complete?id=${orderId}`)
+      } else {
+        openModal({
+          title: 'ตรวจสอบสลิปล้มเหลว',
+          description: data.message || 'ไม่สามารถยืนยันยอดเงินได้ กรุณาตรวจสอบรูปภาพสลิปอีกครั้งครับ',
+          type: 'alert',
+          icon: '❌'
+        })
+      }
+    } catch (e) {
+      console.error("Verification error:", e)
+      openModal({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถติดต่อระบบตรวจสอบได้ กรุณาลองใหม่อีกครั้งครับ',
+        type: 'alert',
+        icon: '🚫'
+      })
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.nav}>
@@ -1075,36 +1168,90 @@ export default function CheckoutPage() {
         {step === 2 && (
           <div className={styles.paymentWrap}>
             <div className={styles.paymentCard}>
-              <h2 className={styles.payTitle}>Complete Your Payment</h2>
-              <div className={styles.orderIdRow}>Order: <strong>{orderId}</strong></div>
-              <div className={styles.totalBig}>{Math.round(finalTotal).toLocaleString()} ฿</div>
-
-              {/* QR Code placeholder */}
-              <div className={styles.qrWrap}>
-                <div className={styles.qrBox}>
-                  <svg viewBox="0 0 100 100" className={styles.qrSvg}>
-                    {/* QR pattern placeholder */}
-                    {[...Array(10)].map((_,i)=>[...Array(10)].map((_,j)=>(
-                      Math.random()>.5 && <rect key={`${i}-${j}`} x={i*10} y={j*10} width={9} height={9} fill="#1a1f1a"/>
-                    )))}
-                    <rect x="0" y="0" width="30" height="30" fill="#1a1f1a"/>
-                    <rect x="4" y="4" width="22" height="22" fill="#fff"/>
-                    <rect x="8" y="8" width="14" height="14" fill="#1a1f1a"/>
-                    <rect x="70" y="0" width="30" height="30" fill="#1a1f1a"/>
-                    <rect x="74" y="4" width="22" height="22" fill="#fff"/>
-                    <rect x="78" y="8" width="14" height="14" fill="#1a1f1a"/>
-                    <rect x="0" y="70" width="30" height="30" fill="#1a1f1a"/>
-                    <rect x="4" y="74" width="22" height="22" fill="#fff"/>
-                    <rect x="8" y="78" width="14" height="14" fill="#1a1f1a"/>
-                  </svg>
-                </div>
-                <p className={styles.qrHint}>สแกน QR เพื่อชำระเงิน</p>
-                <p className={styles.qrAmount}>{Math.round(finalTotal).toLocaleString()} ฿</p>
+              {/* Payment Method Selector */}
+              <div className={styles.methodTabs}>
+                <button 
+                  className={`${styles.mTab} ${pmtMethod === 'qr' ? styles.mTabOn : ''}`}
+                  onClick={() => setPmtMethod('qr')}
+                >
+                  พร้อมเพย์ (QR)
+                </button>
+                <button 
+                  className={`${styles.mTab} ${pmtMethod === 'bank' ? styles.mTabOn : ''}`}
+                  onClick={() => setPmtMethod('bank')}
+                >
+                  โอนเข้าบัญชี
+                </button>
               </div>
 
-              <button onClick={confirmPayment} disabled={loading} className={styles.confirmBtn}>
-                {loading ? '⏳ กำลังยืนยัน...' : '✅ ยืนยันการชำระเงิน'}
-              </button>
+              <div className={styles.ppLogoContainer}>
+                <img 
+                  src={pmtMethod === 'qr' 
+                    ? "https://upload.wikimedia.org/wikipedia/commons/c/c5/PromptPay-logo.png"
+                    : "https://cdn-icons-png.flaticon.com/512/2830/2830284.png"
+                  } 
+                  alt="Payment Method" 
+                  className={styles.ppLogo} 
+                />
+              </div>
+
+              <h2 className={styles.payTitle}>{pmtMethod === 'qr' ? 'สแกนจ่ายทันที' : 'รายละเอียดการโอน'}</h2>
+              <div className={styles.orderIdRow}>Order ID: {orderId}</div>
+              
+              <div className={styles.totalBig}>
+                <span>฿</span>{Math.round(finalTotal).toLocaleString()}
+              </div>
+
+              {pmtMethod === 'qr' ? (
+                <div className={styles.qrWrap}>
+                  <div className={styles.qrBox}>
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(generatePromptPayPayload(pmtSettings?.promptpay_no || '0964569088', finalTotal))}`}
+                      alt="Scan to Pay"
+                      className={styles.qrSvg}
+                    />
+                  </div>
+                  <p className={styles.qrHint}>สแกน QR เพื่อชำระเงินผ่านแอปธนาคาร</p>
+                </div>
+              ) : (
+                <div className={styles.bankInfoBox}>
+                  <div className={styles.bankRow}>
+                    <span className={styles.bankLbl}>ธนาคาร:</span>
+                    <span className={styles.bankVal}>{pmtSettings?.bank_name || 'SCB'}</span>
+                  </div>
+                  <div className={styles.bankRow}>
+                    <span className={styles.bankLbl}>เลขที่บัญชี:</span>
+                    <span className={styles.bankVal}>{pmtSettings?.bank_acc_no || 'xxx-x-xxxxx-x'}</span>
+                  </div>
+                  <div className={styles.bankRow}>
+                    <span className={styles.bankLbl}>ชื่อบัญชี:</span>
+                    <span className={styles.bankVal}>{pmtSettings?.bank_acc_name || 'BiteSync Co.'}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload & Verify Area */}
+              <div className={styles.uploadArea} onClick={() => document.getElementById('slipInp').click()}>
+                <input 
+                  type="file" 
+                  id="slipInp" 
+                  hidden 
+                  accept="image/*" 
+                  onChange={handleSlipUpload}
+                  disabled={verifying}
+                />
+                
+                {verifying && (
+                  <div className={styles.verifyingOverlay}>
+                    <div className={styles.spinner}></div>
+                    <span className={styles.verifyTxt}>กำลังตรวจสอบสลิปกับธนาคาร...</span>
+                  </div>
+                )}
+                
+                <span className={styles.uploadIcon}>📸</span>
+                <div className={styles.uploadTxt}>อัปโหลดสลิปเพื่อยืนยัน</div>
+                <div className={styles.uploadSub}>ระบบจะตรวจสอบและพาไปหน้าถัดไปทันที</div>
+              </div>
             </div>
           </div>
         )}

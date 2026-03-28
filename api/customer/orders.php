@@ -184,7 +184,9 @@ if ($method === 'POST') {
             $order['MaxPrepTime'] = $maxPrep;
 
             $os = (int)$order['OdrStatus'];
-            if ($os === 2) $step = 0; // Paid, waiting for shop to accept
+            $step = 0; // Default: Waiting/Unpaid
+            if ($os === 1) $step = 0; // Unpaid
+            else if ($os === 2) $step = 0; // Paid, waiting for shop to accept
             else if ($os === 3) $step = 1; // Shop accepted and is preparing
             else if ($os === 4) $step = 2; // Ready (Waiting for rider)
             else if ($os === 5) $step = 4; // Delivering (Picked up)
@@ -265,9 +267,9 @@ if ($method === 'POST') {
     }
 
     $currentOS = (int)$res['OdrStatus'];
-    // Only allow self-cancel if unpaid (Status 1)
-    if ($currentOS !== 1) {
-        echo json_encode(['success' => false, 'message' => 'ไม่สามารถยกเลิกได้ เนื่องจากออเดอร์เข้าสู่ระบบของร้านค้าแล้ว']);
+    // Allow self-cancel if unpaid (1) or paid but shop hasn't accepted yet (2)
+    if ($currentOS > 2) {
+        echo json_encode(['success' => false, 'message' => 'ไม่สามารถยกเลิกได้ เนื่องจากทางร้านได้รับออเดอร์และเริ่มดำเนินการแล้วครับ']);
         exit;
     }
 

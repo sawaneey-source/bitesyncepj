@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import styles from './page.module.css'
 import Navbar from '@/components/Navbar'
+import PremiumModal from '@/components/PremiumModal'
 
 const STEPS = [
   { key: 'received', label: 'รอทางร้านรับออเดอร์', icon: '📋' },
@@ -31,6 +32,25 @@ export default function TrackPage() {
   const [user, setUser] = useState(null)
   const [mapReady, setMapReady] = useState(false)
   const initializingRef = useRef(false)
+
+  // Premium Modal State
+  const [modal, setModal] = useState({ 
+    open: false, 
+    title: '', 
+    description: '', 
+    type: 'confirm', 
+    icon: '💡',
+    onConfirm: null,
+    confirmText: 'ตกลง'
+  })
+
+  const openModal = (config) => {
+    setModal(prev => ({ ...prev, ...config, open: true }))
+  }
+
+  const closeModal = () => {
+    setModal(prev => ({ ...prev, open: false }))
+  }
 
   useEffect(() => {
     const u = localStorage.getItem('bs_user')
@@ -373,26 +393,50 @@ export default function TrackPage() {
                   <p className={styles.cancelHint}>* คุณสามารถยกเลิกออเดอร์ได้ก่อนที่ร้านค้าจะเริ่มเตรียมอาหาร</p>
                   <button
                     className={styles.cancelBtn}
-                    onClick={async () => {
-                      if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกออเดอร์นี้?')) return;
-                      try {
-                        const token = localStorage.getItem('bs_token');
-                        const user = JSON.parse(localStorage.getItem('bs_user'));
-                        const res = await fetch(`http://localhost/bitesync/api/customer/orders.php`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({ id: order.id, status: 6, userId: user.id })
+                    onClick={() => {
+                        openModal({
+                            title: 'ยืนยันการยกเลิก?',
+                            description: 'คุณแน่ใจหรือไม่ว่าต้องการยกเลิกออเดอร์นี้? รายการอาหารที่คุณรอคอยจะถูกระงับทันทีครับ',
+                            icon: '❌',
+                            type: 'confirm',
+                            confirmText: 'ยืนยันยกเลิก',
+                            onConfirm: async () => {
+                                closeModal();
+                                try {
+                                    const token = localStorage.getItem('bs_token');
+                                    const user = JSON.parse(localStorage.getItem('bs_user'));
+                                    const res = await fetch(`http://localhost/bitesync/api/customer/orders.php`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                        body: JSON.stringify({ id: order.id, status: 6, userId: user.id })
+                                    });
+                                    const data = await res.json();
+                                    if (data.success) {
+                                        openModal({
+                                            title: 'สำเร็จ ✨',
+                                            description: 'ยกเลิกออเดอร์เรียบร้อยแล้วครับ ระบบได้แจ้งทางร้านค้าให้ทราบแล้ว',
+                                            type: 'success',
+                                            icon: '✅',
+                                            onConfirm: () => { closeModal(); fetchOrder(); }
+                                        });
+                                    } else {
+                                        openModal({
+                                            title: 'ยกเลิกไม่สำเร็จ',
+                                            description: data.message || 'เกิดข้อผิดพลาดในการยกเลิก กรุณาลองใหม่อีกครั้ง',
+                                            type: 'alert',
+                                            icon: '⚠️'
+                                        });
+                                    }
+                                } catch (e) {
+                                    openModal({
+                                        title: 'เกิดข้อผิดพลาด',
+                                        description: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ในขณะนี้',
+                                        type: 'alert',
+                                        icon: '🚫'
+                                    });
+                                }
+                            }
                         });
-                        const data = await res.json();
-                        if (data.success) {
-                          alert(data.message);
-                          fetchOrder();
-                        } else {
-                          alert(data.message);
-                        }
-                      } catch (e) {
-                        alert('เกิดข้อผิดพลาดในการยกเลิก');
-                      }
                     }}
                   >
                     ❌ ยกเลิกออเดอร์นี้
@@ -489,6 +533,17 @@ export default function TrackPage() {
           </div>
         </div>
       </div>
+
+      <PremiumModal 
+        isOpen={modal.open}
+        onClose={closeModal}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        icon={modal.icon}
+        confirmText={modal.confirmText}
+      />
     </div>
   )
 }

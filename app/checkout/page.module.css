@@ -142,25 +142,95 @@
 .payBtn:hover:not(:disabled) { background:var(--primary-mid); transform:translateY(-2px); box-shadow:0 10px 28px rgba(27,94,32,.35); }
 .payBtn:disabled { opacity:.6; cursor:not-allowed; }
 
-/* ── QR Payment ── */
-.paymentWrap { display:flex; justify-content:center; }
-.paymentCard { background:var(--surface); border-radius:var(--r-xl); padding:36px 40px; box-shadow:var(--sh-2); max-width:420px; width:100%; text-align:center; border:1px solid var(--gray-light); }
-.payTitle { font-family:var(--fp); font-size:22px; font-weight:900; color:var(--dark); margin:0 0 9px; }
-.orderIdRow { font-size:13px; color:var(--gray); margin-bottom:5px; }
-.totalBig { font-family:var(--fp); font-size:36px; font-weight:900; color:var(--primary); margin-bottom:26px; }
-.qrWrap { display:flex; flex-direction:column; align-items:center; gap:11px; margin-bottom:26px; }
-.qrBox { width:190px; height:190px; border:3px solid var(--dark); border-radius:var(--r-m); overflow:hidden; padding:11px; background:#fff; }
-.qrSvg { width:100%; height:100%; }
-.qrHint { font-size:13px; color:var(--gray); margin:0; }
-.qrAmount { font-family:var(--fp); font-size:22px; font-weight:800; color:var(--primary); margin:0; }
-.confirmBtn { width:100%; background:var(--primary); color:#fff; border:none; border-radius:100px; padding:16px; font-size:16px; font-weight:800; cursor:pointer; font-family:var(--fp); box-shadow:var(--sh-green); transition:all var(--t); }
-.confirmBtn:hover:not(:disabled) { background:var(--primary-mid); transform:translateY(-2px); }
-.confirmBtn:disabled { opacity:.6; cursor:not-allowed; }
-/* ── Map Picker ── */
+/* ── QR Payment & Multi-Method ── */
+.paymentWrap { display:flex; justify-content:center; animation: popIn 0.4s ease-out; }
+.paymentCard { 
+  background:var(--surface); border-radius:var(--r-xl); padding:40px; 
+  box-shadow:var(--sh-3); max-width:440px; width:100%; text-align:center; 
+  border:1px solid var(--gray-light); position: relative; overflow: hidden;
+}
+.paymentCard::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg, #1B5E20, #43A047, #1B5E20);
+}
+
+.methodTabs {
+  display: flex; background: var(--gray-light); border-radius: 100px; padding: 4px; margin-bottom: 24px;
+}
+.mTab {
+  flex: 1; padding: 10px; border-radius: 100px; font-size: 14px; font-weight: 700; border: none;
+  background: transparent; color: var(--gray); cursor: pointer; transition: all 0.3s;
+}
+.mTabOn { background: var(--surface); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+.ppLogoContainer { 
+  margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.ppLogo { height: 38px; width: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+
+.bankInfoBox {
+  background: var(--primary-bg); border-radius: var(--r-m); padding: 20px; margin-bottom: 24px;
+  text-align: left; border: 1.5px dashed var(--primary-light);
+}
+.bankRow { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+.bankRow:last-child { margin-bottom: 0; }
+.bankLbl { color: var(--gray-mid); font-weight: 600; }
+.bankVal { color: var(--primary); font-weight: 800; font-family: var(--fp); font-size: 16px; }
+
+.payTitle { font-family:var(--fp); font-size:24px; font-weight:900; color:var(--dark); margin:0 0 4px; }
+.orderIdRow { font-size:14px; color:var(--gray-mid); margin-bottom:16px; font-weight: 500; }
+.totalBig { 
+  font-family:var(--fp); font-size:38px; font-weight:900; color:var(--primary); 
+  margin-bottom:24px; letter-spacing: -1px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.totalBig span { font-size: 18px; font-weight: 700; color: var(--gray-mid); margin-bottom: -10px; }
+
+.qrWrap { 
+  display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:24px;
+  padding: 20px; background: var(--primary-bg); border-radius: var(--r-l);
+}
+.qrBox { 
+  width:200px; height:200px; border-radius:var(--r-m); overflow:hidden; 
+  padding:12px; background:#fff; box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  border: 1px solid var(--gray-light);
+}
+.qrSvg { width:100%; height:100%; object-fit: contain; }
+.qrHint { font-size:13px; color:var(--gray); margin:0; font-weight: 600; line-height: 1.6; }
+
+.uploadArea {
+  border: 2px dashed var(--gray-mid); border-radius: var(--r-l); padding: 30px 20px;
+  cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
+  background: var(--surface);
+}
+.uploadArea:hover { border-color: var(--primary); background: var(--primary-bg); }
+.uploadIcon { font-size: 32px; margin-bottom: 12px; display: block; }
+.uploadTxt { font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+.uploadSub { font-size: 12px; color: var(--gray-mid); }
+
+.verifyingOverlay {
+  position: absolute; inset: 0; background: rgba(255,255,255,0.95);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 10; gap: 16px; backdrop-filter: blur(4px);
+}
+.spinner {
+  width: 40px; height: 40px; border: 4px solid var(--primary-bg);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.verifyTxt { color: var(--primary); font-weight: 800; font-size: 15px; }
+
+/* ── Map Picker (Step 1) ── */
 .mapPickerSection { margin: 18px 0; border: 1.5px solid var(--gray-light); border-radius: var(--r-m); overflow: hidden; background: var(--bg); }
 .mapPickerHeader { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid var(--bg); }
 .mapHint { font-size: 11px; color: var(--gray-mid); margin: 0; font-weight: 600; }
-.gpsBtn { background: #f0c419; color: #1a1f1a; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(240,196,25,0.3); transition: all 0.2s; }
+.gpsBtn { 
+  background: #f0c419; color: #1a1f1a; border: none; border-radius: 8px; 
+  padding: 6px 14px; font-size: 12px; font-weight: 800; cursor: pointer; 
+  display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(240,196,25,0.3); 
+  transition: all 0.2s; 
+}
 .gpsBtn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(240,196,25,0.4); background: #e6bb17; }
 .checkoutMap { width: 100%; height: 280px; z-index: 1; }
 .coordinateRow { display: flex; gap: 12px; padding: 12px 16px; background: rgba(0,0,0,0.02); }

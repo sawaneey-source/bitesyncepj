@@ -15,6 +15,26 @@ const STATUS_MAP = {
   7: { lbl: 'ยกเลิกออเดอร์', color: '#b71c1c' }
 }
 
+const formatThaiDate = (dateStr) => {
+  if (!dateStr) return '-'
+  try {
+    let d = new Date(dateStr.replace(' ', 'T'))
+    if (isNaN(d.getTime())) d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+
+    const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+    const day = d.getDate()
+    const month = months[d.getMonth()]
+    const year = d.getFullYear() + 543
+    const hours = d.getHours().toString().padStart(2, '0')
+    const mins = d.getMinutes().toString().padStart(2, '0')
+
+    return `${day} ${month} ${year} ${hours}:${mins}`
+  } catch (e) {
+    return dateStr
+  }
+}
+
 export default function ReceiptPage() {
   const router = useRouter()
   const params = useParams()
@@ -45,7 +65,7 @@ export default function ReceiptPage() {
             const row = d.data
             setOrder({
                 id: row.OdrId,
-                date: row.OdrCreatedAt,
+                date: (Number(row.OdrStatus) === 6 || Number(row.OdrStatus) === 7) ? (row.OdrUpdatedAt || row.OdrCreatedAt) : row.OdrCreatedAt,
                 paymentMethod: 'โอนเงิน (QR Code / PromptPay)',
                 total: row.OdrGrandTotal,
                 subtotal: row.OdrFoodPrice,
@@ -145,8 +165,8 @@ export default function ReceiptPage() {
               <div className={styles.metaVal}>#{order.id}</div>
             </div>
             <div className={styles.metaBox}>
-              <div className={styles.metaLabel}>วันที่สั่งซื้อ</div>
-              <div className={styles.metaVal}>{order.date}</div>
+              <div className={styles.metaLabel}>{Number(order.OdrStatus) === 6 ? 'เวลาที่จัดส่งสำเร็จ' : 'เวลาที่สั่งซื้อ'}</div>
+              <div className={styles.metaVal}>{formatThaiDate(order.date)}</div>
             </div>
             <div className={styles.metaBox}>
               <div className={styles.metaLabel}>ชำระโดย</div>

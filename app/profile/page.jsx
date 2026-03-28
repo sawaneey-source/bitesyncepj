@@ -7,6 +7,27 @@ import Cropper from 'react-easy-crop'
 import { getCroppedImg } from '../shop/menu/cropHelper'
 import styles from './page.module.css'
 
+const formatThaiDate = (dateStr) => {
+  if (!dateStr) return '-'
+  try {
+    // Standardize 'dateStr' if it's from localStorage/fake date
+    let d = new Date(dateStr.replace(' ', 'T'))
+    if (isNaN(d.getTime())) d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+
+    const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+    const day = d.getDate()
+    const month = months[d.getMonth()]
+    const year = d.getFullYear() + 543
+    const hours = d.getHours().toString().padStart(2, '0')
+    const mins = d.getMinutes().toString().padStart(2, '0')
+
+    return `${day} ${month} ${year} ${hours}:${mins}`
+  } catch (e) {
+    return dateStr
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState(null)
@@ -582,7 +603,13 @@ export default function ProfilePage() {
                           </div>
                           <div className={styles.histShop}>{order.shopName || order.ShopName || 'ร้านอาหาร'}</div>
                         </div>
-                        <div className={styles.histDate}>{order.OdrCreatedAt || order.date}</div>
+                        <div className={styles.histDate}>
+                          {formatThaiDate(
+                            (Number(order.OdrStatus) === 6 || Number(order.OdrStatus) === 7) 
+                              ? (order.OdrUpdatedAt || order.OdrCreatedAt || order.date) 
+                              : (order.OdrCreatedAt || order.date)
+                          )}
+                        </div>
                       </div>
                       <div className={styles.histPrice}>{(order.OdrGrandTotal || order.total).toLocaleString()} ฿</div>
                     </div>
@@ -644,6 +671,36 @@ export default function ProfilePage() {
                                     ยกเลิก
                                   </button>
                                 </>
+                              )}
+                              {Number(order.OdrStatus) === 2 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openModal({
+                                      title: 'ต้องการยกเลิกใช่หรือไม่?',
+                                      description: 'คุณสามารถยกเลิกออเดอร์ได้ เนื่องจากร้านค้ายังไม่ได้เริ่มเตรียมอาหารครับ',
+                                      icon: '❌',
+                                      confirmText: 'ยืนยันการยกเลิก',
+                                      onConfirm: async () => {
+                                        try {
+                                          const res = await fetch('http://localhost/bitesync/api/customer/orders.php', {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('bs_token')}` },
+                                            body: JSON.stringify({ id: orderId, status: 6, userId: user.id })
+                                          });
+                                          const d = await res.json();
+                                          if (d.success) {
+                                            openModal({ title: 'สำเร็จ', description: 'ยกเลิกออเดอร์เรียบร้อยแล้วครับ', type: 'success', icon: '✅', onConfirm: () => window.location.reload() })
+                                          } else { alert(d.message); }
+                                        } catch (err) { alert('เกิดข้อผิดพลาด'); }
+                                      }
+                                    })
+                                  }}
+                                  className={`${styles.histBtn} ${styles.cancelBtnSmall}`}
+                                  style={{ background: '#fff0f0', color: '#b71c1c', border: '1px solid #ffcdd2' }}
+                                >
+                                  ❌ ยกเลิก
+                                </button>
                               )}
                               {[2, 3, 4, 5].includes(Number(order.OdrStatus)) && (
                                 <button

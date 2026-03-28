@@ -5,6 +5,8 @@ export const metadata = {
   description: 'สั่งอาหารจากร้านโปรดของคุณ ส่งถึงบ้านรวดเร็วทันใจ',
 }
 
+import AuthGuard from '@/components/AuthGuard'
+
 export default function RootLayout({ children }) {
   return (
     <html lang="th">
@@ -14,7 +16,10 @@ export default function RootLayout({ children }) {
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthGuard />
+        {children}
+      </body>
     </html>
   )
 }

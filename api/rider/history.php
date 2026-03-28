@@ -23,18 +23,24 @@ if (!$usrId) {
     exit();
 }
 
-// Get Rider Info
-$rStmt = $conn->prepare("SELECT RiderId, RiderRatingAvg FROM tbl_rider WHERE UsrId = ?");
+// Get RiderId
+$rStmt = $conn->prepare("SELECT RiderId FROM tbl_rider WHERE UsrId = ?");
 $rStmt->bind_param("i", $usrId);
 $rStmt->execute();
 $rRes = $rStmt->get_result();
 if ($rRow = $rRes->fetch_assoc()) {
     $riderId = $rRow['RiderId'];
-    $currentRatingAvg = (float)$rRow['RiderRatingAvg'];
 } else {
     echo json_encode(['success' => false, 'message' => 'Rider not found']);
     exit();
 }
+
+// Dynamic Rating for Summary Header
+$qRate = $conn->prepare("SELECT AVG(RiderRating) as avgR FROM tbl_order WHERE RiderId = ? AND RiderRating IS NOT NULL");
+$qRate->bind_param("i", $riderId);
+$qRate->execute();
+$currentRatingAvg = (float)($qRate->get_result()->fetch_assoc()['avgR'] ?? 0);
+$qRate->close();
 
 // Date Filter Clause using MySQL dates to be safe
 $dateClause = "DATE(o.OdrCreatedAt) = CURDATE()";

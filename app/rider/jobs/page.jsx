@@ -169,7 +169,7 @@ export default function RiderJobsPage() {
         <>
           {online && riderLoc && (
             <div style={{background:'#e3f2fd', color:'#1976d2', padding:'10px 16px', borderRadius:'10px', marginBottom:'15px', display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', fontWeight:'600'}}>
-              <i className="fa-solid fa-filter" /> กำลังกรองงานในระยะ 5 กม. รอบตัวคุณ
+              <i className="fa-solid fa-filter" /> กำลังกรองงานในระยะ 15 กม. รอบตัวคุณ
             </div>
           )}
 
@@ -183,7 +183,7 @@ export default function RiderJobsPage() {
           {jobs.length === 0 ? (
             <div className={styles.empty}>
               <span>📭</span>
-              <span>ไม่มีงานใหม่ในระยะ 5 กม.</span>
+              <span>ไม่มีงานใหม่ในระยะ 15 กม.</span>
               <span className={styles.emptySub}>รองานใหม่สักครู่ หรือลองเปลี่ยนพื้นที่นะครับ</span>
             </div>
           ) : (

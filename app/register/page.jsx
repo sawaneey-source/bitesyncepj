@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import styles from './register.module.css'
@@ -24,6 +25,7 @@ const strengthColors = ['','#e53935','#f0c419','#5aa354','#3a7d38']
 const strengthLabels = ['','อ่อน','พอใช้','ดี','แข็งแกร่ง']
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [role, setRole]         = useState('customer')
   const [fullName, setFullName] = useState('')
   const [email, setEmail]       = useState('')
@@ -106,7 +108,13 @@ export default function RegisterPage() {
           <div className={styles.roleTabs}>
             {ROLES.map(r => (
               <button key={r.value} type="button"
-                onClick={() => setRole(r.value)}
+                onClick={() => {
+                  setRole(r.value)
+                  // Update URL parameter without page refresh
+                  const params = new URLSearchParams(window.location.search)
+                  params.set('role', r.value)
+                  router.replace(`/register?${params.toString()}`, { scroll: false })
+                }}
                 className={`${styles.roleTab} ${role === r.value ? styles.roleTabActive : ''}`}>
                 <i className={`fa-solid ${r.icon}`}/>
                 {r.label}

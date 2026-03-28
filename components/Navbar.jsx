@@ -44,26 +44,8 @@ export default function Navbar({
     const interval = setInterval(syncState, 2000)
     window.addEventListener('storage', syncState)
 
-    // --- REAL-TIME BAN CHECK ---
-    let banInterval;
-    if (user?.id) {
-      banInterval = setInterval(async () => {
-        try {
-          const res = await fetch(`${API_BASE}/common/check_auth.php?userId=${user.id}`);
-          const data = await res.json();
-          if (data.success && data.status === 0) {
-            console.warn("User banned. Logging out.");
-            handleLogout();
-          }
-        } catch (e) {
-          console.error("Auth check failed:", e);
-        }
-      }, 15000); // Check every 15 seconds
-    }
-
     return () => {
       clearInterval(interval)
-      if (banInterval) clearInterval(banInterval)
       window.removeEventListener('storage', syncState)
     }
   }, [cartCount, user?.id])
