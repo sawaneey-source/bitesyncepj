@@ -37,14 +37,22 @@ if ($period === 'all')    $dateClause = ""; // No date filter
 // 1. Sales for Period (Status 6 = Completed)
 // Gross is all completed, Net is only settled
 $stmt = $conn->prepare("SELECT SUM(OdrFoodPrice) as gross, 
-                               SUM(CASE WHEN OdrShopSettled = 1 THEN OdrFoodPrice - OdrGP ELSE 0 END) as net 
+                               SUM(CASE WHEN OdrShopSettled = 1 THEN OdrFoodPrice - OdrGP ELSE 0 END) as settled_net,
+                               SUM(CASE WHEN OdrShopSettled = 0 THEN OdrFoodPrice - OdrGP ELSE 0 END) as pending_net
                         FROM tbl_order 
                         WHERE ShopId = ? AND OdrStatus = 6 $dateClause");
 $stmt->bind_param("i", $shopId);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
 $grossSales = (float)($row['gross'] ?? 0);
-$netSales   = (float)($row['net'] ?? 0);
+$settledNet = (float)($row['settled_net'] ?? 0);
+$pendingNet = (float)($row['pending_net'] ?? 0);
+
+// 1.1 Fetch current historical total settled amount
+$stmt = $conn->prepare("SELECT ShopTotalSettled FROM tbl_shop WHERE ShopId = ?");
+$stmt->bind_param("i", $shopId);
+$stmt->execute();
+$totalSettledAmt = (float)($stmt->get_result()->fetch_assoc()['ShopTotalSettled'] ?? 0);
 
 // 2. Total Orders for Period (Paid, Status 2-6, exclude 7 cancelled)
 $orders = 0;
@@ -100,7 +108,9 @@ echo json_encode([
     'success' => true,
     'data' => [
         'totalSales' => $grossSales,
-        'totalNetSales' => $netSales,
+        'settledNetSales' => $settledNet,
+        'pendingNetSales' => $pendingNet,
+        'totalSettled' => $totalSettledAmt,
         'totalOrders' => $orders,
         'pendingOrdersCount' => $pendingCount,
         'recentOrders' => $recent,

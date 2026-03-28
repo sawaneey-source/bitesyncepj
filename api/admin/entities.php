@@ -17,7 +17,8 @@ $shops = [];
 $res = $conn->query("
     SELECT s.*, u.UsrFullName as owner, u.UsrStatus as ownerStatus,
            (SELECT COALESCE(SUM(OdrFoodPrice), 0) FROM tbl_order WHERE ShopId = s.ShopId AND OdrStatus = 6) as totalGross,
-           (SELECT COALESCE(SUM(OdrFoodPrice - OdrGP), 0) FROM tbl_order WHERE ShopId = s.ShopId AND OdrStatus = 6) as totalNet
+           (SELECT COALESCE(SUM(OdrFoodPrice - OdrGP), 0) FROM tbl_order WHERE ShopId = s.ShopId AND OdrStatus = 6) as totalNet,
+           (SELECT COALESCE(SUM(OdrFoodPrice - OdrGP), 0) FROM tbl_order WHERE ShopId = s.ShopId AND OdrStatus = 6 AND OdrShopSettled = 0) as pendingAmount
     FROM tbl_shop s 
     LEFT JOIN tbl_userinfo u ON s.UsrId = u.UsrId 
     ORDER BY s.ShopId DESC");
@@ -28,7 +29,8 @@ $riders = [];
 $res = $conn->query("
     SELECT r.*, u.UsrFullName as name, u.UsrPhone as phone, u.UsrStatus as riderStatus,
            (SELECT COALESCE(SUM(OdrDelFee), 0) FROM tbl_order WHERE RiderId = r.RiderId AND OdrStatus = 6) as totalGross,
-           (SELECT COALESCE(SUM(OdrRiderFee), 0) FROM tbl_order WHERE RiderId = r.RiderId AND OdrStatus = 6) as totalNet
+           (SELECT COALESCE(SUM(OdrRiderFee), 0) FROM tbl_order WHERE RiderId = r.RiderId AND OdrStatus = 6) as totalNet,
+           (SELECT COALESCE(SUM(OdrRiderFee), 0) FROM tbl_order WHERE RiderId = r.RiderId AND OdrStatus = 6 AND OdrRiderSettled = 0) as pendingAmount
     FROM tbl_rider r 
     LEFT JOIN tbl_userinfo u ON r.UsrId = u.UsrId 
     ORDER BY r.RiderId DESC");

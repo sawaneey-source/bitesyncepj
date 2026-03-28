@@ -122,17 +122,24 @@ export default function DashboardPage() {
         <div className={`${styles.stat} ${styles.statBlue}`}>
           <div className={`${styles.statIco} ${styles.statIcoBlue}`}>💎</div>
           <div>
-            <div className={`${styles.statNum} ${styles.statNumBlue}`}>{stats.totalNetSales.toLocaleString()} ฿</div>
-            <div className={`${styles.statLbl} ${styles.statLblBlue}`}>รายได้สุทธิ (Net Profit)</div>
+            <div className={`${styles.statNum} ${styles.statNumBlue}`}>{stats.settledNetSales.toLocaleString()} ฿</div>
+            <div className={`${styles.statLbl} ${styles.statLblBlue}`}>รายได้สุทธิ (โอนแล้ว)</div>
+          </div>
+        </div>
+        <div className={`${styles.stat} ${styles.statWarn}`}>
+          <div className={styles.statIco}>⌛</div>
+          <div>
+            <div className={`${styles.statNum} ${styles.statNumDark}`}>{stats.pendingNetSales.toLocaleString()} ฿</div>
+            <div className={`${styles.statLbl} ${styles.statLblDark}`}>รอยืนยันยอด (Pending)</div>
           </div>
         </div>
         <div className={`${styles.stat} ${styles.statDark}`}>
           <div className={styles.statIco}>📦</div>
           <div><div className={styles.statNum}>{stats.totalOrders}</div><div className={styles.statLbl}>ออเดอร์ทั้งหมด ({PERIODS.find(p => p.key === period)?.label})</div></div>
         </div>
-        <div className={`${styles.stat} ${styles.statWarn}`}>
+        <div className={`${styles.stat} ${styles.statGreen}`}>
           <div className={styles.statIco}>🔔</div>
-          <div><div className={`${styles.statNum} ${styles.statNumDark}`}>{stats.pendingOrdersCount}</div><div className={`${styles.statLbl} ${styles.statLblDark}`}>ออเดอร์รอยืนยัน</div></div>
+          <div><div className={`${styles.statNum}`}>{stats.pendingOrdersCount}</div><div className={styles.statLbl}>ออเดอร์รอยืนยัน</div></div>
         </div>
       </div>
 

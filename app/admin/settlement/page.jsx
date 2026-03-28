@@ -35,7 +35,7 @@ export default function SettlementPage() {
   async function handlePayout(type, id) {
     showModal(
         'ยืนยันการจ่ายเงิน', 
-        'คุณแน่ใจหรือไม่ว่าคุณได้โอนเงินให้รายการนี้เรียบร้อยแล้ว?', 
+        'คุณแน่ใจหรือไม่ว่าคุณได้โอนเงินให้รายการนี้เรียบร้อยแล้ว? ยอดเงินสะสมจะถูกเพิ่มเข้ากระเป๋าตังค์ของผู้รับทันทีครับ', 
         async () => {
             try {
                 const res = await fetch('http://localhost/bitesync/api/admin/settlement.php', {

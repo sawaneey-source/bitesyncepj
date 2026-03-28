@@ -109,7 +109,7 @@ if ($method === 'POST') {
         $odrRiderFee = $delFee * $riderShareRate;
         $odrAdminFee = $odrGP + ($delFee - $odrRiderFee); // GP + 20% of Delivery Fee
 
-        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrDistance, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee, OdrNote) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrDistance, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee, OdrNote, OdrShopSettled, OdrRiderSettled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)");
         $stmt->bind_param("iiiiddddddds", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $distance, $total, $odrGP, $odrRiderFee, $odrAdminFee, $noteShop);
         $stmt->execute();
         $orderId = $stmt->insert_id;
@@ -183,9 +183,9 @@ if ($method === 'POST') {
             $order['items'] = $items;
             $order['MaxPrepTime'] = $maxPrep;
 
-            $step = 0;
             $os = (int)$order['OdrStatus'];
-            if ($os === 2 || $os === 3) $step = 1; // Preparing
+            if ($os === 2) $step = 0; // Paid, waiting for shop to accept
+            else if ($os === 3) $step = 1; // Shop accepted and is preparing
             else if ($os === 4) $step = 2; // Ready (Waiting for rider)
             else if ($os === 5) $step = 4; // Delivering (Picked up)
             else if ($os === 6) $step = 5; // Completed

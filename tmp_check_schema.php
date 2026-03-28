@@ -1,15 +1,10 @@
 <?php
-include "dbconnect/dbconnect.php";
-$tables = ["tbl_shop", "tbl_userinfo", "tbl_order", "tbl_address"];
-foreach ($tables as $t) {
-    echo "\nTable: $t\n";
-    $res = $conn->query("DESCRIBE $t");
-    if ($res) {
-        while($row = $res->fetch_assoc()) {
-            echo $row['Field'] . " - " . $row['Type'] . "\n";
-        }
-    } else {
-        echo "Error: " . $conn->error . "\n";
+include 'c:/xampp/htdocs/bitesync/dbconnect/dbconnect.php';
+echo "--- tbl_order schema ---\n";
+$res = $conn->query("DESCRIBE tbl_order");
+while($row = $res->fetch_assoc()) {
+    if(in_array($row['Field'], ['OdrShopSettled', 'OdrRiderSettled', 'OdrStatus'])) {
+        echo "Field: " . $row['Field'] . " | Type: " . $row['Type'] . " | Default: " . ($row['Default'] === null ? 'NULL' : $row['Default']) . "\n";
     }
 }
 ?>

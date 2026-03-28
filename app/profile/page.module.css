@@ -256,8 +256,33 @@
 .histDate { font-size: 12px; color: var(--gray-mid); margin-top: 2px; }
 .histPrice { font-weight: 800; color: var(--primary); font-size: 17px; }
 .histItems { font-size: 14px; color: var(--text); opacity: 0.75; margin-bottom: 16px; line-height: 1.5; }
-.histFooter { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #eef2ee; padding-top: 16px; }
-.histStatus { font-size: 13px; font-weight: 700; color: var(--primary); }
+.histFooter { display: flex; justify-content: space-between; align-items: stretch; gap: 15px; border-top: 1px dashed #eef2ee; padding-top: 16px; margin-top: 4px; flex-direction: column; }
+@media (min-width: 600px) {
+  .histFooter { flex-direction: row; align-items: center; }
+}
+.histStatus { font-size: 13px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+
+.histActions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Base History Button Style */
+.histBtn {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  font-family: var(--fs);
+  white-space: nowrap;
+}
+
+.histBtn:active { transform: scale(0.96); }
 
 .histTabs { display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
 .tabBtn { background: none; border: none; padding: 8px 16px; font-size: 14px; font-weight: 700; color: var(--gray); cursor: pointer; border-radius: 8px; transition: all 0.2s; font-family: var(--fs); }
@@ -266,16 +291,29 @@
 
 .reorderBtn {
   background: #f1f8e9; color: #33691e; border: 1.5px solid #c5e1a5;
-  border-radius: var(--r-l); padding: 7px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all var(--t);
-  display: flex; align-items: center; gap: 6px; margin-right: 8px;
 }
 .reorderBtn:hover { background: #dcedc8; transform: translateY(-1px); }
 
 .viewBtn { 
-  background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary-pale); 
-  border-radius: var(--r-l); padding: 7px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all var(--t); 
+  background: #f8f9f8; color: #555; border: 1px solid #e0e4e0;
 }
-.viewBtn:hover { background: var(--primary-pale); border-color: var(--primary-light); }
+.viewBtn:hover { background: var(--primary-pale); border-color: var(--primary-light); color: var(--primary); }
+
+.payBtnSmall {
+  background: var(--primary); color: #fff;
+  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.2);
+}
+.payBtnSmall:hover { background: var(--primary-mid); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(27, 94, 32, 0.3); }
+
+.cancelBtnSmall {
+  background: #fffafa; color: #c53030; border: 1.5px solid #ffebeb;
+}
+.cancelBtnSmall:hover { background: #fee2e2; border-color: #feb2b2; }
+
+.trackBtn {
+  background: var(--primary); color: #fff;
+}
+.trackBtn:hover { background: var(--primary-mid); transform: translateY(-2px); }
 
 /* Address Book */
 .addAddrBtn {

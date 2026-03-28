@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import PremiumModal from '@/components/PremiumModal'
 import Cropper from 'react-easy-crop'
 import { getCroppedImg } from '../shop/menu/cropHelper'
 import styles from './page.module.css'
@@ -20,6 +21,21 @@ export default function ProfilePage() {
   const [history, setHistory] = useState([])
   const [activeTab, setActiveTab] = useState('active') // active, complete, cancel
   const [addresses, setAddresses] = useState([])
+  
+  // Premium Modal State
+  const [modal, setModal] = useState({ 
+    open: false, 
+    title: '', 
+    description: '', 
+    type: 'confirm', 
+    icon: '💡',
+    onConfirm: null,
+    confirmText: 'ตกลง'
+  })
+
+  const openModal = (config) => {
+    setModal(prev => ({ ...prev, ...config, open: true }))
+  }
 
   // Cropper State
   const [imageToCrop, setImageToCrop] = useState(null)
@@ -102,6 +118,16 @@ export default function ProfilePage() {
     }))
     localStorage.setItem('bs_cart', JSON.stringify(cart))
     router.push('/checkout')
+  }
+
+  const handleConfirmPayment = (orderId) => {
+    openModal({
+      title: 'ไปที่หน้าชำระเงิน?',
+      description: 'ระบบจะพาคุณไปยังหน้าชำระเงิน เพื่อทำการสแกน QR Code อีกครั้งครับ',
+      icon: '💸',
+      confirmText: 'ไปชำระเงิน',
+      onConfirm: () => router.push(`/checkout?id=${orderId}`)
+    })
   }
 
   const filteredHistory = history.filter(h => {
@@ -222,9 +248,19 @@ export default function ProfilePage() {
         setSavedCrop(null)
         setSavedZoom(1)
         setPwFields({ oldPw: '', userPw: '', userPwConfirm: '' })
-        alert('อัปเดตโปรไฟล์สำเร็จแล้ว ✨')
+        openModal({
+          title: 'อัปเดตโปรไฟล์สำเร็จแล้ว ✨',
+          description: 'ข้อมูลส่วนตัวของคุณได้รับการบันทึกเรียบร้อยแล้วครับ',
+          type: 'success',
+          icon: '✅'
+        })
       } else {
-        alert(data.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล')
+        openModal({
+          title: 'เกิดข้อผิดพลาด',
+          description: data.message || 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+          type: 'alert',
+          icon: '⚠️'
+        })
       }
     } catch (err) {
       alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้')
@@ -521,7 +557,7 @@ export default function ProfilePage() {
               {filteredHistory.map((order, idx) => {
                 const sMap = {
                   1: { lbl: 'ยังไม่ชำระเงิน', color: '#666' },
-                  2: { lbl: 'รอดำเนินการ', color: '#856404' },
+                  2: { lbl: 'รอทางร้านรับออเดอร์', color: '#856404' },
                   3: { lbl: 'กำลังเตรียมอาหาร', color: '#e65100' },
                   4: { lbl: 'เตรียมเสร็จแล้ว', color: '#2a6129' },
                   5: { lbl: 'กำลังจัดส่ง', color: '#1565c0' },
@@ -561,50 +597,77 @@ export default function ProfilePage() {
                         {st.lbl}
                       </span>
                       <div className={styles.histActions}>
-                        {!isFinal && (
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            {Number(order.OdrStatus) === 1 && (
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (!confirm('ยืนยันการยกเลิกออเดอร์?')) return;
-                                  try {
-                                    const res = await fetch('http://localhost/bitesync/api/customer/orders.php', {
-                                      method: 'PUT',
-                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('bs_token')}` },
-                                      body: JSON.stringify({ id: orderId, status: 6, userId: user.id })
-                                    });
-                                    const d = await res.json();
-                                    alert(d.message);
-                                    if (d.success) { window.location.reload(); }
-                                  } catch (err) { alert('เครื่องเกิดข้อผิดพลาด'); }
-                                }}
-                                className={styles.cancelBtnSmall}
-                                style={{ background: '#fff5f5', color: '#c53030', border: '1px solid #feb2b2', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer' }}
-                              >
-                                ยกเลิก
-                              </button>
-                            )}
-                            <button
-                              onClick={() => router.push(`/home/track/${orderId}`)}
-                              className={styles.trackBtn}
-                              style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer' }}
-                            >
-                              ติดตามออเดอร์
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {!isFinal && (
+                            <>
+                              {Number(order.OdrStatus) === 1 && (
+                                <>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleConfirmPayment(orderId) }}
+                                    className={`${styles.histBtn} ${styles.payBtnSmall}`}
+                                  >
+                                    <i className="fa-solid fa-credit-card" /> ยืนยันการชำระเงิน
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openModal({
+                                        title: 'ยืนยันการยกเลิก?',
+                                        description: 'คุณต้องการยกเลิกออเดอร์นี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้',
+                                        icon: '❌',
+                                        confirmText: 'ยืนยันการยกเลิก',
+                                        onConfirm: async () => {
+                                          try {
+                                            const res = await fetch('http://localhost/bitesync/api/customer/orders.php', {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('bs_token')}` },
+                                              body: JSON.stringify({ id: orderId, status: 6, userId: user.id })
+                                            });
+                                            const d = await res.json();
+                                            if (d.success) { 
+                                              openModal({
+                                                title: 'ยกเลิกออเดอร์สำเร็จ',
+                                                description: d.message,
+                                                type: 'success',
+                                                icon: '✅',
+                                                onConfirm: () => window.location.reload()
+                                              })
+                                            } else {
+                                              alert(d.message)
+                                            }
+                                          } catch (err) { alert('เครื่องเกิดข้อผิดพลาด'); }
+                                        }
+                                      })
+                                    }}
+                                    className={`${styles.histBtn} ${styles.cancelBtnSmall}`}
+                                  >
+                                    ยกเลิก
+                                  </button>
+                                </>
+                              )}
+                              {[2, 3, 4, 5].includes(Number(order.OdrStatus)) && (
+                                <button
+                                  onClick={() => router.push(`/home/track/${orderId}`)}
+                                  className={`${styles.histBtn} ${styles.trackBtn}`}
+                                >
+                                  <i className="fa-solid fa-motorcycle" /> ติดตามออเดอร์
+                                </button>
+                              )}
+                            </>
+                          )}
+                          {isFinal && (
+                            <button onClick={() => reOrder(order)} className={`${styles.histBtn} ${styles.reorderBtn}`}>
+                              🔄 สั่งอีกครั้ง
                             </button>
-                          </div>
-                        )}
-                        {isFinal && (
-                          <button onClick={() => reOrder(order)} className={styles.reorderBtn}>
-                            🔄 สั่งอีกครั้ง
+                          )}
+                          <button
+                            onClick={() => router.push(`/home/receipt/${orderId}`)}
+                            className={`${styles.histBtn} ${styles.viewBtn}`}
+                          >
+                            <i className={Number(order.OdrStatus) === 1 ? 'fa-solid fa-magnifying-glass' : 'fa-solid fa-file-invoice'} />
+                            {Number(order.OdrStatus) === 1 ? 'รายละเอียด' : 'ใบเสร็จ'}
                           </button>
-                        )}
-                        <button
-                          onClick={() => router.push(`/home/receipt/${orderId}`)}
-                          className={styles.viewBtn}
-                        >
-                          {isFinal ? 'ใบเสร็จ' : 'รายละเอียด'}
-                        </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -655,6 +718,17 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      <PremiumModal 
+        isOpen={modal.open}
+        onClose={() => setModal({ ...modal, open: false })}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        icon={modal.icon}
+        confirmText={modal.confirmText}
+      />
     </div>
   )
 }

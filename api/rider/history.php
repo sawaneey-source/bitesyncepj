@@ -49,7 +49,7 @@ if ($period === '3 วันล่าสุด') {
 }
 
 // 1. Fetch History List
-$sql = "SELECT o.OdrId, o.OdrCreatedAt as date, o.OdrDelFee as fee, o.OdrRiderFee as riderFee, o.OdrDistance as distance, o.OdrStatus, o.RiderRating,
+$sql = "SELECT o.OdrId, o.OdrCreatedAt as date, o.OdrDelFee as fee, o.OdrRiderFee as riderFee, o.OdrDistance as distance, o.OdrStatus, o.RiderRating, o.OdrRiderSettled,
                s.ShopName, a.HouseNo, a.SubDistrict
         FROM tbl_order o
         LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
@@ -78,7 +78,14 @@ while ($row = $res->fetch_assoc()) {
     if ($isDelivered) {
         $summary['deliveries']++;
         $summary['gross'] = ($summary['gross'] ?? 0) + (float)$row['fee'];
-        $summary['earnings'] = ($summary['earnings'] ?? 0) + (float)$row['riderFee'];
+        
+        if ($row['OdrRiderSettled'] == 1) {
+            $summary['settledEarnings'] = ($summary['settledEarnings'] ?? 0) + (float)$row['riderFee'];
+        } else {
+            $summary['pendingEarnings'] = ($summary['pendingEarnings'] ?? 0) + (float)$row['riderFee'];
+        }
+        
+        $summary['earnings'] = ($summary['earnings'] ?? 0) + (float)$row['riderFee']; // Total possible
         $summary['distance'] += (float)$row['distance'];
     } else {
         $summary['cancelled']++;
@@ -91,6 +98,7 @@ while ($row = $res->fetch_assoc()) {
         'custAddr' => $row['HouseNo'] . ' ' . $row['SubDistrict'],
         'fee' => (int)$row['fee'],
         'status' => $statusStr,
+        'settled' => (int)$row['OdrRiderSettled'],
         'distance' => number_format((float)$row['distance'], 1) . ' กม.',
         'rating' => $row['RiderRating']
     ];

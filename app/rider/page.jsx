@@ -140,13 +140,10 @@ export default function RiderDashboard() {
       {/* Analytics stats */}
       <div className={styles.statsGrid}>
         {(stats ? [
-          { icon: '📦', val: stats.deliveries, lbl: 'ส่งสำเร็จ', unit: 'ออเดอร์', color: '#2a6129', bg: '#e8f5e9' },
-          { icon: '💰', val: `${stats.gross?.toLocaleString()} ฿`, lbl: 'ค่าจัดส่งรวม', unit: 'บาท', color: '#888', bg: '#f5f5f5' },
-          { icon: '✅', val: `${stats.net?.toLocaleString()} ฿`, lbl: 'รายได้สุทธิ', unit: 'บาท', color: '#e65100', bg: '#fff3e0' },
-          { icon: '📍', val: `${stats.distance}`, lbl: 'ระยะทาง', unit: 'กม.', color: '#1565c0', bg: '#e3f2fd' },
-          { icon: '⭐', val: stats.rating, lbl: 'คะแนนเฉลี่ย', unit: '/5.0', color: '#856404', bg: '#fff9c4' },
+          { icon: '💰', val: `${stats.gross?.toLocaleString()} ฿`, lbl: 'ยอดวิ่งสะสม', unit: 'บาท', color: '#888', bg: '#f5f5f5' },
+          { icon: '💎', val: `${stats.settledNet?.toLocaleString()} ฿`, lbl: 'รายได้สุทธิ (โอนแล้ว)', unit: 'บาท', color: '#2196f3', bg: '#e3f2fd' },
+          { icon: '⌛', val: `${stats.pendingNet?.toLocaleString()} ฿`, lbl: 'รอยืนยันจ่าย (Pending)', unit: 'บาท', color: '#e65100', bg: '#fff3e0' },
         ] : [
-          { icon: '...', val: '...', lbl: '...', unit: '', color: '#ccc', bg: '#f5f5f5' },
           { icon: '...', val: '...', lbl: '...', unit: '', color: '#ccc', bg: '#f5f5f5' },
           { icon: '...', val: '...', lbl: '...', unit: '', color: '#ccc', bg: '#f5f5f5' },
           { icon: '...', val: '...', lbl: '...', unit: '', color: '#ccc', bg: '#f5f5f5' },

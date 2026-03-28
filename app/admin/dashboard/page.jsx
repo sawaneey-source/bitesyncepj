@@ -60,8 +60,11 @@ export default function AdminDashboard() {
           </div>
           <div className={styles.statCard} style={{borderColor:'#2196f3', background:'#e3f2fd'}}>
             <div className={styles.statIcon}>💎</div>
-            <div className={styles.statLabel}>กำไรสะสมของระบบ (Admin)</div>
-            <div className={styles.statVal} style={{color:'#1565c0'}}>{Number(stats?.totalAdminProfit || 0).toLocaleString()} ฿</div>
+            <div className={styles.statLabel}>กำไรสุทธิที่ได้รับจริง (Settled)</div>
+            <div className={styles.statVal} style={{color:'#1565c0'}}>{Number(stats?.settledAdminProfit || 0).toLocaleString()} ฿</div>
+            <div style={{fontSize: '12px', color: '#64748b', marginTop: '5px'}}>
+              รอการโอน (Pending): {Number((stats?.totalAdminProfit || 0) - (stats?.settledAdminProfit || 0)).toLocaleString()} ฿
+            </div>
           </div>
         </div>
 

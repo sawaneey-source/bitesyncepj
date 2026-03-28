@@ -99,12 +99,25 @@ export default function RiderHistoryPage() {
 
       {/* Stats Dashboard - Shop Contrast Style */}
       <div className={styles.summGrid}>
-        <div className={`${styles.summCard} ${styles.summGreen}`}>
-          <div className={styles.summIcon}>💰</div>
+        <div className={`${styles.summCard} ${styles.summBlue}`}>
+          <div className={styles.summIcon}>💎</div>
           <div>
-            <div className={styles.summVal}>฿{(summary.earnings || 0).toLocaleString()}</div>
-            <div className={styles.summLbl}>รายได้สุทธิ ({period})</div>
-            <div style={{fontSize:11, opacity:0.8, marginTop:2}}>ค่าจัดส่งรวม: ฿{(summary.gross || 0).toLocaleString()}</div>
+            <div className={styles.summVal}>฿{(summary.settledEarnings || 0).toLocaleString()}</div>
+            <div className={styles.summLbl}>รายได้สุทธิ (โอนแล้ว)</div>
+          </div>
+        </div>
+        <div className={`${styles.summCard} ${styles.summBlue}`}>
+           <div className={styles.summIcon}>💸</div>
+           <div>
+             <div className={styles.summVal}>฿{(summary.gross || 0).toLocaleString()}</div>
+             <div className={styles.summLbl}>ค่าจัดส่งรวม ({period})</div>
+           </div>
+        </div>
+        <div className={`${styles.summCard} ${styles.summGreen}`}>
+          <div className={styles.summIcon}>⌛</div>
+          <div>
+            <div className={styles.summVal}>฿{(summary.pendingEarnings || 0).toLocaleString()}</div>
+            <div className={styles.summLbl}>รอยืนยันจ่าย (Pending)</div>
           </div>
         </div>
         <div className={`${styles.summCard} ${styles.summDark}`}>
@@ -181,8 +194,22 @@ export default function RiderHistoryPage() {
                   <div className={`${styles.histFee} ${h.status === 'cancelled' ? styles.histFeeCancelled : ''}`}>
                     {h.status === 'delivered' ? `+${h.fee} ฿` : `฿${h.fee}`}
                   </div>
-                  <div className={`${styles.histStatus} ${h.status === 'delivered' ? styles.statusGreen : styles.statusRed}`}>
-                    {h.status === 'delivered' ? '✅ สำเร็จ' : '❌ ยกเลิก'}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <div className={`${styles.histStatus} ${h.status === 'delivered' ? styles.statusGreen : styles.statusRed}`}>
+                      {h.status === 'delivered' ? '✅ สำเร็จ' : '❌ ยกเลิก'}
+                    </div>
+                    {h.status === 'delivered' && (
+                      <span style={{ 
+                        fontSize: '10px', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px',
+                        background: h.settled ? '#e8f5e9' : '#fff3e0',
+                        color: h.settled ? '#2a6129' : '#e65100',
+                        border: `1px solid ${h.settled ? '#2a6129' : '#e65100'}`
+                      }}>
+                        {h.settled ? 'โอนเงินแล้ว' : 'รอยืนยันจ่าย'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

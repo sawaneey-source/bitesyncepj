@@ -162,10 +162,10 @@ async function handleManageUser(action, usrId) {
                   <th>ID</th>
                   <th>ชื่อร้าน</th>
                   <th>เจ้าของ</th>
-                  <th>ยอดขายรวม (Gross)</th>
-                  <th>รายได้จริง (Net)</th>
-                  <th>ยอดเงินรอโอน</th>
-                  <th>สถานะ</th>
+                   <th>ยอดขายสะสม (Gross)</th>
+                   <th>รายได้สะสม (Net)</th>
+                   <th style={{color:'#e65100'}}>ยอดค้างโอน (Pending)</th>
+                   <th>สถานะ</th>
                   <th style={{textAlign:'right'}}>เครื่องมือ</th>
                 </tr>
               )}
@@ -174,10 +174,10 @@ async function handleManageUser(action, usrId) {
                   <th>ID</th>
                   <th>ชื่อ-นามสกุล</th>
                   <th>ทะเบียนรถ</th>
-                  <th>รายได้รวม (Gross)</th>
-                  <th>รายได้จริง (Net)</th>
-                  <th>ยอดเงินรอโอน</th>
-                  <th>สถานะ</th>
+                   <th>ยอดวิ่งสะสม (Gross)</th>
+                   <th>รายได้สะสม (Net)</th>
+                   <th style={{color:'#e65100'}}>ยอดค้างโอน (Pending)</th>
+                   <th>สถานะ</th>
                   <th>คะแนน</th>
                   <th style={{textAlign:'right'}}>เครื่องมือ</th>
                 </tr>
@@ -220,7 +220,7 @@ async function handleManageUser(action, usrId) {
                       <td>{item.owner}</td>
                       <td>{Number(item.totalGross).toLocaleString()} ฿</td>
                       <td className={styles.profit}>{Number(item.totalNet).toLocaleString()} ฿</td>
-                      <td className={styles.bold}>{Number(item.ShopBalance).toLocaleString()} ฿</td>
+                      <td className={styles.bold} style={{color:'#e65100'}}>{Number(item.pendingAmount || 0).toLocaleString()} ฿</td>
                       <td>{item.ShopStatus == 1 ? '🟢 เปิดร้าน' : '🔴 ปิดร้าน'}</td>
                       <td style={{textAlign:'right'}}>
                         {item.ownerStatus == 0 ? (
@@ -239,7 +239,7 @@ async function handleManageUser(action, usrId) {
                       <td>{item.RiderVehiclePlate}</td>
                       <td>{Number(item.totalGross).toLocaleString()} ฿</td>
                       <td className={styles.profit}>{Number(item.totalNet).toLocaleString()} ฿</td>
-                      <td className={styles.bold}>{Number(item.RiderBalance).toLocaleString()} ฿</td>
+                      <td className={styles.bold} style={{color:'#e65100'}}>{Number(item.pendingAmount || 0).toLocaleString()} ฿</td>
                       <td>{item.RiderStatus === 'Online' ? '🟢 ออนไลน์' : '⚪ ออฟไลน์'}</td>
                       <td>⭐ {item.RiderRatingAvg}</td>
                       <td style={{textAlign:'right'}}>

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import styles from './page.module.css'
+import PremiumModal from '@/components/PremiumModal'
 
 const TABS = ['ทั้งหมด','รอดำเนินการ','กำลังเตรียม','เสร็จแล้ว','กำลังส่ง','สำเร็จ','ยกเลิก']
 
@@ -27,7 +28,6 @@ const SS = {
 const NEXT = {
   'Pending':    {lbl:'ยืนยันออเดอร์',  next:'Preparing',  color:'#2a6129'},
   'Preparing':  {lbl:'เตรียมเสร็จแล้ว (ค้นหาไรเดอร์)', next:'Ready', color:'#1565c0'},
-  // Note: Ready -> Delivering and Delivering -> Completed are now handled strictly by the Rider app.
 }
 
 export default function OrdersPage() {
@@ -35,13 +35,16 @@ export default function OrdersPage() {
   const [tab, setTab]       = useState('ทั้งหมด')
   const [openId, setOpenId] = useState(null)
   const [toast, setToast]   = useState(null)
+  const [modal, setModal]   = useState({ isOpen: false, title: '', description: '', icon: '', onConfirm: null, type: 'confirm' })
 
   useEffect(() => { 
     fetchOrders()
     const interval = setInterval(fetchOrders, 5000)
     return () => clearInterval(interval)
   }, [])
+
   function toast_(msg,type='ok'){ setToast({msg,type}); setTimeout(()=>setToast(null),2400) }
+  function closeModal() { setModal(prev => ({ ...prev, isOpen: false })) }
 
   async function fetchOrders() {
     try {
@@ -55,15 +58,46 @@ export default function OrdersPage() {
   }
 
   async function upStatus(id,next) {
-    try { await fetch(`http://localhost/bitesync/api/shop/orders.php?id=${encodeURIComponent(id)}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('bs_token')}`},body:JSON.stringify({status:next})}) } catch {}
+    try { 
+      await fetch(`http://localhost/bitesync/api/shop/orders.php?id=${encodeURIComponent(id)}`,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('bs_token')}`},
+        body:JSON.stringify({status:next})
+      }) 
+    } catch {}
     setOrders(p=>p.map(o=>o.OdrId===id?{...o,status:next}:o)); 
     toast_(next === 'Cancelled' ? 'ยกเลิกออเดอร์เรียบร้อยแล้ว' : `อัปเดตเป็น "${SS[next]?.lbl || next}"`)
     window.dispatchEvent(new Event('orderUpdate'))
   }
 
   async function cancel(id) {
-    if(!confirm('คุณต้องการยกเลิกออเดอร์นี้ใช่หรือไม่?')) return
-    await upStatus(id, 'Cancelled')
+    setModal({
+      isOpen: true,
+      title: 'ยืนยันการยกเลิกออเดอร์',
+      description: `คุณแน่ใจหรือไม่ว่าต้องการยกเลิกออเดอร์ #${id}? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+      icon: '🛑',
+      type: 'confirm',
+      confirmText: 'ยืนยันการยกเลิก',
+      onConfirm: async () => {
+        await upStatus(id, 'Cancelled')
+        closeModal()
+      }
+    })
+  }
+
+  function handleConfirm(id, next, lbl) {
+    setModal({
+      isOpen: true,
+      title: 'รับออเดอร์ใหม่',
+      description: `คุณต้องการรับออเดอร์ #${id} และเริ่ม "${lbl}" ใช่หรือไม่?`,
+      icon: '👨‍🍳',
+      type: 'confirm',
+      confirmText: 'รับออเดอร์และเริ่มทำ',
+      onConfirm: async () => {
+        await upStatus(id, next)
+        closeModal()
+      }
+    })
   }
 
   const currentStatusTab = TAB_MAP[tab] || 'All'
@@ -182,7 +216,21 @@ export default function OrdersPage() {
                     {o.status!=='Completed'&&o.status!=='Cancelled'&&(
                       <button onClick={()=>cancel(o.OdrId)} className={styles.btnCancel}>❌ ยกเลิกออเดอร์</button>
                     )}
-                    {nx&&<button onClick={()=>upStatus(o.OdrId,nx.next)} className={styles.btnNext} style={{background:nx.color}}>✅ {nx.lbl}</button>}
+                    {nx && (
+                      <button 
+                        onClick={() => {
+                          if (o.status === 'Pending') {
+                            handleConfirm(o.OdrId, nx.next, nx.lbl)
+                          } else {
+                            upStatus(o.OdrId, nx.next)
+                          }
+                        }} 
+                        className={styles.btnNext} 
+                        style={{background:nx.color}}
+                      >
+                        ✅ {nx.lbl}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -190,7 +238,17 @@ export default function OrdersPage() {
           )
         })}
       </div>
+
+      <PremiumModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        description={modal.description}
+        icon={modal.icon}
+        type={modal.type}
+        confirmText={modal.confirmText}
+      />
     </div>
   )
 }
-

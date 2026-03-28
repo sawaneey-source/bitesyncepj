@@ -1,0 +1,158 @@
+.overlay {
+  --modal-bg: rgba(255, 255, 255, 0.98);
+  --modal-shadow: 0 30px 100px rgba(0, 0, 0, 0.25);
+  --modal-overlay-bg: rgba(0, 0, 0, 0.6);
+
+  position: fixed;
+  inset: 0;
+  background: var(--modal-overlay-bg);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 20px;
+}
+
+.overlayOn {
+  opacity: 1;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.modal {
+  background: var(--modal-bg);
+  border-radius: 32px;
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 32px;
+  box-shadow: var(--modal-shadow);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transform: scale(0.85) translateY(30px);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg, #1B5E20, #00b14f, #1B5E20);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.modalOn {
+  transform: scale(1) translateY(0);
+}
+
+.iconBox {
+  font-size: 64px;
+  margin-bottom: 8px;
+  background: #f1f8f1;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin: 0 auto;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.03);
+  animation: pop 0.6s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes pop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.title {
+  font-family: 'Prompt', 'Outfit', sans-serif;
+  font-size: 26px;
+  font-weight: 900;
+  color: #1a1f1a;
+  margin: 0;
+  letter-spacing: -0.8px;
+}
+
+.description {
+  font-family: 'Sarabun', sans-serif;
+  font-size: 15.5px;
+  color: #555;
+  line-height: 1.7;
+  margin: 0;
+  font-weight: 500;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.confirmBtn {
+  width: 100%;
+  background: linear-gradient(135deg, #1B5E20, #00b14f);
+  color: #fff;
+  border: none;
+  border-radius: 18px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 8px 20px rgba(27, 94, 32, 0.25);
+  font-family: 'Prompt', sans-serif;
+}
+
+.confirmBtn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 25px rgba(27, 94, 32, 0.35);
+  filter: brightness(1.1);
+}
+
+.confirmBtn:active {
+  transform: scale(0.97);
+}
+
+.cancelBtn {
+  width: 100%;
+  background: transparent;
+  color: #777;
+  border: 1.5px solid #edf0ed;
+  border-radius: 18px;
+  padding: 15px;
+  font-size: 15.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Prompt', sans-serif;
+}
+
+.cancelBtn:hover {
+  background: #fffafa;
+  color: #c53030;
+  border-color: #ffcfcf;
+}
+
+@media (max-width: 480px) {
+  .modal {
+    padding: 32px 24px;
+    border-radius: 28px;
+  }
+}

@@ -6,8 +6,8 @@ import Navbar from '@/components/Navbar'
 import Logo from '@/components/Logo'
 
 const STATUS_MAP = {
-  1: { lbl: 'รอรับออเดอร์', color: '#856404' },
-  2: { lbl: 'รับออเดอร์แล้ว', color: '#2a6129' },
+  1: { lbl: 'ยังไม่ชำระเงิน', color: '#b71c1c' },
+  2: { lbl: 'รอทางร้านรับออเดอร์', color: '#856404' },
   3: { lbl: 'กำลังเตรียมอาหาร', color: '#e65100' },
   4: { lbl: 'รอไรเดอร์มารับ', color: '#2a6129' },
   5: { lbl: 'กำลังจัดส่ง', color: '#1565c0' },
@@ -107,7 +107,11 @@ export default function ReceiptPage() {
           <button onClick={() => router.back()} className={styles.backBtn}>
             <i className="fa-solid fa-arrow-left" /> กลับ
           </button>
-          <span className={styles.paidBadge}>✅ ชำระเงินเรียบร้อย</span>
+          {Number(order.OdrStatus) === 1 ? (
+            <span className={styles.unpaidBadge}>⏳ รอการชำระเงิน</span>
+          ) : (
+            <span className={styles.paidBadge}>✅ ชำระเงินเรียบร้อย</span>
+          )}
         </div>
       </div>
 
@@ -117,7 +121,22 @@ export default function ReceiptPage() {
             <div className={styles.rcptLogoRow}>
               <Logo theme="dark" size="small" />
             </div>
-            <h2 className={styles.rcptTitle}>ใบแจ้งหนี้ / ใบเสร็จ</h2>
+            <h2 className={styles.rcptTitle}>
+              {Number(order.OdrStatus) === 1 ? 'รายละเอียดออเดอร์' : 'ใบแจ้งหนี้ / ใบเสร็จ'}
+            </h2>
+          </div>
+
+          {/* Status Banner */}
+          <div style={{
+            background: Number(order.OdrStatus) === 1 ? '#fff5f5' : '#f1f8f1',
+            padding: '12px',
+            textAlign: 'center',
+            fontSize: '14px',
+            fontWeight: '800',
+            color: Number(order.OdrStatus) === 1 ? '#d32f2f' : '#2a6129',
+            borderBottom: '1px solid #eee'
+          }}>
+            {Number(order.OdrStatus) === 1 ? '⚠️ ยังไม่ชำระเงิน (UNPAID)' : '✅ ชำระเงินเรียบร้อยแล้ว (PAID)'}
           </div>
 
           <div className={styles.metaGrid}>
@@ -235,7 +254,7 @@ export default function ReceiptPage() {
           </div>
 
           <div className={styles.actions}>
-            {!['6', '7'].includes(order.OdrStatus?.toString()) && (
+            {[2, 3, 4, 5].includes(Number(order.OdrStatus)) && (
               <button
                 onClick={() => router.push(`/home/track/${params.orderId}`)}
                 className={styles.btnTrack}
@@ -243,8 +262,12 @@ export default function ReceiptPage() {
                 🛵 ติดตามออเดอร์
               </button>
             )}
-            <button onClick={() => window.print()} className={styles.btnPrint}>🖨️ พิมพ์ใบเสร็จ</button>
-            <button onClick={() => router.push('/home')} className={styles.btnHome}>กลับหน้าหลัก</button>
+            {Number(order.OdrStatus) !== 1 && (
+              <button onClick={() => window.print()} className={styles.btnPrint}>🖨️ พิมพ์ใบเสร็จ</button>
+            )}
+            <button onClick={() => router.push('/home')} className={styles.btnHome}>
+              <i className="fa-solid fa-house" /> กลับหน้าหลัก
+            </button>
           </div>
         </div>
       </div>

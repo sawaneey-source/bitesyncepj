@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import Logo from '@/components/Logo'
+import PremiumModal from '@/components/PremiumModal'
 import { PUBLIC_URL } from '@/utils/api'
 
 
@@ -20,6 +21,24 @@ export default function CheckoutPage() {
   const [lastOrder, setLastOrder]       = useState(null)
   const [isShopOpen, setIsShopOpen]     = useState(true)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [finalTotal, setFinalTotal]     = useState(0)
+  const searchParams = useSearchParams()
+  const existingOrderIdParam = searchParams.get('id')
+  
+  // Premium Modal State
+  const [modal, setModal] = useState({ 
+    open: false, 
+    title: '', 
+    description: '', 
+    type: 'confirm', 
+    icon: '💡',
+    onConfirm: null,
+    confirmText: 'ตกลง'
+  })
+
+  const openModal = (config) => {
+    setModal(prev => ({ ...prev, ...config, open: true }))
+  }
 
   // Address states
   const [provinces, setProvinces] = useState([])
@@ -151,6 +170,46 @@ export default function CheckoutPage() {
       window.removeEventListener('storage', syncState)
     }
   }, [router])
+
+  // New Effect for Loading Existing Order from URL
+  useEffect(() => {
+    if (existingOrderIdParam) {
+      loadExistingOrder(existingOrderIdParam)
+    }
+  }, [existingOrderIdParam])
+
+  async function loadExistingOrder(id) {
+    setLoading(true)
+    try {
+      const res = await fetch(`http://localhost/bitesync/api/customer/orders.php?id=${id}`)
+      const d = await res.json()
+      if (d.success && d.data) {
+        const order = d.data
+        if (Number(order.OdrStatus) === 1) { // Only if Unpaid
+          setOrderId(order.OdrId)
+          if (order.items) setCart(order.items)
+          setDeliveryFee(parseFloat(order.OdrDelFee || 0))
+          setNoteShop(order.OdrNote || '')
+          setAddress(`${order.HouseNo || ''} ${order.SubDistrict || ''} ${order.District || ''} ${order.Province || ''}`.trim())
+          
+          // Set final total for payment screen if already unpaid
+          setFinalTotal(parseFloat(order.OdrGrandTotal || 0))
+          setStep(2) // Jump to Payment Page
+        } else {
+          openModal({
+            title: 'ออเดอร์ไม่ถูกต้อง',
+            description: 'ออเดอร์นี้ไม่สามารถชำระเงินได้ หรือได้รับการจัดการไปแล้วครับ',
+            type: 'alert',
+            icon: '⚠️',
+            onConfirm: () => router.replace('/profile')
+          })
+        }
+      }
+    } catch (e) {
+      console.error("Load order error:", e)
+    }
+    setLoading(false)
+  }
 
   // Reactively update delivery fee
   useEffect(() => {
@@ -419,7 +478,12 @@ export default function CheckoutPage() {
 
   function handleGetCurrentLocation() {
     if (!navigator.geolocation) {
-        alert("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง");
+        openModal({
+          title: 'เบราว์เซอร์ไม่รองรับ',
+          description: 'เบราว์เซอร์ของคุณไม่รองรับการเข้าถึงตำแหน่ง GPS ครับ',
+          type: 'alert',
+          icon: '🚫'
+        })
         return;
     }
     
@@ -535,9 +599,19 @@ export default function CheckoutPage() {
       const data = await res.json()
       if (data.success) {
         setOrderId(data.orderId)
+        setFinalTotal(total) // LOCK the total before clearing cart
+        localStorage.removeItem('bs_cart')
+        localStorage.removeItem('bs_order_address')
+        localStorage.removeItem('bs_order_note')
+        localStorage.setItem('bs_last_order', data.orderId)
         setStep(2)
       } else {
-        alert(data.message || 'เกิดข้อผิดพลาดในการสั่งซื้อ')
+        openModal({
+          title: 'สั่งซื้อไม่สำเร็จ',
+          description: data.message || 'เกิดข้อผิดพลาดในการสั่งซื้อ กรุณาลองใหม่อีกครั้ง',
+          type: 'alert',
+          icon: '❌'
+        })
       }
     } catch {
       // Fallback for demo
@@ -555,16 +629,26 @@ export default function CheckoutPage() {
       const res = await fetch(`http://localhost/bitesync/api/customer/payment.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ orderId, method: 'qr', amount: total })
+        body: JSON.stringify({ orderId, method: 'qr', amount: finalTotal })
       })
       const data = await res.json()
       if (!data.success) {
-        alert(data.message || 'การชำระเงินไม่ถูกต้อง')
+        openModal({
+          title: 'การชำระเงินล้มเหลว',
+          description: data.message || 'ไม่สามารถยืนยันการชำระเงินได้ กรุณาตรวจสอบอีกครั้ง',
+          type: 'alert',
+          icon: '⚠️'
+        })
         setLoading(false)
         return
       }
     } catch (e) {
-      alert('ไม่สามารถแจ้งยืนยันการชำระเงินได้ กรุณาลองใหม่')
+      openModal({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง',
+        type: 'alert',
+        icon: '🚫'
+      })
       setLoading(false)
       return
     }
@@ -604,10 +688,6 @@ export default function CheckoutPage() {
     history.unshift(newOrder)
     localStorage.setItem('bs_history', JSON.stringify(history))
 
-    localStorage.removeItem('bs_cart')
-    localStorage.removeItem('bs_order_address')
-    localStorage.removeItem('bs_order_note')
-    localStorage.setItem('bs_last_order', orderId)
     setLoading(false)
     router.push(`/order-complete?id=${orderId}`)
   }
@@ -616,7 +696,7 @@ export default function CheckoutPage() {
     <div className={styles.page}>
       <header className={styles.nav}>
         <div className={styles.navInner}>
-          <button onClick={() => step === 2 ? setStep(1) : router.back()} className={styles.backBtn}>
+          <button onClick={() => (step === 2 && !existingOrderIdParam) ? setStep(1) : router.back()} className={styles.backBtn}>
             <i className="fa-solid fa-arrow-left" /> กลับ
           </button>
           <div className={styles.logo} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
@@ -997,7 +1077,7 @@ export default function CheckoutPage() {
             <div className={styles.paymentCard}>
               <h2 className={styles.payTitle}>Complete Your Payment</h2>
               <div className={styles.orderIdRow}>Order: <strong>{orderId}</strong></div>
-              <div className={styles.totalBig}>{Math.round(total).toLocaleString()} ฿</div>
+              <div className={styles.totalBig}>{Math.round(finalTotal).toLocaleString()} ฿</div>
 
               {/* QR Code placeholder */}
               <div className={styles.qrWrap}>
@@ -1019,7 +1099,7 @@ export default function CheckoutPage() {
                   </svg>
                 </div>
                 <p className={styles.qrHint}>สแกน QR เพื่อชำระเงิน</p>
-                <p className={styles.qrAmount}>{total} ฿</p>
+                <p className={styles.qrAmount}>{Math.round(finalTotal).toLocaleString()} ฿</p>
               </div>
 
               <button onClick={confirmPayment} disabled={loading} className={styles.confirmBtn}>
@@ -1028,6 +1108,16 @@ export default function CheckoutPage() {
             </div>
           </div>
         )}
+      <PremiumModal 
+        isOpen={modal.open}
+        onClose={() => setModal({ ...modal, open: false })}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        icon={modal.icon}
+        confirmText={modal.confirmText}
+      />
       </div>
     </div>
   )

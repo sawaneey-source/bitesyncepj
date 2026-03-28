@@ -41,7 +41,8 @@ else if ($period === '30days') $dateFilter = "DATE(OdrCreatedAt) >= DATE_SUB(CUR
 else if ($period === 'all') $dateFilter = "1=1";
 
 $sql = "SELECT COUNT(*) as deliveries, SUM(OdrDelFee) as gross, 
-               SUM(CASE WHEN OdrRiderSettled = 1 THEN OdrRiderFee ELSE 0 END) as net, 
+               SUM(CASE WHEN OdrRiderSettled = 1 THEN OdrRiderFee ELSE 0 END) as settled_net, 
+               SUM(CASE WHEN OdrRiderSettled = 0 THEN OdrRiderFee ELSE 0 END) as pending_net, 
                SUM(OdrDistance) as distance
         FROM tbl_order 
         WHERE RiderId = ? AND OdrStatus = 6 AND $dateFilter";
@@ -61,10 +62,17 @@ $stats = [
 if ($row = $res->fetch_assoc()) {
     $stats['deliveries'] = (int)$row['deliveries'];
     $stats['gross'] = (int)$row['gross'];
-    $stats['net'] = (int)$row['net'];
-    $stats['earnings'] = (int)$row['net']; // Keep legacy field for compatibility
+    $stats['settledNet'] = (float)$row['settled_net'];
+    $stats['pendingNet'] = (float)$row['pending_net'];
+    $stats['earnings'] = (float)$row['settled_net']; // Wallet-ready earnings
     $stats['distance'] = number_format((float)$row['distance'], 1);
 }
+
+// 3. Get total historical settled amount from tbl_rider
+$bStmt = $conn->prepare("SELECT RiderTotalSettled FROM tbl_rider WHERE RiderId = ?");
+$bStmt->bind_param("i", $riderId);
+$bStmt->execute();
+$stats['totalSettled'] = (float)($bStmt->get_result()->fetch_assoc()['RiderTotalSettled'] ?? 0);
 
 echo json_encode(['success' => true, 'data' => $stats]);
 ?>

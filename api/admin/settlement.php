@@ -15,10 +15,9 @@ if ($method === 'GET') {
     $sql = "SELECT s.ShopId, s.ShopName, s.ShopBankName, s.ShopBankAccount, s.ShopBalance as oldBalance,
                    IFNULL(SUM(o.OdrFoodPrice - o.OdrGP), 0) as orderBalance
             FROM tbl_shop s
-            LEFT JOIN tbl_order o ON s.ShopId = o.ShopId AND o.OdrStatus = 6 AND o.OdrShopSettled = 0
+            INNER JOIN tbl_order o ON s.ShopId = o.ShopId AND o.OdrStatus = 6 AND o.OdrShopSettled = 0
             GROUP BY s.ShopId
-            HAVING (s.ShopBalance + IFNULL(SUM(o.OdrFoodPrice - o.OdrGP), 0)) > 0
-            ORDER BY (s.ShopBalance + IFNULL(SUM(o.OdrFoodPrice - o.OdrGP), 0)) DESC";
+            ORDER BY orderBalance DESC";
     $res = $conn->query($sql);
     while($row = $res->fetch_assoc()) {
         $shops[] = [
@@ -27,7 +26,7 @@ if ($method === 'GET') {
             'name' => $row['ShopName'],
             'bank' => $row['ShopBankName'],
             'account' => $row['ShopBankAccount'],
-            'balance' => (float)($row['oldBalance'] + $row['orderBalance'])
+            'balance' => (float)$row['orderBalance']
         ];
     }
 
@@ -37,10 +36,9 @@ if ($method === 'GET') {
                    IFNULL(SUM(o.OdrRiderFee), 0) as orderBalance
             FROM tbl_rider r
             JOIN tbl_userinfo u ON r.UsrId = u.UsrId
-            LEFT JOIN tbl_order o ON r.RiderId = o.RiderId AND o.OdrStatus = 6 AND o.OdrRiderSettled = 0
+            INNER JOIN tbl_order o ON r.RiderId = o.RiderId AND o.OdrStatus = 6 AND o.OdrRiderSettled = 0
             GROUP BY r.RiderId
-            HAVING (r.RiderBalance + IFNULL(SUM(o.OdrRiderFee), 0)) > 0
-            ORDER BY (r.RiderBalance + IFNULL(SUM(o.OdrRiderFee), 0)) DESC";
+            ORDER BY orderBalance DESC";
     $res = $conn->query($sql);
     while($row = $res->fetch_assoc()) {
         $riders[] = [
@@ -49,7 +47,7 @@ if ($method === 'GET') {
             'name' => $row['name'],
             'bank' => $row['RiderBankName'],
             'account' => $row['RiderBankAccount'],
-            'balance' => (float)($row['oldBalance'] + $row['orderBalance'])
+            'balance' => (float)$row['orderBalance']
         ];
     }
 
@@ -80,10 +78,10 @@ if ($method === 'GET') {
             $stmt->execute();
             $orderAmt = (float)($stmt->get_result()->fetch_assoc()['total'] ?? 0);
 
-            $totalAmt = $walletAmt + $orderAmt;
-            if ($totalAmt > 0) {
+            if ($orderAmt > 0) {
+                // Historically record the total amount settled/paid out to the shop
                 $stmt = $conn->prepare("UPDATE tbl_shop SET ShopTotalSettled = ShopTotalSettled + ?, ShopBalance = 0 WHERE ShopId = ?");
-                $stmt->bind_param("di", $totalAmt, $id);
+                $stmt->bind_param("di", $orderAmt, $id);
                 $stmt->execute();
 
                 $stmt = $conn->prepare("UPDATE tbl_order SET OdrShopSettled = 1 WHERE ShopId = ? AND OdrStatus = 6 AND OdrShopSettled = 0");
@@ -103,10 +101,10 @@ if ($method === 'GET') {
             $stmt->execute();
             $orderAmt = (float)($stmt->get_result()->fetch_assoc()['total'] ?? 0);
 
-            $totalAmt = $walletAmt + $orderAmt;
-            if ($totalAmt > 0) {
+            if ($orderAmt > 0) {
+                // Historically record the total amount settled/paid out to the rider
                 $stmt = $conn->prepare("UPDATE tbl_rider SET RiderTotalSettled = RiderTotalSettled + ?, RiderBalance = 0 WHERE RiderId = ?");
-                $stmt->bind_param("di", $totalAmt, $id);
+                $stmt->bind_param("di", $orderAmt, $id);
                 $stmt->execute();
 
                 $stmt = $conn->prepare("UPDATE tbl_order SET OdrRiderSettled = 1 WHERE RiderId = ? AND OdrStatus = 6 AND OdrRiderSettled = 0");

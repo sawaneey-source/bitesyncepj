@@ -5,7 +5,7 @@ import styles from './page.module.css'
 import Navbar from '@/components/Navbar'
 
 const STEPS = [
-  { key: 'received', label: 'ได้รับคำสั่งซื้อแล้ว', icon: '📋' },
+  { key: 'received', label: 'รอทางร้านรับออเดอร์', icon: '📋' },
   { key: 'preparing', label: 'กำลังเตรียมอาหาร', icon: '👨‍🍳' },
   { key: 'waiting', label: 'รอไรเดอร์มารับ', icon: '⏳' },
   { key: 'assigned', label: 'จัดหาไรเดอร์แล้ว', icon: '🛵' },
