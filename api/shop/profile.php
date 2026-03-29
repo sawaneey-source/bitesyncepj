@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                    a.AdrId, a.HouseNo, a.Village, a.Road, a.Soi, a.Moo,
                    a.SubDistrict, a.District, a.Province, a.Zipcode, a.AdrLat, a.AdrLng,
                    s.ShopBankName, s.ShopBankAccount, s.ShopBalance, s.ShopTotalSettled,
+                   s.ShopAcceptRate, s.ShopCancelRate,
                    u.UsrFullName, u.UsrEmail, u.UsrPhone
             FROM tbl_shop s
             LEFT JOIN tbl_address a ON s.AdrId = a.AdrId
@@ -244,6 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     a.AdrId, a.HouseNo, a.Village, a.Road, a.Soi, a.Moo,
                     a.SubDistrict, a.District, a.Province, a.Zipcode, a.AdrLat, a.AdrLng,
                     s.ShopBankName, s.ShopBankAccount, s.ShopBalance, s.ShopTotalSettled,
+                    s.ShopAcceptRate, s.ShopCancelRate,
                     u.UsrFullName, u.UsrEmail, u.UsrPhone
              FROM tbl_shop s 
              LEFT JOIN tbl_address a ON s.AdrId = a.AdrId

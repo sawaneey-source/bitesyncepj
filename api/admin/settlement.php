@@ -80,11 +80,13 @@ if ($method === 'GET') {
 
             if ($orderAmt > 0) {
                 // Historically record the total amount settled/paid out to the shop
-                $stmt = $conn->prepare("UPDATE tbl_shop SET ShopTotalSettled = ShopTotalSettled + ?, ShopBalance = 0 WHERE ShopId = ?");
-                $stmt->bind_param("di", $orderAmt, $id);
+                // First: Mark current pending orders as settled
+                $stmt = $conn->prepare("UPDATE tbl_order SET OdrShopSettled = 1 WHERE ShopId = ? AND OdrStatus = 6 AND OdrShopSettled = 0");
+                $stmt->bind_param("i", $id);
                 $stmt->execute();
 
-                $stmt = $conn->prepare("UPDATE tbl_order SET OdrShopSettled = 1 WHERE ShopId = ? AND OdrStatus = 6 AND OdrShopSettled = 0");
+                // Second: Recalculate absolute total settled from ALL orders for this shop
+                $stmt = $conn->prepare("UPDATE tbl_shop s SET s.ShopTotalSettled = (SELECT IFNULL(SUM(o.OdrFoodPrice - o.OdrGP), 0) FROM tbl_order o WHERE o.ShopId = s.ShopId AND o.OdrStatus = 6 AND o.OdrShopSettled = 1), s.ShopBalance = 0 WHERE s.ShopId = ?");
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
             }
@@ -103,11 +105,13 @@ if ($method === 'GET') {
 
             if ($orderAmt > 0) {
                 // Historically record the total amount settled/paid out to the rider
-                $stmt = $conn->prepare("UPDATE tbl_rider SET RiderTotalSettled = RiderTotalSettled + ?, RiderBalance = 0 WHERE RiderId = ?");
-                $stmt->bind_param("di", $orderAmt, $id);
+                // First: Mark current pending orders as settled
+                $stmt = $conn->prepare("UPDATE tbl_order SET OdrRiderSettled = 1 WHERE RiderId = ? AND OdrStatus = 6 AND OdrRiderSettled = 0");
+                $stmt->bind_param("i", $id);
                 $stmt->execute();
 
-                $stmt = $conn->prepare("UPDATE tbl_order SET OdrRiderSettled = 1 WHERE RiderId = ? AND OdrStatus = 6 AND OdrRiderSettled = 0");
+                // Second: Recalculate absolute total settled from ALL orders for this rider
+                $stmt = $conn->prepare("UPDATE tbl_rider r SET r.RiderTotalSettled = (SELECT IFNULL(SUM(o.OdrRiderFee), 0) FROM tbl_order o WHERE o.RiderId = r.RiderId AND o.OdrStatus = 6 AND o.OdrRiderSettled = 1), r.RiderBalance = 0 WHERE r.RiderId = ?");
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
             }

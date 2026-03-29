@@ -49,23 +49,14 @@ if ($method === 'GET') {
     $province    = $data['province']    ?? '';
     $zipcode     = $data['zipcode']     ?? '';
 
-    // Check for existing default
-    $chk = $conn->prepare("SELECT AdrId FROM tbl_address WHERE UsrId = ? AND IsDefault = 1 LIMIT 1");
-    $chk->bind_param("i", $usrId);
-    $chk->execute();
-    $res = $chk->get_result();
-    $existing = $res->fetch_assoc();
+    // Turn off IsDefault over all previous addresses
+    $stmt_reset = $conn->prepare("UPDATE tbl_address SET IsDefault = 0 WHERE UsrId = ?");
+    $stmt_reset->bind_param("i", $usrId);
+    $stmt_reset->execute();
 
-    if ($existing) {
-        // Update
-        $adrId = $existing['AdrId'];
-        $stmt = $conn->prepare("UPDATE tbl_address SET AdrLat=?, AdrLng=?, HouseNo=?, Village=?, Road=?, Soi=?, Moo=?, SubDistrict=?, District=?, Province=?, Zipcode=? WHERE AdrId=?");
-        $stmt->bind_param("ddsssssssssi", $lat, $lng, $houseNo, $village, $road, $soi, $moo, $subDistrict, $district, $province, $zipcode, $adrId);
-    } else {
-        // Insert
-        $stmt = $conn->prepare("INSERT INTO tbl_address (UsrId, AdrLat, AdrLng, HouseNo, Village, Road, Soi, Moo, SubDistrict, District, Province, Zipcode, IsDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
-        $stmt->bind_param("iddsssssssss", $usrId, $lat, $lng, $houseNo, $village, $road, $soi, $moo, $subDistrict, $district, $province, $zipcode);
-    }
+    // Insert the new address as the new default
+    $stmt = $conn->prepare("INSERT INTO tbl_address (UsrId, AdrLat, AdrLng, HouseNo, Village, Road, Soi, Moo, SubDistrict, District, Province, Zipcode, IsDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
+    $stmt->bind_param("iddsssssssss", $usrId, $lat, $lng, $houseNo, $village, $road, $soi, $moo, $subDistrict, $district, $province, $zipcode);
 
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);

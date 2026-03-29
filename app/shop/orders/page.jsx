@@ -152,6 +152,11 @@ export default function OrdersPage() {
                     <span className={styles.sBadge} style={{background:ss.bg,color:ss.color}}>
                       <span className={styles.sDot} style={{background:ss.dot}}/>
                       {ss.lbl}
+                      {o.status === 'Cancelled' && o.OdrCancelBy && (
+                        <span className={styles.cancelBy}>
+                          ({o.OdrCancelBy === 'customer' ? 'โดยลูกค้า' : 'โดยร้านค้า'})
+                        </span>
+                      )}
                     </span>
                     {o.RiderId && (o.status === 'Ready' || o.status === 'Delivering') && (
                       <span className={styles.rBadge} style={{background:'#e3f2fd', color:'#1565c0', fontSize:'11px', padding:'3px 8px', borderRadius:'12px', marginLeft:'6px', fontWeight:'600'}}>
@@ -211,6 +216,23 @@ export default function OrdersPage() {
                         </div>
                       </div>
                     )}
+                    <div style={{ gridColumn: '1/-1', borderTop: '1px solid #eee', paddingTop: '10px', marginTop: '10px' }}>
+                      <div className={styles.dLbl}>💰 สรุปรายได้ของร้าน</div>
+                      <div className={styles.dVal} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                          <span>ราคาอาหาร:</span>
+                          <span>{Number(o.total || 0).toFixed(2)} ฿</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#e53935' }}>
+                          <span>หักค่าธรรมเนียม GP (25%):</span>
+                          <span>-{Number(o.OdrGP || 0).toFixed(2)} ฿</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', borderTop: '1px dashed #ccc', paddingTop: '4px', marginTop: '4px', color: '#2e7d32', fontSize: '16px' }}>
+                          <span>รายได้สุทธิที่ร้านจะได้รับ:</span>
+                          <span>{(Number(o.total || 0) - Number(o.OdrGP || 0)).toFixed(2)} ฿</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className={styles.actRow}>
                     {o.status!=='Completed'&&o.status!=='Cancelled'&&(

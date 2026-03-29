@@ -50,7 +50,22 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("iiiissss", $foodId, $usrId, $odrId, $score, $text, $imgPaths[0], $imgPaths[1], $imgPaths[2]);
 
 if ($stmt->execute()) {
-    echo json_encode(["success"=>true, "message"=>"Review submitted successfully"], JSON_UNESCAPED_UNICODE);
+    // Optimization: Recalculate and update FoodRatingAvg and FoodRatingCount in tbl_food
+    $aggSql = "SELECT AVG(ReviewScore) as avg_score, COUNT(*) as total_reviews FROM tbl_review WHERE FoodId = ?";
+    $aggStmt = $conn->prepare($aggSql);
+    $aggStmt->bind_param("i", $foodId);
+    $aggStmt->execute();
+    $aggRes = $aggStmt->get_result()->fetch_assoc();
+    
+    $newAvg   = round((float)($aggRes['avg_score'] ?? 0), 2);
+    $newCount = (int)($aggRes['total_reviews'] ?? 0);
+    
+    $updateSql = "UPDATE tbl_food SET FoodRatingAvg = ?, FoodRatingCount = ? WHERE FoodId = ?";
+    $updateStmt = $conn->prepare($updateSql);
+    $updateStmt->bind_param("dii", $newAvg, $newCount, $foodId);
+    $updateStmt->execute();
+    
+    echo json_encode(["success"=>true, "message"=>"Review submitted and ratings updated"], JSON_UNESCAPED_UNICODE);
 } else {
     echo json_encode(["success"=>false, "message"=>"Error: " . $conn->error], JSON_UNESCAPED_UNICODE);
 }

@@ -46,7 +46,7 @@ if ($food) {
     $food['reviews'] = $food['total_reviews'] ?: 0;
     
     // Fetch Addons
-    $sql_addons = "SELECT AddonId as id, AddonName as name, AddonPrice as price FROM tbl_addon WHERE FoodId = ?";
+    $sql_addons = "SELECT AddonId as id, AddonName as name, AddonPrice as price FROM tbl_addon WHERE FoodId = ? AND AddonStatus = 1";
     $stmt_a = $conn->prepare($sql_addons);
     $stmt_a->bind_param("i", $id);
     $stmt_a->execute();

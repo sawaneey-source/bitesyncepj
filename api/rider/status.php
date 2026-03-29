@@ -39,7 +39,7 @@ if (!$usrId) {
     exit();
 }
 
-$sql = "UPDATE tbl_rider SET RiderStatus = ? WHERE UsrId = ?";
+$sql = "UPDATE tbl_rider SET RiderStatus = ?, RiderCheckedAt = NOW() WHERE UsrId = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("si", $status, $usrId);
 

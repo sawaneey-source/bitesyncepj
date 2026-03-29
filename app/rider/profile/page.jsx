@@ -8,7 +8,7 @@ import { API_BASE, PUBLIC_URL } from '@/utils/api'
 export default function RiderProfilePage() {
   const fileRef = useRef()
   const [form, setForm] = useState({ name:'', phone:'', email:'', vehicle:'', plate:'', color:'', bankName:'', bankAccount:'', emergency:'', preview:null, img:null, oldPw: '', userPw: '', userPwConfirm: '' })
-  const [stats, setStats] = useState({ rating:0.0, jobs:0, settled:0, outstanding:0 })
+  const [stats, setStats] = useState({ rating:0.0, jobs:0, settled:0, outstanding:0, cancelRate:0, acceptRate:0, cancelCount:0 })
   const [loading, setLoading] = useState(true)
   const [toast, setToast]     = useState(null)
 
@@ -61,7 +61,10 @@ export default function RiderProfilePage() {
           rating: r.rating, 
           jobs: r.ratingCount, 
           settled: r.balance, 
-          outstanding: r.outstanding 
+          outstanding: r.outstanding,
+          cancelRate: r.cancelRate || 0,
+          acceptRate: r.acceptRate || 0,
+          cancelCount: r.cancelCount || 0
         })
       } else {
         console.error('Load Error:', data.message)
@@ -182,7 +185,15 @@ export default function RiderProfilePage() {
             bankName: r.bankName, bankAccount: r.bankAccount, emergency: r.emergency,
             preview: r.img, imgOri: r.imgOri, img: null, oldPw: '', userPw: '', userPwConfirm: ''
           }))
-          setStats({ rating: r.rating, jobs: r.ratingCount, settled: r.balance, outstanding: r.outstanding })
+          setStats({ 
+            rating: r.rating, 
+            jobs: r.ratingCount, 
+            settled: r.balance, 
+            outstanding: r.outstanding,
+            cancelRate: r.cancelRate || 0,
+            acceptRate: r.acceptRate || 0,
+            cancelCount: r.cancelCount || 0
+          })
         }
         await load()
       } else {
@@ -237,6 +248,15 @@ export default function RiderProfilePage() {
           </div>
           <div style={{fontSize:12, color:'#666', marginTop:5}}>
              ชำระแล้ว (สะสม): <b style={{color:'#2a6129'}}>฿{stats.settled?.toLocaleString()}</b>
+             <div style={{marginTop:4, display: 'flex', gap: '15px'}}>
+               <div>
+                  อัตราการรับงาน: <span style={{color: '#2a6129', fontWeight: 700}}>{stats.acceptRate}%</span>
+               </div>
+               <div>
+                  อัตราการทิ้งงาน: <span style={{color: stats.cancelRate > 10 ? '#e11d48' : '#2a6129', fontWeight: 700}}>{stats.cancelRate}%</span>
+                  <span style={{fontSize:10, color:'#999', marginLeft:4}}>({stats.cancelCount} ครั้ง)</span>
+               </div>
+             </div>
              {stats.outstanding > 0 && (
                <div style={{color:'#e11d48', marginTop:2}}>
                  ยอดค้างจ่าย: ฿{stats.outstanding?.toLocaleString()}

@@ -207,17 +207,31 @@ export default function CheckoutPage() {
     }
   }, [router])
 
-  // Fetch payment settings when entering step 2
+  // Fetch payment settings (and platform fee) on mount
   useEffect(() => {
-    if (step === 2) {
-      fetch('http://localhost/bitesync/api/customer/get-settings.php')
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) setPmtSettings(data.data)
-        })
-        .catch(err => console.error("Settings fetch failed", err))
+    fetch('http://localhost/bitesync/api/customer/get-settings.php')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setPmtSettings(data.data)
+      })
+      .catch(err => console.error("Settings fetch failed", err))
+  }, [])
+
+  // NEW: Live Sync Payment Method to DB
+  useEffect(() => {
+    if (orderId && step === 2) {
+      const syncMethod = async () => {
+        try {
+          await fetch('http://localhost/bitesync/api/customer/update-payment-method.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId, method: pmtMethod })
+          });
+        } catch (e) {}
+      };
+      syncMethod();
     }
-  }, [step])
+  }, [pmtMethod, orderId, step]);
 
   // New Effect for Loading Existing Order from URL
   useEffect(() => {
@@ -600,7 +614,8 @@ export default function CheckoutPage() {
   const isAddressValid = selProvince && selAmphure && selTambon && houseNo.trim().length >= 1
 
   const subtotal = (cart || []).reduce((s, c) => s + Math.round((parseFloat(c.price || 0) * Number(c.qty || 0))), 0)
-  const total = Math.round(subtotal + deliveryFee)
+  const platformFee = parseFloat(pmtSettings?.platform_fee || 0)
+  const total = Math.round(subtotal + deliveryFee + platformFee)
 
   async function placeOrder() {
     setLoading(true)
@@ -1146,6 +1161,12 @@ export default function CheckoutPage() {
                   <span>ค่าจัดส่ง</span>
                   <span>{deliveryFee.toLocaleString()} ฿</span>
                 </div>
+                {platformFee > 0 && (
+                  <div className={styles.summaryRow}>
+                    <span>ค่าบริการระบบ</span>
+                    <span>{platformFee.toLocaleString()} ฿</span>
+                  </div>
+                )}
                 <div className={styles.divider}/>
                 <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
                   <span>ทั้งหมด</span><span>{Math.round(total).toLocaleString()} ฿</span>

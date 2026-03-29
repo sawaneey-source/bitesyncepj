@@ -20,15 +20,8 @@ if (!$userId) {
 }
 
 if ($method === 'GET') {
-    // Unique addresses by core fields, prioritizing Default and latest AdrId
-    $sql = "SELECT * FROM tbl_address 
-            WHERE AdrId IN (
-                SELECT MAX(AdrId) 
-                FROM tbl_address 
-                WHERE UsrId = ? 
-                GROUP BY HouseNo, SubDistrict, District, Province, AdrLat, AdrLng
-            )
-            ORDER BY IsDefault DESC, AdrId DESC";
+    // Exclude IsDefault = 2 (Soft-deleted addresses tied to orders)
+    $sql = "SELECT * FROM tbl_address WHERE UsrId = ? AND IsDefault != 2 ORDER BY IsDefault DESC, AdrId DESC";
             
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $userId);
@@ -85,10 +78,45 @@ elseif ($method === 'PUT') {
     echo json_encode(['success' => true, 'message' => 'Address updated']);
 }
 elseif ($method === 'DELETE') {
-    $adrId = $_GET['adrId'];
-    $stmt = $conn->prepare("DELETE FROM tbl_address WHERE AdrId = ? AND UsrId = ?");
-    $stmt->bind_param("ii", $adrId, $userId);
-    $stmt->execute();
-    echo json_encode(['success' => true, 'message' => 'Address deleted']);
+    $adrId = $_GET['adrId'] ?? null;
+    if (!$adrId) {
+        echo json_encode(['success' => false, 'message' => 'Missing AdrId']);
+        exit;
+    }
+    
+    // Check if it's the default address before deleting
+    $chk = $conn->prepare("SELECT IsDefault FROM tbl_address WHERE AdrId = ? AND UsrId = ?");
+    $chk->bind_param("ii", $adrId, $userId);
+    $chk->execute();
+    $res = $chk->get_result();
+    if ($row = $res->fetch_assoc()) {
+        if ($row['IsDefault'] == 1) {
+            echo json_encode(['success' => false, 'message' => 'ไม่สามารถลบที่อยู่เริ่มต้นได้ กรุณาตั้งที่อยู่อื่นเป็นค่าเริ่มต้นก่อนลบครับ']);
+            exit;
+        }
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Address not found']);
+        exit;
+    }
+
+    try {
+        $stmt = $conn->prepare("DELETE FROM tbl_address WHERE AdrId = ? AND UsrId = ?");
+        $stmt->bind_param("ii", $adrId, $userId);
+        $stmt->execute();
+        echo json_encode(['success' => true, 'message' => 'Address deleted (Hard delete)']);
+    } catch (\mysqli_sql_exception $e) {
+        // Error Code 1451: Cannot delete or update a parent row: a foreign key constraint fails
+        if ($e->getCode() == 1451) {
+            $stmt_soft = $conn->prepare("UPDATE tbl_address SET IsDefault = 2 WHERE AdrId = ? AND UsrId = ?");
+            $stmt_soft->bind_param("ii", $adrId, $userId);
+            if ($stmt_soft->execute()) {
+                echo json_encode(['success' => true, 'message' => 'Address deleted (Soft delete)']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Soft delete failed: ' . $conn->error]);
+            }
+        } else {
+            echo json_encode(['success' => false, 'message' => 'ระบบฐานข้อมูลขัดข้อง (DB Error: ' . $e->getMessage() . ')']);
+        }
+    }
 }
 ?>

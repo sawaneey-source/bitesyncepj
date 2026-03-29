@@ -43,6 +43,8 @@ export default function ShopProfilePage() {
   const [bannerFileOri, setBannerFileOri] = useState(null)
   const [shopBankName, setShopBankName] = useState('')
   const [shopBankAccount, setShopBankAccount] = useState('')
+  const [shopAcceptRate, setShopAcceptRate] = useState(0)
+  const [shopCancelRate, setShopCancelRate] = useState(0)
 
   // Cropper State
   const [imageToCrop, setImageToCrop] = useState(null)
@@ -135,6 +137,8 @@ export default function ShopProfilePage() {
           setUsrPhone(s.UsrPhone || '')
           setShopBankName(s.ShopBankName || '')
           setShopBankAccount(s.ShopBankAccount || '')
+          setShopAcceptRate(s.ShopAcceptRate || 0)
+          setShopCancelRate(s.ShopCancelRate || 0)
         }
         setLoading(false)
       })
@@ -419,6 +423,8 @@ export default function ShopProfilePage() {
           if (s.UsrPhone) setUsrPhone(s.UsrPhone)
           if (s.ShopBankName) setShopBankName(s.ShopBankName)
           if (s.ShopBankAccount) setShopBankAccount(s.ShopBankAccount)
+          if (s.ShopAcceptRate !== undefined) setShopAcceptRate(s.ShopAcceptRate)
+          if (s.ShopCancelRate !== undefined) setShopCancelRate(s.ShopCancelRate)
         }
       } else {
         showToast(data.message || 'เกิดข้อผิดพลาด', false)
@@ -524,9 +530,21 @@ export default function ShopProfilePage() {
             </div>
             <div className={styles.headerInfo}>
               <h1 className={styles.name}>{shopName || 'ชื่อร้านของคุณ'}</h1>
-              <div className={styles.statusBadge}>
-                <div className={`${styles.statusDot} ${shopStatus === 1 ? styles.statusOpen : styles.statusClosed}`} />
-                <span>{shopStatus === 1 ? 'กำลังเปิดร้าน' : 'ปิดร้านอยู่'}</span>
+              <div className={styles.headerMetaRow}>
+                <div className={styles.statusBadge}>
+                  <div className={`${styles.statusDot} ${shopStatus === 1 ? styles.statusOpen : styles.statusClosed}`} />
+                  <span>{shopStatus === 1 ? 'กำลังเปิดร้าน' : 'ปิดร้านอยู่'}</span>
+                </div>
+                <div className={styles.statsBadgeRow}>
+                   <div className={styles.statMini}>
+                     <span className={styles.statLabel}>รับออเดอร์:</span>
+                     <span className={styles.statVal} style={{color: '#2a6129'}}>{shopAcceptRate}%</span>
+                   </div>
+                   <div className={styles.statMini}>
+                     <span className={styles.statLabel}>ยกเลิก:</span>
+                     <span className={styles.statVal} style={{color: shopCancelRate > 10 ? '#e11d48' : '#666'}}>{shopCancelRate}%</span>
+                   </div>
+                </div>
               </div>
             </div>
           </div>

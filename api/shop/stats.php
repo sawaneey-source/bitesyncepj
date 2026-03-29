@@ -72,7 +72,7 @@ $pendingCount = (int)($row['cnt'] ?? 0);
 
 // 4. Recent Orders (Last 5) - Always showing last 5 regardless of period
 $recent = [];
-$stmt = $conn->prepare("SELECT o.OdrId, o.OdrCreatedAt, u.UsrFullName as customer, (o.OdrGrandTotal - o.OdrDelFee) as total, o.OdrStatus, u.UsrImagePath as customerImage
+$stmt = $conn->prepare("SELECT o.OdrId, o.OdrCreatedAt, u.UsrFullName as customer, o.OdrFoodPrice as total, o.OdrStatus, u.UsrImagePath as customerImage
                         FROM tbl_order o
                         LEFT JOIN tbl_userinfo u ON o.UsrId = u.UsrId
                         WHERE o.ShopId = ? AND o.OdrStatus >= 2
@@ -97,7 +97,7 @@ while($r = $res->fetch_assoc()) {
 $chart = [];
 for ($i = 6; $i >= 0; $i--) {
     $date = date('Y-m-d', strtotime("-$i days"));
-    $stmt = $conn->prepare("SELECT SUM(OdrGrandTotal - OdrDelFee) as total FROM tbl_order WHERE ShopId = ? AND OdrStatus = 6 AND DATE(OdrCreatedAt) = ?");
+    $stmt = $conn->prepare("SELECT SUM(OdrFoodPrice) as total FROM tbl_order WHERE ShopId = ? AND OdrStatus = 6 AND DATE(OdrCreatedAt) = ?");
     $stmt->bind_param("is", $shopId, $date);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();

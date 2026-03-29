@@ -19,8 +19,8 @@ $sql = "SELECT f.FoodId as id, f.FoodName as name, f.FoodPrice as price,
                f.FoodImagePath as img, f.FoodStatus as available, f.FoodDetail as `desc`, f.FoodPrepTime as deliveryTime,
                s.ShopId, s.ShopName as shopName, s.ShopStatus as shopOpen, s.ShopCatType as shopCategory,
                (SELECT CatName FROM tbl_menu_category WHERE tbl_menu_category.CatId = f.CatId) as category,
-               (SELECT AVG(ReviewScore) FROM tbl_review WHERE FoodId = f.FoodId) as avg_rating,
-               (SELECT COUNT(ReviewId) FROM tbl_review WHERE FoodId = f.FoodId) as total_reviews
+               f.FoodRatingAvg as avg_rating,
+               f.FoodRatingCount as total_reviews
         FROM tbl_food f
         JOIN tbl_shop s ON f.ShopId = s.ShopId
         ORDER BY f.FoodId DESC";

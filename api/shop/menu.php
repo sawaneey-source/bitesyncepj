@@ -113,12 +113,13 @@ if ($method === 'GET') {
             $conn->query("DELETE FROM tbl_addon WHERE FoodId = $id");
             $addons_arr = json_decode($addons, true);
             if (is_array($addons_arr)) {
-                $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, 1)");
+                $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, ?)");
                 foreach ($addons_arr as $a) {
                     $aname = $a['name'] ?? '';
                     $aprice = $a['price'] ?? 0;
+                    $astatus = (isset($a['status']) && $a['status'] === 'out_of_stock') ? 0 : 1;
                     if ($aname) {
-                        $stmt_a->bind_param("isd", $id, $aname, $aprice);
+                        $stmt_a->bind_param("isdi", $id, $aname, $aprice, $astatus);
                         $stmt_a->execute();
                     }
                 }
@@ -138,12 +139,13 @@ if ($method === 'GET') {
             // Handle Addons
             $addons_arr = json_decode($addons, true);
             if (is_array($addons_arr)) {
-                $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, 1)");
+                $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, ?)");
                 foreach ($addons_arr as $a) {
                     $aname = $a['name'] ?? '';
                     $aprice = $a['price'] ?? 0;
+                    $astatus = (isset($a['status']) && $a['status'] === 'out_of_stock') ? 0 : 1;
                     if ($aname) {
-                        $stmt_a->bind_param("isd", $foodId, $aname, $aprice);
+                        $stmt_a->bind_param("isdi", $foodId, $aname, $aprice, $astatus);
                         $stmt_a->execute();
                     }
                 }
@@ -199,12 +201,13 @@ if ($method === 'GET') {
     if($stmt->execute()){
         $conn->query("DELETE FROM tbl_addon WHERE FoodId = $id");
         if (is_array($addons)) {
-            $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, 1)");
+            $stmt_a = $conn->prepare("INSERT INTO tbl_addon (FoodId, AddonName, AddonPrice, AddonStatus) VALUES (?, ?, ?, ?)");
             foreach ($addons as $a) {
                 $aname = $a['name'] ?? '';
                 $aprice = $a['price'] ?? 0;
+                $astatus = (isset($a['status']) && $a['status'] === 'out_of_stock') ? 0 : 1;
                 if ($aname) {
-                    $stmt_a->bind_param("isd", $id, $aname, $aprice);
+                    $stmt_a->bind_param("isdi", $id, $aname, $aprice, $astatus);
                     $stmt_a->execute();
                 }
             }

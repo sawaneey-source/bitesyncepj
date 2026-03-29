@@ -53,16 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     // 2. Get Rider Details
-    $rSql = "SELECT RiderId, RiderVehicleType, RiderVehiclePlate, RiderVehicleColor, RiderBankName, RiderBankAccount, EmergencyPhone, RiderStatus, RiderBalance, RiderTotalSettled FROM tbl_rider WHERE UsrId = ?";
+    $rSql = "SELECT RiderId, RiderVehicleType, RiderVehiclePlate, RiderVehicleColor, RiderBankName, RiderBankAccount, EmergencyPhone, RiderStatus, RiderBalance, RiderTotalSettled, RiderAcceptRate FROM tbl_rider WHERE UsrId = ?";
     $rStmt = $conn->prepare($rSql);
     $rStmt->bind_param("i", $usrId);
     $rStmt->execute();
     $rStmt->store_result();
     
     $rRow = null; 
-    $rId = 0; $currentBalance = 0; $totalPaid = 0;
+    $rId = 0; $currentBalance = 0; $totalPaid = 0; $acceptRateFromDB = 0;
     if ($rStmt->num_rows > 0) {
-        $rStmt->bind_result($rId, $vType, $vPlate, $vColor, $vBank, $vAcc, $vEmer, $rStatus, $currentBalance, $totalPaid);
+        $rStmt->bind_result($rId, $vType, $vPlate, $vColor, $vBank, $vAcc, $vEmer, $rStatus, $currentBalance, $totalPaid, $acceptRateFromDB);
         $rStmt->fetch();
         $rRow = [
             "RiderId"=>$rId, "RiderVehicleType"=>$vType, "RiderVehiclePlate"=>$vPlate, "RiderVehicleColor"=>$vColor, 
@@ -104,6 +104,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $q4->execute();
         $settledBalance = (float)($q4->get_result()->fetch_assoc()['amt'] ?? 0);
         $q4->close();
+
+        // 3. Cancel Count (From history)
+        $q5 = $conn->prepare("SELECT COUNT(*) as cancels FROM tbl_order_cancel_history WHERE RiderId = ?");
+        $q5->bind_param("i", $rId);
+        $q5->execute();
+        $cancelCount = (int)($q5->get_result()->fetch_assoc()['cancels'] ?? 0);
+        $q5->close();
+
+        // 4. Calculate Cancel Rate (%)
+        // Rate = Cancels / (Cancels + Completed)
+        $totalEngagements = $cancelCount + $jobs;
+        $cancelRate = ($totalEngagements > 0) ? ($cancelCount / $totalEngagements) * 100 : 0;
     }
 
     // Map DB to Frontend JSON
@@ -123,6 +135,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         "ratingCount" => $jobs,
         "balance" => $settledBalance,
         "outstanding" => $outstanding,
+        "cancelRate" => round($cancelRate, 1),
+        "acceptRate" => round($acceptRateFromDB, 1),
+        "cancelCount" => $cancelCount,
         "status" => $rRow['RiderStatus'] ?? 'Offline'
     ];
     
@@ -265,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
     // 4. Return Fresh Data
     $sqlLoad = "SELECT u.UsrFullName, u.UsrPhone, u.UsrEmail, u.UsrImagePath, u.UsrImageOriPath, 
                        r.RiderVehicleType, r.RiderVehiclePlate, r.RiderVehicleColor, r.RiderBankName, r.RiderBankAccount, r.EmergencyPhone,
-                       r.RiderBalance, r.RiderTotalSettled, r.RiderId
+                       r.RiderBalance, r.RiderTotalSettled, r.RiderId, r.RiderAcceptRate
                 FROM tbl_userinfo u 
                 LEFT JOIN tbl_rider r ON u.UsrId = r.UsrId
                 WHERE u.UsrId = ?";
@@ -318,7 +333,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         "rating" => round($rating, 1),
         "ratingCount" => $jobs,
         "balance" => $settledBalance,
-        "outstanding" => $outstanding
+        "outstanding" => $outstanding,
+        "cancelRate" => round($cancelRate, 1),
+        "acceptRate" => round($r['RiderAcceptRate'] ?? 100, 1),
+        "cancelCount" => $cancelCount
     ];
 
     echo json_encode(["success"=>true, "message"=>"บันทึกข้อมูลส่วนตัวสำเร็จ ✅", "data"=>$fullData], JSON_UNESCAPED_UNICODE);

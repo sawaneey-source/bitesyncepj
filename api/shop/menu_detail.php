@@ -41,13 +41,17 @@ if ($food) {
     $food['status'] = ($food['FoodStatus'] == 1) ? 'available' : 'out_of_stock';
 
     // Fetch Addons
-    $sql_addons = "SELECT AddonId as id, AddonName as name, AddonPrice as price FROM tbl_addon WHERE FoodId = ?";
+    $sql_addons = "SELECT AddonId as id, AddonName as name, AddonPrice as price, AddonStatus FROM tbl_addon WHERE FoodId = ?";
     $stmt_a = $conn->prepare($sql_addons);
     $stmt_a->bind_param("i", $id);
     $stmt_a->execute();
     $res_a = $stmt_a->get_result();
     $addons = [];
-    while($row_a = $res_a->fetch_assoc()) $addons[] = $row_a;
+    while($row_a = $res_a->fetch_assoc()) {
+        $row_a['status'] = ($row_a['AddonStatus'] == 1) ? 'available' : 'out_of_stock';
+        unset($row_a['AddonStatus']);
+        $addons[] = $row_a;
+    }
     $food['addons'] = $addons;
 
     echo json_encode(["success"=>true, "data"=>$food]);

@@ -303,20 +303,59 @@ export default function ProfilePage() {
     });
     const d = await res.json();
     if (d.success) {
-      fetchAddresses(user.id);
-      // Refresh user info for the UsrAddress string
-      const uResp = await fetch(`http://localhost/bitesync/dbconnect/update_profile.php?id=${user.id}`, { method: 'GET' }); // assuming GET works for refresh
-      // Wait, update_profile doesn't handle GET. I'll just refresh local state from one of the results or re-fetch user if I had a profile GET API.
-      // For now, I'll just reload the page or rely on the next refresh.
-      window.location.reload();
+      await fetchAddresses(user.id);
+      
+      // Refresh user info reactively
+      const uResp = await fetch(`http://localhost/bitesync/api/customer/get_profile.php?userId=${user.id}`);
+      const uData = await uResp.json();
+      if (uData.success) {
+        setUser(prev => ({ ...prev, address: uData.user.address }));
+        setEditedUser(prev => ({ ...prev, address: uData.user.address }));
+        
+        const stored = JSON.parse(localStorage.getItem('bs_user') || '{}');
+        localStorage.setItem('bs_user', JSON.stringify({ ...stored, address: uData.user.address }));
+      }
     }
   }
 
   const deleteAddress = async (adrId) => {
-    if (!confirm('ยืนยันการลบที่อยู่นี้?')) return;
-    const res = await fetch(`http://localhost/bitesync/api/customer/address_manager.php?userId=${user.id}&adrId=${adrId}`, { method: 'DELETE' });
-    const d = await res.json();
-    if (d.success) fetchAddresses(user.id);
+    openModal({
+      title: 'ยืนยันการลบที่อยู่?',
+      description: 'คุณแน่ใจหรือไม่ว่าต้องการลบทิ้งที่อยู่นี้? การกระทำนี้ไม่สามารถย้อนกลับได้',
+      type: 'confirm',
+      icon: '🗑️',
+      confirmText: 'ลบทิ้ง',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`http://localhost/bitesync/api/customer/address_manager.php?userId=${user.id}&adrId=${adrId}`, { method: 'DELETE' });
+          const text = await res.text();
+          let d;
+          try { d = JSON.parse(text); } catch(ex) { d = { success: false, message: text }; }
+          if (d.success) {
+            fetchAddresses(user.id);
+            setModal(prev => ({ ...prev, open: false }));
+          } else {
+            openModal({
+              title: 'ลบที่อยู่ไม่สำเร็จ',
+              description: d.message || 'เกิดข้อผิดพลาดในการลบที่อยู่จากระบบ',
+              type: 'alert',
+              icon: '⚠️',
+              confirmText: 'ตกลง',
+              onConfirm: null
+            });
+          }
+        } catch (e) {
+          openModal({
+            title: 'เกิดข้อผิดพลาด',
+            description: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
+            type: 'alert',
+            icon: '🚫',
+            confirmText: 'ตกลง',
+            onConfirm: null
+          });
+        }
+      }
+    });
   }
 
   const handleLogout = () => {

@@ -1,5 +1,5 @@
--- Safe Migration Script for BiteSync
--- This script adds missing columns and tables without deleting existing data.
+-- Perfect Database Reconstruction Script for BiteSync
+-- This script contains the COMPLETED schema including all financial and management columns.
 
 CREATE DATABASE IF NOT EXISTS bitesync;
 USE bitesync;
@@ -7,16 +7,16 @@ USE bitesync;
 -- 1. tbl_userinfo
 CREATE TABLE IF NOT EXISTS tbl_userinfo (
     UsrId INT AUTO_INCREMENT PRIMARY KEY,
-    UsrRole VARCHAR(50) NOT NULL,
-    UsrFullName VARCHAR(255) NOT NULL,
-    UsrEmail VARCHAR(255) NOT NULL,
-    UsrPhone VARCHAR(20) NOT NULL,
+    UsrEmail VARCHAR(255) NOT NULL UNIQUE,
     UsrPassword VARCHAR(255) NOT NULL,
-    UsrImagePath VARCHAR(255) DEFAULT NULL
+    UsrPhone VARCHAR(10) DEFAULT NULL,
+    UsrFullName VARCHAR(255) DEFAULT NULL,
+    UsrRole VARCHAR(20) DEFAULT NULL,
+    UsrStatus TINYINT(4) NOT NULL DEFAULT 1 COMMENT '1=Active, 0=Banned',
+    UsrCreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UsrImagePath VARCHAR(255) DEFAULT NULL,
+    UsrImageOriPath VARCHAR(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Add missing columns to tbl_userinfo if they don't exist
-ALTER TABLE tbl_userinfo ADD COLUMN IF NOT EXISTS UsrImagePath VARCHAR(255) DEFAULT NULL;
 
 -- 2. tbl_address
 CREATE TABLE IF NOT EXISTS tbl_address (
@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS tbl_address (
     Zipcode VARCHAR(10),
     AdrLat DECIMAL(10, 8),
     AdrLng DECIMAL(11, 8),
-    IsDefault TINYINT(1) DEFAULT 0
+    IsDefault TINYINT(1) DEFAULT 0,
+    FOREIGN KEY (UsrId) REFERENCES tbl_userinfo(UsrId) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 3. tbl_shop
@@ -49,44 +50,38 @@ CREATE TABLE IF NOT EXISTS tbl_shop (
     ShopLogoOriPath VARCHAR(255),
     ShopBannerOriPath VARCHAR(255),
     ShopPrepTime INT DEFAULT 30,
+    ShopLat DECIMAL(10, 8),
+    ShopLng DECIMAL(11, 8),
+    ShopAcceptRate DECIMAL(5, 2) DEFAULT 100.00,
+    ShopCancelRate DECIMAL(5, 2) DEFAULT 0.00,
+    ShopBalance DECIMAL(10, 2) DEFAULT 0.00,
+    ShopTotalSettled DECIMAL(10, 2) DEFAULT 0.00,
     AdrId INT,
     FOREIGN KEY (UsrId) REFERENCES tbl_userinfo(UsrId) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Add missing columns to tbl_shop
-ALTER TABLE tbl_shop ADD COLUMN IF NOT EXISTS ShopLogoOriPath VARCHAR(255) AFTER ShopBannerPath;
-ALTER TABLE tbl_shop ADD COLUMN IF NOT EXISTS ShopBannerOriPath VARCHAR(255) AFTER ShopLogoOriPath;
-ALTER TABLE tbl_shop ADD COLUMN IF NOT EXISTS ShopPrepTime INT DEFAULT 30 AFTER ShopBannerOriPath;
-ALTER TABLE tbl_shop ADD COLUMN IF NOT EXISTS ShopLat DECIMAL(10, 8) AFTER AdrId;
-ALTER TABLE tbl_shop ADD COLUMN IF NOT EXISTS ShopLng DECIMAL(11, 8) AFTER ShopLat;
 
 -- 4. tbl_rider
 CREATE TABLE IF NOT EXISTS tbl_rider (
     RiderId INT AUTO_INCREMENT PRIMARY KEY,
     UsrId INT NOT NULL,
+    RiderStatus VARCHAR(20) DEFAULT 'Offline',
     RiderVehicleType VARCHAR(100),
     RiderVehiclePlate VARCHAR(50),
     RiderVehicleColor VARCHAR(50),
     RiderBankName VARCHAR(100),
     RiderBankAccount VARCHAR(50),
     EmergencyPhone VARCHAR(20),
-    RiderRatingAvg FLOAT DEFAULT 0,
+    RiderRatingAvg DECIMAL(3, 2) DEFAULT 0.00,
     RiderRatingCount INT DEFAULT 0,
-    RiderBalance DECIMAL(10, 2) DEFAULT 0,
-    RiderStatus VARCHAR(20) DEFAULT 'Offline',
+    RiderAcceptRate DECIMAL(5, 2) DEFAULT 0.00,
+    RiderCancelRate DECIMAL(5, 2) DEFAULT 0.00,
+    RiderBalance DECIMAL(10, 2) DEFAULT 0.00,
+    RiderTotalSettled DECIMAL(10, 2) DEFAULT 0.00,
+    RiderCheckedAt DATETIME DEFAULT NULL,
     RiderLat DECIMAL(10, 8),
     RiderLng DECIMAL(11, 8),
     FOREIGN KEY (UsrId) REFERENCES tbl_userinfo(UsrId) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Add missing columns to tbl_rider
-ALTER TABLE tbl_rider ADD COLUMN IF NOT EXISTS RiderVehicleType VARCHAR(100) AFTER UsrId;
-ALTER TABLE tbl_rider ADD COLUMN IF NOT EXISTS RiderVehicleColor VARCHAR(50) AFTER RiderVehiclePlate;
-ALTER TABLE tbl_rider ADD COLUMN IF NOT EXISTS RiderBankName VARCHAR(100) AFTER RiderVehicleColor;
-ALTER TABLE tbl_rider ADD COLUMN IF NOT EXISTS RiderBankAccount VARCHAR(50) AFTER RiderBankName;
-ALTER TABLE tbl_rider ADD COLUMN IF NOT EXISTS EmergencyPhone VARCHAR(20) AFTER RiderBankAccount;
-ALTER TABLE tbl_rider ADD COLUMN IF NOT EXISTS RiderLat DECIMAL(10, 8) AFTER RiderStatus;
-ALTER TABLE tbl_rider ADD COLUMN IF NOT EXISTS RiderLng DECIMAL(11, 8) AFTER RiderLat;
 
 -- 5. tbl_menu_category
 CREATE TABLE IF NOT EXISTS tbl_menu_category (
@@ -123,28 +118,40 @@ CREATE TABLE IF NOT EXISTS tbl_order (
     OdrId INT AUTO_INCREMENT PRIMARY KEY,
     UsrId INT NOT NULL,
     ShopId INT NOT NULL,
-    AdrId INT,
     RiderId INT DEFAULT NULL,
-    OdrStatus INT DEFAULT 1,
-    OdrFoodPrice DECIMAL(10, 2),
-    OdrDelFee DECIMAL(10, 2),
-    OdrGrandTotal DECIMAL(10, 2),
+    AdrId INT DEFAULT NULL,
+    OdrNote VARCHAR(500) DEFAULT NULL,
+    OdrStatus TINYINT(4) NOT NULL DEFAULT 0 COMMENT '0=Pending, 1=WaitingPay, 6=Success, 7=Cancel',
+    OdrNoteRider VARCHAR(255) DEFAULT NULL,
+    OdrDistance DECIMAL(6, 2) DEFAULT NULL,
+    OdrFoodPrice DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    OdrDelFee DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    OdrPlatformFee DECIMAL(10, 2) NOT NULL DEFAULT 0.00 COMMENT 'Fixed 12 THB',
+    OdrGrandTotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    OdrSlip VARCHAR(255) DEFAULT NULL,
     OdrCreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    RiderRating FLOAT DEFAULT NULL,
+    OdrUpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    RiderRating TINYINT(1) DEFAULT NULL,
+    OdrCancelBy VARCHAR(50) DEFAULT NULL COMMENT 'customer or shop',
+    OdrGP DECIMAL(10, 2) DEFAULT 0.00 COMMENT '25% commissions',
+    OdrRiderFee DECIMAL(10, 2) DEFAULT 0.00 COMMENT '80% of delivery fee',
+    OdrAdminFee DECIMAL(10, 2) DEFAULT 0.00 COMMENT 'GP + DevShare + PlatFee',
+    OdrSettled TINYINT(1) DEFAULT 0,
+    OdrShopSettled TINYINT(1) DEFAULT 0,
+    OdrRiderSettled TINYINT(1) DEFAULT 0,
     FOREIGN KEY (UsrId) REFERENCES tbl_userinfo(UsrId),
     FOREIGN KEY (ShopId) REFERENCES tbl_shop(ShopId)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Add missing columns to tbl_order
-ALTER TABLE tbl_order ADD COLUMN IF NOT EXISTS RiderRating FLOAT DEFAULT NULL AFTER OdrCreatedAt;
-
 -- 9. tbl_order_detail
 CREATE TABLE IF NOT EXISTS tbl_order_detail (
+    OdtId INT AUTO_INCREMENT PRIMARY KEY,
     OdrId INT NOT NULL,
     FoodId INT NOT NULL,
     OdtUnitPrice DECIMAL(10, 2) NOT NULL,
-    OdtQty INT NOT NULL,
-    FOREIGN KEY (OdrId) REFERENCES tbl_order(OdrId) ON DELETE CASCADE
+    OdtQty INT NOT NULL DEFAULT 1,
+    FOREIGN KEY (OdrId) REFERENCES tbl_order(OdrId) ON DELETE CASCADE,
+    FOREIGN KEY (FoodId) REFERENCES tbl_food(FoodId)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 10. tbl_review
@@ -166,8 +173,34 @@ CREATE TABLE IF NOT EXISTS tbl_review (
 
 -- 11. tbl_order_cancel_history
 CREATE TABLE IF NOT EXISTS tbl_order_cancel_history (
+    OchId INT AUTO_INCREMENT PRIMARY KEY,
     OdrId INT NOT NULL,
     RiderId INT NOT NULL,
-    CancelledAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (OdrId, RiderId)
+    OchCreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 12. tbl_payment
+CREATE TABLE IF NOT EXISTS tbl_payment (
+    PmtId INT AUTO_INCREMENT PRIMARY KEY,
+    OdrId INT NOT NULL UNIQUE,
+    PmtMethod VARCHAR(50) DEFAULT 'PromptPay',
+    PmtSlipPath VARCHAR(255) DEFAULT NULL,
+    PmtAmount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    PmtStatus TINYINT DEFAULT 0,
+    PmtCreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (OdrId) REFERENCES tbl_order(OdrId) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 13. tbl_settings
+CREATE TABLE IF NOT EXISTS tbl_settings (
+    SettingId INT AUTO_INCREMENT PRIMARY KEY,
+    SettingKey VARCHAR(50) NOT NULL UNIQUE,
+    SettingValue VARCHAR(255) DEFAULT NULL,
+    SettingName VARCHAR(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Seed initial settings
+INSERT IGNORE INTO tbl_settings (SettingKey, SettingValue, SettingName) VALUES 
+('platform_fee', '12', 'ค่าธรรมเนียมบริการระบบ (บาท)'),
+('gp_rate', '0.25', 'อัตราค่า GP ร้านค้า (0.25 = 25%)'),
+('rider_share', '0.80', 'ส่วนแบ่งรายได้ไรเดอร์ (0.80 = 80%)');

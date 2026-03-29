@@ -25,6 +25,13 @@ if ($rowSt = $resSt->fetch_assoc()) {
     $riderStatus = $rowSt['RiderStatus'];
     $riderLat = (float)$rowSt['RiderLat'];
     $riderLng = (float)$rowSt['RiderLng'];
+    
+    // --- Start: Rider Heartbeat ---
+    $qCheck = $conn->prepare("UPDATE tbl_rider SET RiderCheckedAt = NOW() WHERE UsrId = ?");
+    $qCheck->bind_param("i", $usrId);
+    $qCheck->execute();
+    $qCheck->close();
+    // --- End: Rider Heartbeat ---
 }
 if ($riderStatus !== 'Online') {
     echo json_encode(['success' => true, 'data' => [], 'status' => $riderStatus]);
@@ -88,8 +95,8 @@ if ($result && $result->num_rows > 0) {
         // Distance from Rider to Shop
         $distToShop = getDistance($riderLat, $riderLng, (float)$row['shopLat'], (float)$row['shopLng']);
 
-        // Only show jobs within 15km
-        if ($distToShop > 15.0) continue;
+        // Only show jobs within 5km
+        if ($distToShop > 5.0) continue;
 
         $jobs[] = [
             'id' => "#" . $row['OdrId'],

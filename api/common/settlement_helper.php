@@ -36,6 +36,25 @@ function updateBalance($conn, $orderId) {
         $stmt->bind_param("i", $orderId);
         $stmt->execute();
 
+        // 5. Update Rider Statistics (Cancel Rate) in DB
+        if ($riderId) {
+            $qComp = $conn->prepare("SELECT COUNT(*) as completed FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6");
+            $qComp->bind_param("i", $riderId); $qComp->execute();
+            $completedCount = (int)($qComp->get_result()->fetch_assoc()['completed'] ?? 0);
+            
+            $qCan = $conn->prepare("SELECT COUNT(*) as cancels FROM tbl_order_cancel_history WHERE RiderId = ?");
+            $qCan->bind_param("i", $riderId); $qCan->execute();
+            $cancelCount = (int)($qCan->get_result()->fetch_assoc()['cancels'] ?? 0);
+            
+            $totalEngagements = $completedCount + $cancelCount;
+            $newCancelRate = ($totalEngagements > 0) ? round(($cancelCount / $totalEngagements) * 100, 2) : 0;
+            $newAcceptRate = 100 - $newCancelRate;
+            
+            $uRate = $conn->prepare("UPDATE tbl_rider SET RiderCancelRate = ?, RiderAcceptRate = ? WHERE RiderId = ?");
+            $uRate->bind_param("ddi", $newCancelRate, $newAcceptRate, $riderId);
+            $uRate->execute();
+        }
+
         $conn->commit();
         return true;
     } catch (Exception $e) {

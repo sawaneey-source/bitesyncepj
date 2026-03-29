@@ -10,7 +10,7 @@ export default function EditMenuPage() {
   const params = useParams()
   const fileRef = useRef()
   const [form, setForm] = useState({ name: '', category: '', price: '', description: '', status: 'available', prepTime: 30 })
-  const [addons, setAddons] = useState([{ name: '', price: '' }])
+  const [addons, setAddons] = useState([{ name: '', price: '', status: 'available' }])
   const [cats, setCats] = useState([])
   const [preview, setPreview] = useState(null)
   const [imgFile, setImgFile] = useState(null)
@@ -111,7 +111,7 @@ export default function EditMenuPage() {
     if (fileRef.current) fileRef.current.value = ''
   }
 
-  const addAddon = () => setAddons(p => [...p, { name: '', price: '' }])
+  const addAddon = () => setAddons(p => [...p, { name: '', price: '', status: 'available' }])
   const rmAddon = i => setAddons(p => p.filter((_, j) => j !== i))
   const upAddon = (i, k, v) => setAddons(p => p.map((a, j) => j === i ? { ...a, [k]: v } : a))
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -204,6 +204,18 @@ export default function EditMenuPage() {
                 <span className={styles.addonPlus}>+</span>
                 <input type="number" value={a.price} onChange={e => upAddon(i, 'price', e.target.value)} placeholder="0" className={`${styles.inp} ${styles.addonPrice}`} />
                 <span className={styles.addonBaht}>THB</span>
+                <button 
+                  onClick={() => upAddon(i, 'status', a.status === 'out_of_stock' ? 'available' : 'out_of_stock')}
+                  style={{
+                    background: a.status === 'out_of_stock' ? '#f5f5f5' : '#e8f5e9',
+                    color: a.status === 'out_of_stock' ? '#9e9e9e' : '#2e7d32',
+                    border: `1px solid ${a.status === 'out_of_stock' ? '#e0e0e0' : '#81c784'}`,
+                    padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold'
+                  }}
+                  title="คลิกเพื่อเปิด/ปิดท็อปปิ้ง"
+                >
+                  {a.status === 'out_of_stock' ? 'หมด' : 'เปิดขาย'}
+                </button>
                 {addons.length > 1 && <button onClick={() => rmAddon(i)} className={styles.addonRm}>✕</button>}
               </div>
             ))}

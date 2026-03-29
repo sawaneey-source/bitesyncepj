@@ -45,6 +45,24 @@ if ($updateStmt->execute()) {
         $logStmt->bind_param("ii", $orderId, $actualRiderId);
         $logStmt->execute();
 
+        // 4. Update Rider Statistics (Cancel Rate) in DB
+        // formula: cancels / (cancels + completed)
+        $qComp = $conn->prepare("SELECT COUNT(*) as completed FROM tbl_order WHERE RiderId = ? AND OdrStatus = 6");
+        $qComp->bind_param("i", $actualRiderId); $qComp->execute();
+        $completedCount = (int)($qComp->get_result()->fetch_assoc()['completed'] ?? 0);
+        
+        $qCan = $conn->prepare("SELECT COUNT(*) as cancels FROM tbl_order_cancel_history WHERE RiderId = ?");
+        $qCan->bind_param("i", $actualRiderId); $qCan->execute();
+        $cancelCount = (int)($qCan->get_result()->fetch_assoc()['cancels'] ?? 0);
+        
+        $totalEngagements = $completedCount + $cancelCount;
+        $newCancelRate = ($totalEngagements > 0) ? round(($cancelCount / $totalEngagements) * 100, 2) : 0;
+        $newAcceptRate = 100 - $newCancelRate;
+        
+        $uRate = $conn->prepare("UPDATE tbl_rider SET RiderCancelRate = ?, RiderAcceptRate = ? WHERE RiderId = ?");
+        $uRate->bind_param("ddi", $newCancelRate, $newAcceptRate, $actualRiderId);
+        $uRate->execute();
+
         echo json_encode(['success' => true, 'message' => 'ยกเลิกงานเรียบร้อยแล้ว งานนี้จะถูกส่งต่อให้ไรเดอร์ท่านอื่น']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Order not found or not assigned to you']);

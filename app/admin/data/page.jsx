@@ -143,9 +143,10 @@ async function handleManageUser(action, usrId) {
                   <th>วันที่</th>
                   <th>ลูกค้า</th>
                   <th>ร้านค้า</th>
-                  <th>ยอดรวม</th>
-                  <th>กำไรแอดมิน</th>
-                  <th>สถานะ</th>
+                   <th>ยอดรวม</th>
+                   <th>ค่าธรรมเนียม (12 ฿)</th>
+                   <th>กำไรแอดมินรวม</th>
+                   <th>สถานะ</th>
                 </tr>
               )}
               {activeTab === 'users' && (
@@ -192,9 +193,10 @@ async function handleManageUser(action, usrId) {
                       <td>{new Date(item.OdrCreatedAt).toLocaleDateString('th-TH')}</td>
                       <td>{item.customer || 'N/A'}</td>
                       <td>{item.ShopName || 'N/A'}</td>
-                      <td className={styles.bold}>{Number(item.OdrGrandTotal).toLocaleString()} ฿</td>
-                      <td className={styles.profit}>{Number(item.OdrAdminFee).toLocaleString()} ฿</td>
-                      <td><span className={`${styles.status} ${styles['os' + item.OdrStatus]}`}>{getStatusLabel(item.OdrStatus)}</span></td>
+                       <td className={styles.bold}>{Number(item.OdrGrandTotal).toLocaleString()} ฿</td>
+                       <td style={{color: '#6200ea', fontWeight: 'bold'}}>{Number(item.OdrPlatformFee || 0).toLocaleString()} ฿</td>
+                       <td className={styles.profit}>{Number(item.OdrAdminFee).toLocaleString()} ฿</td>
+                       <td><span className={`${styles.status} ${styles['os' + item.OdrStatus]}`}>{getStatusLabel(item.OdrStatus)}</span></td>
                     </>
                   )}
                   {activeTab === 'users' && (

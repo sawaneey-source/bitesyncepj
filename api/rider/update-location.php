@@ -23,7 +23,7 @@ if (!$usrId) {
 }
 
 // Update tbl_rider based on UsrId
-$stmt = $conn->prepare("UPDATE tbl_rider SET RiderLat = ?, RiderLng = ? WHERE UsrId = ?");
+$stmt = $conn->prepare("UPDATE tbl_rider SET RiderLat = ?, RiderLng = ?, RiderCheckedAt = NOW() WHERE UsrId = ?");
 $stmt->bind_param("ddi", $lat, $lng, $usrId);
 
 if ($stmt->execute()) {

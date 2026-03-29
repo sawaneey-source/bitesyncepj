@@ -48,6 +48,7 @@ export default function RiderHistoryPage() {
   const [summary, setSummary] = useState({ deliveries: 0, earnings: 0, distance: 0, cancelled: 0, rating: 5.0 })
   const [chartData, setChartData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     fetchHistory()
@@ -176,44 +177,70 @@ export default function RiderHistoryPage() {
           <div className={styles.list}>
             {filteredHistory.length === 0 ? (
               <div className={styles.empty}><span>📭</span><span>ไม่พบประวัติในช่วงเวลานี้</span></div>
-            ) : filteredHistory.map(h => (
-              <div key={h.id} className={styles.histCard}>
-                <div className={styles.histLeft}>
-                  <div className={`${styles.histStatusDot} ${h.status === 'delivered' ? styles.dotGreen : styles.dotRed}`} />
-                  <div className={styles.histInfo}>
-                    <div className={styles.histId}>{h.id} · {h.shopName}</div>
-                    <div className={styles.histAddr}>📍 {h.custAddr}</div>
-                    <div className={styles.histMeta}>
-                      <span>{h.date}</span>
-                      <span>·</span>
-                      <span>{h.distance}</span>
+            ) : filteredHistory.map(h => {
+              const isOpen = expandedId === h.id
+              return (
+                <div key={h.id} className={`${styles.histCardWrapper} ${isOpen ? styles.cardOpen : ''}`}>
+                  <div 
+                    className={styles.histCard}
+                    onClick={() => setExpandedId(isOpen ? null : h.id)}
+                  >
+                    <div className={styles.histLeft}>
+                      <div className={`${styles.histStatusDot} ${h.status === 'delivered' ? styles.dotGreen : styles.dotRed}`} />
+                      <div className={styles.histInfo}>
+                        <div className={styles.histId}>{h.id} · {h.shopName}</div>
+                        <div className={styles.histAddr}>📍 {h.custAddr}</div>
+                        <div className={styles.histMeta}>
+                          <span>{h.date}</span>
+                          <span>·</span>
+                          <span>{h.distance}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.histRight}>
+                      <div className={`${styles.histFee} ${h.status === 'cancelled' ? styles.histFeeCancelled : ''}`}>
+                        {h.status === 'delivered' ? `+${h.fee?.toFixed(2)} ฿` : `฿${h.fee?.toFixed(2)}`}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                        <div className={`${styles.histStatus} ${h.status === 'delivered' ? styles.statusGreen : styles.statusRed}`}>
+                          {h.status === 'delivered' ? '✅ สำเร็จ' : '❌ ยกเลิก'}
+                        </div>
+                        {h.status === 'delivered' && (
+                          <span style={{ 
+                            fontSize: '10px', 
+                            padding: '2px 6px', 
+                            borderRadius: '4px',
+                            background: h.settled ? '#e8f5e9' : '#fff3e0',
+                            color: h.settled ? '#2a6129' : '#e65100',
+                            border: `1px solid ${h.settled ? '#2a6129' : '#e65100'}`
+                          }}>
+                            {h.settled ? 'โอนเงินแล้ว' : 'รอยืนยันจ่าย'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className={styles.histRight}>
-                  <div className={`${styles.histFee} ${h.status === 'cancelled' ? styles.histFeeCancelled : ''}`}>
-                    {h.status === 'delivered' ? `+${h.fee} ฿` : `฿${h.fee}`}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                    <div className={`${styles.histStatus} ${h.status === 'delivered' ? styles.statusGreen : styles.statusRed}`}>
-                      {h.status === 'delivered' ? '✅ สำเร็จ' : '❌ ยกเลิก'}
+
+                  {isOpen && h.status === 'delivered' && (
+                    <div className={styles.breakdown}>
+                      <div className={styles.bdRow}>
+                        <span>ค่ารอบรวม:</span>
+                        <span>{parseFloat(h.fee).toFixed(2)} ฿</span>
+                      </div>
+                      <div className={`${styles.bdRow} ${styles.bdNegative}`}>
+                        <span>หักค่าธรรมเนียมระบบ (20%):</span>
+                        <span>-{(parseFloat(h.fee) - parseFloat(h.riderFee)).toFixed(2)} ฿</span>
+                      </div>
+                      <div className={styles.bdDivider} />
+                      <div className={`${styles.bdRow} ${styles.bdNet}`}>
+                        <span>รายได้สุทธิที่ได้รับ:</span>
+                        <span>{parseFloat(h.riderFee).toFixed(2)} ฿</span>
+                      </div>
                     </div>
-                    {h.status === 'delivered' && (
-                      <span style={{ 
-                        fontSize: '10px', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px',
-                        background: h.settled ? '#e8f5e9' : '#fff3e0',
-                        color: h.settled ? '#2a6129' : '#e65100',
-                        border: `1px solid ${h.settled ? '#2a6129' : '#e65100'}`
-                      }}>
-                        {h.settled ? 'โอนเงินแล้ว' : 'รอยืนยันจ่าย'}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

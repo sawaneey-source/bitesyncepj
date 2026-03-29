@@ -99,7 +99,12 @@ if ($method === 'POST') {
 
         // 2. Insert into tbl_order
         $status = 1; 
-        $foodPrice = $total - $delFee;
+
+        // Fetch Platform Fee from settings
+        $setRes = $conn->query("SELECT SettingValue FROM tbl_settings WHERE SettingKey = 'platform_fee'");
+        $platformFee = ($setRes && $setRes->num_rows > 0) ? (float)$setRes->fetch_assoc()['SettingValue'] : 12;
+
+        $foodPrice = $total - $delFee - $platformFee;
         
         // Calculate Financial Splits
         $gpRate = 0.25; // 25% Shop GP
@@ -107,10 +112,11 @@ if ($method === 'POST') {
         
         $odrGP       = $foodPrice * $gpRate;
         $odrRiderFee = $delFee * $riderShareRate;
-        $odrAdminFee = $odrGP + ($delFee - $odrRiderFee); // GP + 20% of Delivery Fee
+        // Platform Revenue = GP + Platform's Delivery share (20%) + Platform Service Fee
+        $odrAdminFee = $odrGP + ($delFee - $odrRiderFee) + $platformFee;
 
-        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrDistance, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee, OdrNote, OdrShopSettled, OdrRiderSettled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)");
-        $stmt->bind_param("iiiiddddddds", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $distance, $total, $odrGP, $odrRiderFee, $odrAdminFee, $noteShop);
+        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrPlatformFee, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee, OdrNote, OdrShopSettled, OdrRiderSettled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)");
+        $stmt->bind_param("iiiiddddddds", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $platformFee, $total, $odrGP, $odrRiderFee, $odrAdminFee, $noteShop);
         $stmt->execute();
         $orderId = $stmt->insert_id;
 
@@ -123,6 +129,11 @@ if ($method === 'POST') {
             $stmt->bind_param("iidi", $orderId, $fId, $price, $qty);
             $stmt->execute();
         }
+
+        // 4. Initial tbl_payment record (Status 0 = Pending)
+        $pmtStmt = $conn->prepare("INSERT INTO tbl_payment (OdrId, PmtMethod, PmtAmount, PmtStatus) VALUES (?, 'PromptPay', ?, 0)");
+        $pmtStmt->bind_param("id", $orderId, $total);
+        $pmtStmt->execute();
 
         $conn->commit();
         echo json_encode(['success' => true, 'orderId' => $orderId]);
@@ -274,7 +285,7 @@ if ($method === 'POST') {
     }
 
     // Perform cancellation (New Cancelled Status = 7)
-    $stmt = $conn->prepare("UPDATE tbl_order SET OdrStatus = 7 WHERE OdrId = ?");
+    $stmt = $conn->prepare("UPDATE tbl_order SET OdrStatus = 7, OdrCancelBy = 'customer' WHERE OdrId = ?");
     $stmt->bind_param("i", $orderId);
     
     if ($stmt->execute()) {

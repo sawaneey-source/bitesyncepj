@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import styles from './page.module.css'
 import Navbar from '@/components/Navbar'
 import Logo from '@/components/Logo'
+import PremiumModal from '@/components/PremiumModal'
 
 const STATUS_MAP = {
   1: { lbl: 'ยังไม่ชำระเงิน', color: '#b71c1c' },
@@ -44,6 +45,31 @@ export default function ReceiptPage() {
   const [rating, setRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [hasRated, setHasRated] = useState(false)
+  
+  // Premium Modal State
+  const [modal, setModal] = useState({ 
+    open: false, 
+    title: '', 
+    description: '', 
+    type: 'success', 
+    icon: '✅',
+    onConfirm: null,
+    confirmText: 'ตกลง'
+  })
+
+  const openModal = (config) => setModal(prev => ({ ...prev, ...config, open: true }))
+  const closeModal = () => setModal(prev => ({ ...prev, open: false }))
+  
+  // Food Review Modal State
+  const [foodReviewModal, setFoodReviewModal] = useState({ 
+    open: false, 
+    foodId: null, 
+    foodName: '',
+    score: 5, 
+    text: '', 
+    images: [],
+    previewUrls: []
+  })
 
   useEffect(() => {
     const u = localStorage.getItem('bs_user')
@@ -107,10 +133,59 @@ export default function ReceiptPage() {
       if (data.success) {
         setHasRated(true)
       } else {
-        alert(data.message)
+        openModal({ title: 'เกิดข้อผิดพลาด', description: data.message, type: 'alert', icon: '⚠️' })
       }
     } catch (e) {
-      alert('เกิดข้อผิดพลาดในการให้คะแนน')
+      openModal({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการให้คะแนน', type: 'alert', icon: '⚠️' })
+    }
+    setSubmitting(false)
+  }
+
+  const handleFoodImageUpload = (e) => {
+    const files = Array.from(e.target.files)
+    if (foodReviewModal.images.length + files.length > 3) {
+      openModal({ title: 'จำกัดจำนวนรูป', description: 'อัปโหลดรูปภาพได้สูงสุด 3 รูปเท่านั้นครับ', type: 'alert', icon: '⚠️' })
+      return
+    }
+    const newImages = [...foodReviewModal.images, ...files].slice(0, 3)
+    const newPreviews = newImages.map(file => URL.createObjectURL(file))
+    setFoodReviewModal({ ...foodReviewModal, images: newImages, previewUrls: newPreviews })
+  }
+
+  const submitFoodReview = async () => {
+    if (!foodReviewModal.foodId) return
+    setSubmitting(true)
+    try {
+      const fd = new FormData()
+      fd.append('usrId', user.id)
+      fd.append('odrId', order.id)
+      fd.append('foodId', foodReviewModal.foodId)
+      fd.append('score', foodReviewModal.score)
+      fd.append('text', foodReviewModal.text)
+      
+      foodReviewModal.images.forEach((file, index) => {
+        if (index < 3) fd.append(`img${index + 1}`, file)
+      })
+
+      const res = await fetch('http://localhost/bitesync/api/home/submit_review.php', {
+        method: 'POST',
+        body: fd
+      })
+      const data = await res.json()
+      if (data.success) {
+        setFoodReviewModal({ open: false, foodId: null, foodName: '', score: 5, text: '', images: [], previewUrls: [] })
+        openModal({
+          title: 'สำเร็จ 🎉',
+          description: 'ส่งรีวิวอาหารสำเร็จ ขอบคุณสำหรับความคิดเห็นครับ!',
+          type: 'success',
+          icon: '✅',
+          onConfirm: () => closeModal()
+        })
+      } else {
+        openModal({ title: 'เกิดข้อผิดพลาด', description: data.message || 'เกิดข้อผิดพลาดในการส่งรีวิว', type: 'alert', icon: '⚠️' })
+      }
+    } catch(e) {
+      openModal({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเชื่อมต่อเพื่อส่งรีวิวได้', type: 'alert', icon: '⚠️' })
     }
     setSubmitting(false)
   }
@@ -209,15 +284,32 @@ export default function ReceiptPage() {
 
           <div className={styles.itemsSection}>
             <div className={styles.itemsTitle}>รายการอาหาร</div>
-            {order.items.map((item, i) => (
-              <div key={i} className={styles.item}>
-                <div className={styles.itemMain}>
-                  <span className={styles.itemName}>{item.name}</span>
+            {order.items.map((item, i) => {
+              const fId = item.id || item.FoodId || item.foodId;
+              return (
+                <div key={i} className={styles.item} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div className={styles.itemMain} style={{ flex: '1 1 auto', minWidth: '150px' }}>
+                    <span className={styles.itemName}>{item.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <span className={styles.itemQty}>x{item.qty}</span>
+                    <span className={styles.itemPrice}>{Math.round(item.price * item.qty).toLocaleString()} ฿</span>
+                  </div>
+                  {Number(order.OdrStatus) === 6 && fId && (
+                    <div style={{ width: '100%', marginTop: '8px', textAlign: 'right' }}>
+                      <button 
+                        onClick={() => setFoodReviewModal({...foodReviewModal, open: true, foodId: fId, foodName: item.name, score: 5, text: '', images: [], previewUrls: []})}
+                        style={{ fontSize: '13px', padding: '6px 14px', borderRadius: '30px', border: '1.5px solid #81c784', background: '#f1f8e9', color: '#388e3c', cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = '#e8f5e9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = '#f1f8e9'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                      >
+                        ⭐ รีวิวเมนูนี้
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <span className={styles.itemQty}>x{item.qty}</span>
-                <span className={styles.itemPrice}>{Math.round(item.price * item.qty).toLocaleString()} ฿</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className={styles.divider} />
@@ -289,8 +381,110 @@ export default function ReceiptPage() {
               <i className="fa-solid fa-house" /> กลับหน้าหลัก
             </button>
           </div>
+
+          {/* Food Review Modal */}
+          {foodReviewModal.open && (
+            <div style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+              zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+            }}>
+              <div style={{
+                background: '#fff', width: '100%', maxWidth: '450px', borderRadius: '24px',
+                padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', animation: 'popIn 0.3s ease-out'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', color: '#1B5E20', fontWeight: 800 }}>รีวิว: {foodReviewModal.foodName}</h3>
+                  <button onClick={() => setFoodReviewModal({...foodReviewModal, open: false})} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#999' }}>✕</button>
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#555', marginBottom: '10px' }}>ให้คะแนนความอร่อย</div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <span 
+                        key={s} 
+                        onClick={() => setFoodReviewModal({...foodReviewModal, score: s})}
+                        style={{
+                          fontSize: '36px', cursor: 'pointer', transition: 'transform 0.2s',
+                          color: s <= foodReviewModal.score ? '#f0c419' : '#e0e0e0',
+                          textShadow: s <= foodReviewModal.score ? '0 2px 10px rgba(240,196,25,0.4)' : 'none'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <textarea 
+                  value={foodReviewModal.text}
+                  onChange={(e) => setFoodReviewModal({...foodReviewModal, text: e.target.value})}
+                  placeholder="แบ่งปันความคิดเห็นเกี่ยวกับรสชาติอาหารให้เพื่อนๆ ฟัง..."
+                  style={{
+                    width: '100%', minHeight: '100px', padding: '12px 16px', borderRadius: '12px',
+                    border: '1px solid #ddd', fontSize: '14px', outline: 'none', resize: 'vertical',
+                    boxSizing: 'border-box', marginBottom: '16px', fontFamily: 'inherit'
+                  }}
+                />
+
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#555', marginBottom: '8px' }}>เพิ่มรูปภาพ (สูงสุด 3 รูป)</div>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {foodReviewModal.previewUrls.map((url, idx) => (
+                      <div key={idx} style={{ position: 'relative', width: '70px', height: '70px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #eee' }}>
+                        <img src={url} alt={`Preview ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button 
+                          onClick={() => {
+                            const newImgs = [...foodReviewModal.images]; newImgs.splice(idx, 1);
+                            const newUrls = [...foodReviewModal.previewUrls]; newUrls.splice(idx, 1);
+                            setFoodReviewModal({...foodReviewModal, images: newImgs, previewUrls: newUrls})
+                          }}
+                          style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >✕</button>
+                      </div>
+                    ))}
+                    {foodReviewModal.images.length < 3 && (
+                      <label style={{ width: '70px', height: '70px', borderRadius: '8px', border: '2px dashed #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#999', fontSize: '20px', background: '#f9f9f9', transition: 'all 0.2s' }}>
+                        +
+                        <input type="file" accept="image/*" multiple onChange={handleFoodImageUpload} style={{ display: 'none' }} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                <button 
+                  onClick={submitFoodReview}
+                  disabled={submitting}
+                  style={{
+                    width: '100%', padding: '14px', background: '#1B5E20', color: '#fff',
+                    border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 800,
+                    cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
+                    boxShadow: '0 4px 15px rgba(27,94,32,0.3)', opacity: submitting ? 0.7 : 1
+                  }}
+                  onMouseOver={(e) => !submitting && (e.currentTarget.style.background = '#2E7D32')}
+                  onMouseOut={(e) => !submitting && (e.currentTarget.style.background = '#1B5E20')}
+                >
+                  {submitting ? 'กำลังส่งรีวิว...' : 'ส่งรีวิวเลย 🚀'}
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
+
+      <PremiumModal 
+        isOpen={modal.open}
+        onClose={closeModal}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        icon={modal.icon}
+        confirmText={modal.confirmText}
+      />
     </div>
   )
 }
