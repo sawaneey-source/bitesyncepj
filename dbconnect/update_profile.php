@@ -36,6 +36,8 @@ if ($data) {
 $usrId = $_POST["id"] ?? "";
 $fullName = $_POST["name"] ?? ""; // Standard user name
 $phone = $_POST["phone"] ?? "";
+$bankName = $_POST["bankName"] ?? "";
+$bankAccount = $_POST["bankAccount"] ?? "";
 
 // Restaurant specific fields
 $shopName = $_POST["shopName"] ?? "";
@@ -102,6 +104,8 @@ $newPw = $_POST['usrPassword'] ?? '';
 
 if ($fullName) { $userUpdates[] = "UsrFullName = ?"; $userParams[] = $fullName; $userTypes .= "s"; }
 if ($phone) { $userUpdates[] = "UsrPhone = ?"; $userParams[] = $phone; $userTypes .= "s"; }
+if (isset($_POST["bankName"])) { $userUpdates[] = "UsrBankName = ?"; $userParams[] = $bankName; $userTypes .= "s"; }
+if (isset($_POST["bankAccount"])) { $userUpdates[] = "UsrBankAccount = ?"; $userParams[] = $bankAccount; $userTypes .= "s"; }
 if ($logoPath) { $userUpdates[] = "UsrImagePath = ?"; $userParams[] = $logoPath; $userTypes .= "s"; }
 if ($logoOriPath) { $userUpdates[] = "UsrImageOriPath = ?"; $userParams[] = $logoOriPath; $userTypes .= "s"; }
 if (!empty($newPw)) {
@@ -151,6 +155,7 @@ if (!empty($shopUpdates)) {
 // Refresh User Data (Join tbl_userinfo and tbl_shop)
 $sql_refresh = "SELECT u.UsrId as id, u.UsrFullName as name, u.UsrEmail as email, u.UsrPhone as phone, 
                        u.UsrRole as role, u.UsrImagePath as image, u.UsrImageOriPath as imageOri,
+                       u.UsrBankName as bankName, u.UsrBankAccount as bankAccount,
                        CONCAT(COALESCE(a.HouseNo,''), ' ', COALESCE(a.SubDistrict,''), ' ', COALESCE(a.District,''), ' ', COALESCE(a.Province,''), ' ', COALESCE(a.Zipcode,'')) as address,
                        s.ShopName as shopName, s.ShopPhone as shopPhone, s.ShopCatType as shopCatType, 
                        s.ShopStatus as shopStatus, a.AdrLat as shopLat, a.AdrLng as shopLng, 

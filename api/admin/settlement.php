@@ -85,10 +85,12 @@ if ($method === 'GET') {
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
 
-                // Second: Recalculate absolute total settled from ALL orders for this shop
                 $stmt = $conn->prepare("UPDATE tbl_shop s SET s.ShopTotalSettled = (SELECT IFNULL(SUM(o.OdrFoodPrice - o.OdrGP), 0) FROM tbl_order o WHERE o.ShopId = s.ShopId AND o.OdrStatus = 6 AND o.OdrShopSettled = 1), s.ShopBalance = 0 WHERE s.ShopId = ?");
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
+
+                // 3. Auto-close Master Order Settlement
+                $conn->query("UPDATE tbl_order SET OdrSettled = 1 WHERE OdrShopSettled = 1 AND OdrRiderSettled = 1 AND OdrSettled = 0");
             }
         } else if ($type === 'rider') {
             // 1. Get wallet RiderBalance
@@ -110,10 +112,12 @@ if ($method === 'GET') {
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
 
-                // Second: Recalculate absolute total settled from ALL orders for this rider
                 $stmt = $conn->prepare("UPDATE tbl_rider r SET r.RiderTotalSettled = (SELECT IFNULL(SUM(o.OdrRiderFee), 0) FROM tbl_order o WHERE o.RiderId = r.RiderId AND o.OdrStatus = 6 AND o.OdrRiderSettled = 1), r.RiderBalance = 0 WHERE r.RiderId = ?");
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
+
+                // 3. Auto-close Master Order Settlement
+                $conn->query("UPDATE tbl_order SET OdrSettled = 1 WHERE OdrShopSettled = 1 AND OdrRiderSettled = 1 AND OdrSettled = 0");
             }
         }
         $conn->commit();

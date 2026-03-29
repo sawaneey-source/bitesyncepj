@@ -30,6 +30,11 @@ $stmt = $conn->prepare("UPDATE tbl_order SET OdrStatus = ? WHERE OdrId = ?");
 $stmt->bind_param("ii", $odrStatus, $orderId);
 
 if ($stmt->execute()) {
+    // If status is 6 (Delivered), trigger balance update and performance recalculation
+    if ($odrStatus === 6) {
+        require_once "../common/settlement_helper.php";
+        updateBalance($conn, $orderId);
+    }
     echo json_encode(['success' => true]);
 } else {
     echo json_encode(['success' => false, 'message' => $conn->error]);

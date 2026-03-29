@@ -204,7 +204,17 @@ export default function TrackPage() {
           customer: {
             id: d.UsrId,
             name: d.CustName || 'คุณลูกค้า',
-            address: `${d.HouseNo || ''} ${d.SubDistrict || ''} ${d.District || ''} ${d.Province || ''}`,
+            address: [
+              d.HouseNo,
+              d.Moo && `ม.${d.Moo}`,
+              d.Village && `หมู่บ้าน${d.Village}`,
+              d.Soi && `ซ.${d.Soi}`,
+              d.Road && `ถ.${d.Road}`,
+              d.SubDistrict && `ต.${d.SubDistrict}`,
+              d.District && `อ.${d.District}`,
+              d.Province && `จ.${d.Province}`,
+              d.Zipcode
+            ].filter(Boolean).join(' '),
             lat: (d.AdrLat && parseFloat(d.AdrLat) !== 0) ? parseFloat(d.AdrLat) : 0,
             lng: (d.AdrLng && parseFloat(d.AdrLng) !== 0) ? parseFloat(d.AdrLng) : 0
           },
@@ -219,7 +229,9 @@ export default function TrackPage() {
           RiderImage: d.RiderImage,
           ShopLogo: d.ShopLogo,
           items: d.items,
-          note: d.OdrNote
+          note: d.OdrNote,
+          OdrRefundStatus: d.OdrRefundStatus,
+          OdrRefundSlip: d.OdrRefundSlip
         })
         setError(null)
       } else {
@@ -448,10 +460,47 @@ export default function TrackPage() {
                 {(order.currentStep === -1) ? (
                   <div className={styles.cancelledCard}>
                     <div className={styles.cancelledTitle}>❌ ออเดอร์ของคุณถูกยกเลิกแล้ว</div>
+                    <div className={styles.cancelledDivider} />
                     <p className={styles.cancelledText}>
-                      ขออภัยครับ ออเดอร์หมายเลข #{order.id} ถูกยกเลิกโดยร้านค้า หรือระบบขัดข้อง
-                      หากคุณชำระเงินแล้ว ระบบจะดำเนินการคืนเงินให้ท่านโดยเร็วที่สุด
+                      ออเดอร์หมายเลข #{order.id} ถูกยกเลิกโดยร้านค้า หรือคุณเป็นคนยกเลิกเอง 
                     </p>
+                    
+                    {order.OdrRefundStatus > 0 && (
+                      <div className={styles.trackRefundInfo}>
+                        {order.OdrRefundStatus == 1 ? (
+                          <div className={styles.refundBoxPending}>
+                            <div className={styles.refundIcon}>⏳</div>
+                            <div>
+                              <div className={styles.refundTitle}>กำลังดำเนินการคืนเงิน</div>
+                              <div className={styles.refundDesc}>เจ้าหน้าที่ได้รับเรื่องแล้ว กำลังตรวจสอบคิวโอนเงินคืนให้ท่านครับ</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={styles.refundBoxSuccess}>
+                            <div className={styles.refundIcon}>✅</div>
+                            <div>
+                              <div className={styles.refundTitle}>คืนเงินสำเร็จแล้ว</div>
+                              <div className={styles.refundDesc}>โอนเงินเข้าบัญชีที่ท่านระบุเรียบร้อยแล้วครับ</div>
+                              {order.OdrRefundSlip && (
+                                <a 
+                                  href={`http://localhost/bitesync/public${order.OdrRefundSlip}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={styles.viewSlipBtn}
+                                >
+                                  📄 คลิกดูหลักฐานการโอน
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <p className={styles.cancelledHint}>
+                      หากมีข้อสงสัยเพิ่มเติม สามารถติดต่อฝ่ายสนับสนุนลูกค้าได้ตลอด 24 ชม.
+                    </p>
+                    
                     <button onClick={() => router.push('/home')} className={styles.backHomeBtn}>
                       กลับหน้าหลักเพื่อสั่งอาหารใหม่
                     </button>

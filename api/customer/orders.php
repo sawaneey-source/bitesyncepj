@@ -115,8 +115,8 @@ if ($method === 'POST') {
         // Platform Revenue = GP + Platform's Delivery share (20%) + Platform Service Fee
         $odrAdminFee = $odrGP + ($delFee - $odrRiderFee) + $platformFee;
 
-        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrPlatformFee, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee, OdrNote, OdrShopSettled, OdrRiderSettled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)");
-        $stmt->bind_param("iiiiddddddds", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $platformFee, $total, $odrGP, $odrRiderFee, $odrAdminFee, $noteShop);
+        $stmt = $conn->prepare("INSERT INTO tbl_order (UsrId, ShopId, AdrId, OdrStatus, OdrFoodPrice, OdrDelFee, OdrPlatformFee, OdrGrandTotal, OdrGP, OdrRiderFee, OdrAdminFee, OdrNote, OdrDistance, OdrShopSettled, OdrRiderSettled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)");
+        $stmt->bind_param("iiiidddddddsd", $userId, $shopId, $adrId, $status, $foodPrice, $delFee, $platformFee, $total, $odrGP, $odrRiderFee, $odrAdminFee, $noteShop, $distance);
         $stmt->execute();
         $orderId = $stmt->insert_id;
 
@@ -147,10 +147,11 @@ if ($method === 'POST') {
     if ($orderId) {
         $sql = "SELECT o.*, s.ShopName, s.ShopPhone, s.ShopPrepTime, s.ShopLogoPath AS ShopLogo,
                        sa.AdrLat as ShopLat, sa.AdrLng as ShopLng,
-                       a.Province, a.District, a.SubDistrict, a.HouseNo, a.Zipcode, a.AdrLat, a.AdrLng,
+                       a.Province, a.District, a.SubDistrict, a.HouseNo, a.Village, a.Road, a.Soi, a.Moo, a.Zipcode, a.AdrLat, a.AdrLng,
                        ur.UsrFullName as RiderName, ur.UsrPhone as RiderPhone, ur.UsrImagePath as RiderImage,
                        r.RiderVehicleType, r.RiderVehiclePlate, r.RiderLat, r.RiderLng, r.RiderRatingAvg,
-                       uc.UsrFullName as CustName
+                       uc.UsrFullName as CustName,
+                       p.PmtMethod as PaymentMethod, p.PmtSlipPath as PaymentSlip
                 FROM tbl_order o 
                 LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
                 LEFT JOIN tbl_address sa ON s.AdrId = sa.AdrId
@@ -158,6 +159,7 @@ if ($method === 'POST') {
                 LEFT JOIN tbl_rider r ON o.RiderId = r.RiderId
                 LEFT JOIN tbl_userinfo ur ON r.UsrId = ur.UsrId
                 LEFT JOIN tbl_userinfo uc ON o.UsrId = uc.UsrId
+                LEFT JOIN tbl_payment p ON o.OdrId = p.OdrId
                 WHERE o.OdrId = ? LIMIT 1";
         
         $stmt = $conn->prepare($sql);
@@ -167,6 +169,18 @@ if ($method === 'POST') {
         $order = $res->fetch_assoc();
 
         if ($order) {
+            // Calculate distance if it's 0 in DB
+            $dist = (float)$order['OdrDistance'];
+            if ($dist <= 0 && $order['ShopLat'] && $order['AdrLat']) {
+                $lat1 = (float)$order['ShopLat']; $lon1 = (float)$order['ShopLng'];
+                $lat2 = (float)$order['AdrLat'];  $lon2 = (float)$order['AdrLng'];
+                $theta = $lon1 - $lon2;
+                $d = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+                $d = acos($d); $d = rad2deg($d);
+                $dist = $d * 60 * 1.1515 * 1.609344;
+                $order['OdrDistance'] = $dist;
+            }
+
             // Get Items
             $itemStmt = $conn->prepare("SELECT od.*, f.FoodName, f.FoodPrepTime FROM tbl_order_detail od 
                                       LEFT JOIN tbl_food f ON od.FoodId = f.FoodId 
@@ -222,7 +236,7 @@ if ($method === 'POST') {
         exit;
     }
 
-    $sql = "SELECT o.*, s.ShopName as shopName, s.ShopLogoPath as shopLogo, a.Province, a.District, a.SubDistrict, a.HouseNo, a.Zipcode 
+    $sql = "SELECT o.*, s.ShopName as shopName, s.ShopLogoPath as shopLogo, a.Province, a.District, a.SubDistrict, a.HouseNo, a.Village, a.Road, a.Soi, a.Moo, a.Zipcode 
             FROM tbl_order o 
             LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
             LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
@@ -284,9 +298,12 @@ if ($method === 'POST') {
         exit;
     }
 
+    // Flag for refund if already paid (Status >= 2)
+    $refundStatus = ($currentOS >= 2) ? 1 : 0;
+
     // Perform cancellation (New Cancelled Status = 7)
-    $stmt = $conn->prepare("UPDATE tbl_order SET OdrStatus = 7, OdrCancelBy = 'customer' WHERE OdrId = ?");
-    $stmt->bind_param("i", $orderId);
+    $stmt = $conn->prepare("UPDATE tbl_order SET OdrStatus = 7, OdrCancelBy = 'customer', OdrRefundStatus = ? WHERE OdrId = ?");
+    $stmt->bind_param("ii", $refundStatus, $orderId);
     
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'message' => 'ยกเลิกออเดอร์เรียบร้อยแล้ว']);

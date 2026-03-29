@@ -1,4 +1,19 @@
+import { Prompt, Sarabun } from 'next/font/google'
 import './globals.css'
+
+const prompt = Prompt({
+  subsets: ['thai', 'latin'],
+  weight: ['400', '600', '700', '800'],
+  variable: '--font-prompt',
+  display: 'swap',
+})
+
+const sarabun = Sarabun({
+  subsets: ['thai', 'latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-sarabun',
+  display: 'swap',
+})
 
 export const metadata = {
   title: 'BiteSync — เอาใจสัมผัส รวดเร็วและสดใหม่',
@@ -9,7 +24,7 @@ import AuthGuard from '@/components/AuthGuard'
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="th">
+    <html lang="th" className={`${prompt.variable} ${sarabun.variable}`}>
       <head>
         <link
           rel="stylesheet"

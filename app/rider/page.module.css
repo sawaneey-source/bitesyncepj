@@ -43,3 +43,74 @@
 .quickLabel { font-family:'Prompt',sans-serif; font-size:14px; font-weight:800; color:#1a1f1a; margin-bottom:2px; }
 .quickSub   { font-size:12px; color:#6b7280; }
 
+/* Active Alert (Delivery Tracking) */
+.activeAlert {
+  background: linear-gradient(135deg, #1a1f1a 0%, #2a332a 100%);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.activeAlert:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 255, 0, 0.1);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.activeAlertIcon {
+  font-size: 28px;
+  animation: pulse 2s infinite ease-in-out;
+  filter: drop-shadow(0 0 10px rgba(255, 87, 34, 0.6));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255, 87, 34, 0.4)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 15px rgba(255, 87, 34, 0.8)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255, 87, 34, 0.4)); }
+}
+
+.activeAlertInfo {
+  flex-grow: 1;
+}
+
+.activeAlertTitle {
+  font-family: 'Prompt', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 2px;
+  letter-spacing: 0.3px;
+}
+
+.activeAlertSub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.activeAlertArrow {
+  color: #fff;
+  font-size: 20px;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.activeAlert:hover .activeAlertArrow {
+  transform: translateX(4px);
+  opacity: 1;
+  color: #4caf50;
+}
+
+

@@ -49,8 +49,8 @@ if ($method === 'GET') {
     $province    = $data['province']    ?? '';
     $zipcode     = $data['zipcode']     ?? '';
 
-    // Turn off IsDefault over all previous addresses
-    $stmt_reset = $conn->prepare("UPDATE tbl_address SET IsDefault = 0 WHERE UsrId = ?");
+    // Turn off IsDefault over all active addresses
+    $stmt_reset = $conn->prepare("UPDATE tbl_address SET IsDefault = 0 WHERE UsrId = ? AND IsDefault = 1");
     $stmt_reset->bind_param("i", $usrId);
     $stmt_reset->execute();
 

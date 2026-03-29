@@ -113,13 +113,47 @@
   outline: none;
   font-weight: 500;
 }
-.refreshBtn {
-  padding: 0 20px;
+.premiumRefresh {
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border: 1.5px solid #dde8dd;
+  border-radius: 30px;
+  padding: 6px 18px 6px 8px;
+  font-size: 14px;
   font-weight: 700;
+  color: #333;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.premiumRefresh:hover {
+  background: #f9fbf9;
+  border-color: #2a6129;
+  color: #2a6129;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(42,97,41,0.1);
+}
+
+.refreshIconBox {
+  width: 30px;
+  height: 30px;
+  background: #2563eb;
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.premiumRefresh:hover .refreshIconBox {
+  background: #1d4ed8;
+  transform: rotate(180deg);
+  transition: transform 0.4s ease, background 0.2s ease;
 }
 .tableWrap {
   background: white;

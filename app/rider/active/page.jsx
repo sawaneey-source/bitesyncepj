@@ -275,7 +275,7 @@ export default function RiderActivePage() {
         <div className={styles.right}>
           {/* Order items */}
           <div className={styles.card}>
-            <h2 className={styles.cardTitle}>รายการอาหาร</h2>
+            <h2 className={styles.cardTitle}>{job.step === 0 ? '📝 รายการที่ต้องไปรับ' : '🛵 รายการที่กำลังส่ง'}</h2>
             {job.items.map((item, i) => (
               <div key={i} className={styles.item}>
                 <span className={styles.itemName}>{item.name}</span>
@@ -285,11 +285,18 @@ export default function RiderActivePage() {
             ))}
             <div className={styles.divider} />
             <div className={styles.totalRow}>
-              <span title="ระยะทางจากร้านไปลูกค้า">ระยะทางจัดส่ง: {job.distance}</span>
+              <span>{job.step === 0 ? '📍 ห่างจากร้าน:' : '🛵 ห่างจากลูกค้า:'}</span>
+              <span style={{ fontWeight: 800, color: job.step === 0 ? '#f39c12' : '#00b14f' }}>
+                {getDistance(riderLoc.lat, riderLoc.lng, job.step === 0 ? job.shopLat : job.custLat, job.step === 0 ? job.shopLng : job.custLng).toFixed(2)} กม.
+              </span>
+            </div>
+            <div className={styles.totalRow} style={{ marginTop: '2px', opacity: 0.6, fontSize: '12px' }}>
+              <span>ระยะทางจากร้านไปลูกค้า:</span>
+              <span>{job.distance}</span>
             </div>
             <div className={styles.divider} />
             <div className={styles.totalRow}>
-              <span>ค่าส่งที่ได้รับ</span>
+              <span>ค่าส่งที่คุณจะได้รับ</span>
               <span className={styles.feeVal}>+{job.fee} ฿</span>
             </div>
 

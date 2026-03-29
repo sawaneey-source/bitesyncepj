@@ -92,17 +92,29 @@ export default function ReceiptPage() {
             setOrder({
                 id: row.OdrId,
                 date: (Number(row.OdrStatus) === 6 || Number(row.OdrStatus) === 7) ? (row.OdrUpdatedAt || row.OdrCreatedAt) : row.OdrCreatedAt,
-                paymentMethod: 'โอนเงิน (QR Code / PromptPay)',
+                paymentMethod: row.PaymentMethod || 'โอนเงิน (QR Code / PromptPay)',
+                paymentSlip: row.PaymentSlip,
                 total: row.OdrGrandTotal,
                 subtotal: row.OdrFoodPrice,
                 deliveryFee: row.OdrDelFee,
+                platformFee: row.OdrPlatformFee,
                 OdrStatus: row.OdrStatus,
                 items: row.items || [],
                 shop: { id: row.ShopId, name: row.ShopName },
                 rider: { name: row.RiderName || 'รอยืนยันคนขับ' },
                 customer: { 
                     name: user?.name, 
-                    address: `${row.HouseNo} ${row.SubDistrict} ${row.District} ${row.Province}` 
+                    address: [
+                        row.HouseNo,
+                        row.Moo && `ม.${row.Moo}`,
+                        row.Village && `หมู่บ้าน${row.Village}`,
+                        row.Soi && `ซ.${row.Soi}`,
+                        row.Road && `ถ.${row.Road}`,
+                        row.SubDistrict && `ต.${row.SubDistrict}`,
+                        row.District && `อ.${row.District}`,
+                        row.Province && `จ.${row.Province}`,
+                        row.Zipcode
+                    ].filter(Boolean).join(' ')
                 }
             })
             if (row.RiderRating) {
@@ -245,7 +257,19 @@ export default function ReceiptPage() {
             </div>
             <div className={styles.metaBox}>
               <div className={styles.metaLabel}>ชำระโดย</div>
-              <div className={styles.metaVal}>{order.paymentMethod}</div>
+              <div className={styles.metaVal}>
+                {order.paymentMethod}
+                {order.paymentSlip && (
+                  <a 
+                    href={`http://localhost/bitesync/public${order.paymentSlip}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={styles.viewSlipLink}
+                  >
+                    (ดูสลิป)
+                  </a>
+                )}
+              </div>
             </div>
             <div className={styles.metaBox}>
               <div className={styles.metaLabel}>สถานะล่าสุด</div>
@@ -321,7 +345,11 @@ export default function ReceiptPage() {
             </div>
             <div className={styles.summRow}>
               <span>ค่าจัดส่ง</span>
-              <span>{order.deliveryFee} ฿</span>
+              <span>{Number(order.deliveryFee).toLocaleString()} ฿</span>
+            </div>
+            <div className={styles.summRow}>
+              <span>ค่าบริการระบบ</span>
+              <span>{Number(order.platformFee).toLocaleString()} ฿</span>
             </div>
             <div className={`${styles.summRow} ${styles.summTotal}`}>
               <span>ยอดรวมสุทธิ</span>

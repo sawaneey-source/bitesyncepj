@@ -15,13 +15,15 @@ if (!$usrId) {
     exit();
 }
 
-// 2. Lookup RiderId
-$rStmt = $conn->prepare("SELECT RiderId FROM tbl_rider WHERE UsrId = ?");
+// 2. Lookup RiderId and Current Location
+$rStmt = $conn->prepare("SELECT RiderId, RiderLat, RiderLng FROM tbl_rider WHERE UsrId = ?");
 $rStmt->bind_param("i", $usrId);
 $rStmt->execute();
 $rRes = $rStmt->get_result();
 if ($rRow = $rRes->fetch_assoc()) {
     $actualRiderId = $rRow['RiderId'];
+    $rLat = (float)$rRow['RiderLat'];
+    $rLng = (float)$rRow['RiderLng'];
 } else {
     echo json_encode(['success' => false, 'message' => 'No Rider profile found']);
     exit();
@@ -87,9 +89,36 @@ if ($job) {
     $job['custLng'] = (float)($job['custLng'] ?: 0);
     $job['shopLat'] = (float)($job['shopLat'] ?: 0);
     $job['shopLng'] = (float)($job['shopLng'] ?: 0);
+
+    // Calculate distance if it's 0 from DB
+    $dist = (float)$job['distance'];
+    if ($dist <= 0 && $job['shopLat'] && $job['custLat']) {
+        $dist = calculateDist($job['shopLat'], $job['shopLng'], $job['custLat'], $job['custLng']);
+    }
+
+    // Calculate distance from rider to next stop
+    $riderToStopDist = 0;
+    if ($rLat && $rLng) {
+        if (!function_exists('calculateDist')) {
+            function calculateDist($lat1, $lon1, $lat2, $lon2) {
+                $theta = $lon1 - $lon2;
+                $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+                $dist = acos($dist); $dist = rad2deg($dist);
+                return ($dist * 60 * 1.1515 * 1.609344);
+            }
+        }
+        $destLat = ($job['step'] == 0) ? $job['shopLat'] : $job['custLat'];
+        $destLng = ($job['step'] == 0) ? $job['shopLng'] : $job['custLng'];
+        if ($destLat && $destLng) {
+            $riderToStopDist = calculateDist($rLat, $rLng, $destLat, $destLng);
+        }
+    }
+    $job['riderToStopDist'] = number_format($riderToStopDist, 2);
+    $job['stopType'] = ($job['step'] == 0) ? 'ร้าน' : 'ลูกค้า';
+
     $job['shopLogo'] = $job['ShopLogoPath'] ? 'http://localhost/bitesync/public' . $job['ShopLogoPath'] : null;
     $job['custImage'] = $job['custImage'] ? 'http://localhost/bitesync/public' . $job['custImage'] : null;
-    $job['distance'] = number_format((float)$job['distance'], 1) . ' กม.';
+    $job['distance'] = number_format($dist, 1) . ' กม.';
 
     echo json_encode(['success' => true, 'data' => $job]);
 } else {

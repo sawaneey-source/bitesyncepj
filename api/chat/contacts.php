@@ -15,10 +15,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Fetch all users who have chatted with Admin (ReceiverId = 0 or SenderId = some user where ReceiverId = 0)
 // We want a list of unique users with their latest message info
 $sql = "SELECT DISTINCT 
-            u.UsrId, u.UsrFullName, u.UsrEmail, u.UsrRole, u.UsrImagePath,
+            u.UsrId, 
+            COALESCE(s.ShopName, u.UsrFullName) as UsrFullName, 
+            u.UsrEmail, 
+            u.UsrRole, 
+            COALESCE(s.ShopLogoPath, u.UsrImagePath) as UsrImagePath,
             c.ChatMessage as lastMsg, c.CreatedAt as lastTime,
             (SELECT COUNT(*) FROM tbl_chat WHERE SenderId = u.UsrId AND ReceiverId = 0 AND ChatStatus = 0) as unreadCount
         FROM tbl_userinfo u
+        LEFT JOIN tbl_shop s ON u.UsrId = s.UsrId
         JOIN tbl_chat c ON (c.SenderId = u.UsrId OR c.ReceiverId = u.UsrId)
         WHERE ((c.SenderId = u.UsrId AND c.ReceiverId = 0) 
            OR (c.SenderId = 0 AND c.ReceiverId = u.UsrId))

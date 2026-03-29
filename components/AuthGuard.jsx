@@ -128,7 +128,7 @@ export default function AuthGuard() {
         </p>
       </div>
 
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes popIn {
           from { opacity: 0; transform: scale(0.8) translateY(20px); }
           to { opacity: 1; transform: scale(1) translateY(0); }

@@ -56,7 +56,7 @@ if ($period === '3 วันล่าสุด') {
 
 // 1. Fetch History List
 $sql = "SELECT o.OdrId, o.OdrCreatedAt as date, o.OdrDelFee as fee, o.OdrRiderFee as riderFee, o.OdrDistance as distance, o.OdrStatus, o.RiderRating, o.OdrRiderSettled,
-               s.ShopName, a.HouseNo, a.SubDistrict
+               s.ShopName, a.HouseNo, a.Moo, a.Village, a.Soi, a.Road, a.SubDistrict, a.District, a.Province, a.Zipcode
         FROM tbl_order o
         LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
         LEFT JOIN tbl_address a ON o.AdrId = a.AdrId
@@ -97,11 +97,24 @@ while ($row = $res->fetch_assoc()) {
         $summary['cancelled']++;
     }
 
+    // Build Full Address
+    $addrParts = [];
+    if (!empty($row['HouseNo'])) $addrParts[] = $row['HouseNo'];
+    if (!empty($row['Moo'])) $addrParts[] = "ม." . $row['Moo'];
+    if (!empty($row['Village'])) $addrParts[] = "มบ." . $row['Village'];
+    if (!empty($row['Soi'])) $addrParts[] = "ซ." . $row['Soi'];
+    if (!empty($row['Road'])) $addrParts[] = "ถ." . $row['Road'];
+    if (!empty($row['SubDistrict'])) $addrParts[] = "ต." . $row['SubDistrict'];
+    if (!empty($row['District'])) $addrParts[] = "อ." . $row['District'];
+    if (!empty($row['Province'])) $addrParts[] = "จ." . $row['Province'];
+    if (!empty($row['Zipcode'])) $addrParts[] = $row['Zipcode'];
+    $fullAddr = implode(' ', $addrParts);
+
     $history[] = [
         'id' => '#' . $row['OdrId'],
         'date' => $dateStr,
         'shopName' => $row['ShopName'],
-        'custAddr' => $row['HouseNo'] . ' ' . $row['SubDistrict'],
+        'custAddr' => $fullAddr ?: '-',
         'fee' => (float)$row['fee'],
         'riderFee' => (float)$row['riderFee'],
         'status' => $statusStr,

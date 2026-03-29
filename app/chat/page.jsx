@@ -9,6 +9,7 @@ export default function CustomerChat() {
   const [user, setUser] = useState(null)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
+  const [shopLogo, setShopLogo] = useState(null)
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -21,9 +22,24 @@ export default function CustomerChat() {
     setUser(parsed)
     fetchMessages(parsed.id)
 
+    // Fetch shop logo if the user is a shop/restaurant
+    if (parsed.role === 'restaurant' || parsed.role === 'shop') {
+      fetchShopInfo(parsed.id)
+    }
+
     const interval = setInterval(() => fetchMessages(parsed.id), 3000)
     return () => clearInterval(interval)
   }, [])
+
+  async function fetchShopInfo(uid) {
+    try {
+      const res = await fetch(`http://localhost/bitesync/api/shop/profile.php?usrId=${uid}`)
+      const data = await res.json()
+      if (data.success) {
+        setShopLogo(data.data.ShopLogoPath)
+      }
+    } catch {}
+  }
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -108,7 +124,9 @@ export default function CustomerChat() {
                 </div>
                 {isOwn && (
                     <div className={styles.msgAvatar}>
-                        {user.image ? (
+                        {shopLogo ? (
+                            <img src={`${shopLogo}`} alt="ShopLogo" />
+                        ) : user.image ? (
                             <img src={`http://localhost/bitesync/public${user.image}`} alt="Me" />
                         ) : (
                             user.name?.[0].toUpperCase()

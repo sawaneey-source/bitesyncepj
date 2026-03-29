@@ -53,6 +53,7 @@ $sql = "SELECT o.OdrId, o.OdrGrandTotal as total, o.OdrDelFee as fee, o.OdrDista
                sa.Province as shopProv, sa.District as shopDist, sa.SubDistrict as shopSub, sa.HouseNo as shopHouse, sa.Road as shopRoad, sa.Village as shopVillage,
                sa.AdrLat as shopLat, sa.AdrLng as shopLng,
                a.Province as custProv, a.District as custDist, a.SubDistrict as custSub, a.HouseNo as custHouse,
+               a.AdrLat as custLat, a.AdrLng as custLng,
                ui.UsrPhone as custPhone
         FROM tbl_order o
         LEFT JOIN tbl_shop s ON o.ShopId = s.ShopId
@@ -95,8 +96,14 @@ if ($result && $result->num_rows > 0) {
         // Distance from Rider to Shop
         $distToShop = getDistance($riderLat, $riderLng, (float)$row['shopLat'], (float)$row['shopLng']);
 
-        // Only show jobs within 5km
+        // Only show jobs within 5km of current Rider location
         if ($distToShop > 5.0) continue;
+
+        // Calculate delivery distance (Shop to Customer) if missing in DB
+        $deliveryDist = (float)$row['distance'];
+        if ($deliveryDist <= 0 && $row['shopLat'] && $row['custLat']) {
+            $deliveryDist = getDistance((float)$row['shopLat'], (float)$row['shopLng'], (float)$row['custLat'], (float)$row['custLng']);
+        }
 
         $jobs[] = [
             'id' => "#" . $row['OdrId'],
@@ -108,7 +115,7 @@ if ($result && $result->num_rows > 0) {
             'custPhone' => $row['custPhone'] ?? null,
             'items' => $itemsCountStr,
             'total' => number_format((float)$row['total'], 2),
-            'distance' => number_format((float)$row['distance'], 1) . ' กม.',
+            'distance' => number_format($deliveryDist, 1) . ' กม.',
             'fee' => number_format((float)$row['fee'], 0),
             'img' => $img,
             'logo' => $row['logo'] ? "http://localhost/bitesync/public" . $row['logo'] : null,

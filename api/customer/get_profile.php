@@ -20,6 +20,7 @@ if (!$userId) {
 
 $sql = "SELECT u.UsrId as id, u.UsrFullName as name, u.UsrEmail as email, u.UsrPhone as phone, 
                u.UsrRole as role, u.UsrImagePath as image,
+               u.UsrBankName as bankName, u.UsrBankAccount as bankAccount,
                CONCAT(COALESCE(a.HouseNo,''), ' ', COALESCE(a.SubDistrict,''), ' ', COALESCE(a.District,''), ' ', COALESCE(a.Province,''), ' ', COALESCE(a.Zipcode,'')) as address
         FROM tbl_userinfo u 
         LEFT JOIN tbl_address a ON u.UsrId = a.UsrId AND a.IsDefault = 1

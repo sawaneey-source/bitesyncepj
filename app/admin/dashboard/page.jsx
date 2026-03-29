@@ -161,9 +161,12 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className={styles.actionRow} style={{marginTop: 30, marginBottom: 30, gap: '20px'}}>
+        <div className={styles.actionRow} style={{marginTop: 30, marginBottom: 30, gap: '20px', flexWrap: 'wrap'}}>
           <button className={styles.actionBtn} onClick={() => router.push('/admin/settlement')}>
             💰 การเคลียร์ยอดเงิน (Settlement)
+          </button>
+          <button className={styles.actionBtn} style={{borderColor: '#ef4444', color: '#ef4444'}} onClick={() => router.push('/admin/refunds')}>
+            💳 รายการโอนเงินคืน (Refunds)
           </button>
           <button className={styles.actionBtn} style={{borderColor: '#1e293b', color: '#1e293b'}} onClick={() => router.push('/admin/data')}>
             📊 ตัวสำรวจข้อมูล (Data Explorer)

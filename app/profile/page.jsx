@@ -33,7 +33,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
-  const [editedUser, setEditedUser] = useState({ name: '', email: '', phone: '', address: '' })
+  const [editedUser, setEditedUser] = useState({ name: '', email: '', phone: '', address: '', bankName: '', bankAccount: '' })
   const [pwFields, setPwFields] = useState({ oldPw: '', userPw: '', userPwConfirm: '' })
   const [imageFile, setImageFile] = useState(null)
   const [imageFileOri, setImageFileOri] = useState(null)
@@ -96,7 +96,9 @@ export default function ProfilePage() {
               name: freshUser.name || '',
               email: freshUser.email || '',
               phone: freshUser.phone || '',
-              address: freshUser.address || ''
+              address: freshUser.address || '',
+              bankName: freshUser.bankName || '',
+              bankAccount: freshUser.bankAccount || ''
             });
             localStorage.setItem('bs_user', JSON.stringify({
               ...userData,
@@ -240,8 +242,15 @@ export default function ProfilePage() {
       const formData = new FormData()
       formData.append('id', user.id)
       formData.append('name', editedUser.name)
+      if (editedUser.phone && !/^0[0-9]{9}$/.test(editedUser.phone)) {
+        alert('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (10 หลัก และขึ้นต้นด้วย 0)')
+        setSaving(false)
+        return
+      }
       formData.append('phone', editedUser.phone)
       formData.append('address', editedUser.address)
+      formData.append('bankName', editedUser.bankName || '')
+      formData.append('bankAccount', editedUser.bankAccount || '')
       if (imageFile) formData.append('image', imageFile)
       if (imageFileOri) formData.append('imageOri', imageFileOri)
 
@@ -485,8 +494,15 @@ export default function ProfilePage() {
                   <input
                     className={styles.editInput}
                     value={editedUser.phone}
-                    onChange={e => setEditedUser({ ...editedUser, phone: e.target.value })}
-                    placeholder="ใส่เบอร์โทรศัพท์ของคุณ..."
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, ''); // Allow only numbers
+                      if (val.length <= 10) {
+                        setEditedUser({ ...editedUser, phone: val });
+                      }
+                    }}
+                    placeholder="เบอร์โทรศัพท์ 10 หลัก (เช่น 0812345678)"
+                    maxLength={10}
+                    type="tel"
                   />
                 ) : (
                     <div className={styles.value}>{user.phone || '-'}</div>
@@ -503,6 +519,42 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <div className={styles.value}>{user.address || 'ไม่ระบุที่อยู่'}</div>
+                )}
+              </div>
+              <div className={styles.infoItem}>
+                <label><i className="fa-solid fa-building-columns" /> ธนาคารที่รับเงินคืน</label>
+                {isEditing ? (
+                  <select
+                    className={styles.editInput}
+                    value={editedUser.bankName}
+                    onChange={e => setEditedUser({ ...editedUser, bankName: e.target.value })}
+                  >
+                    <option value="">-- เลือกธนาคาร --</option>
+                    {['กสิกรไทย','กรุงไทย','กรุงเทพ','ไทยพาณิชย์','ออมสิน','ทหารไทย', 'พร้อมเพย์ (PromptPay)'].map(b => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                ) : (
+                    <div className={styles.value}>{user.bankName || '-'}</div>
+                )}
+              </div>
+              <div className={styles.infoItem}>
+                <label><i className="fa-solid fa-money-check" /> เลขบัญชีธนาคาร</label>
+                {isEditing ? (
+                  <input
+                    className={styles.editInput}
+                    value={editedUser.bankAccount}
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, ''); // Allow only numbers
+                      if (val.length <= 15) {
+                        setEditedUser({ ...editedUser, bankAccount: val });
+                      }
+                    }}
+                    placeholder="ใส่เฉพาะตัวเลขบัญชี ไม่เกิน 15 หลัก"
+                    maxLength={15}
+                  />
+                ) : (
+                    <div className={styles.value}>{user.bankAccount || '-'}</div>
                 )}
               </div>
               <div className={styles.infoItem}>
@@ -543,20 +595,16 @@ export default function ProfilePage() {
             )}
 
             <div className={styles.actions}>
-              {isEditing ? (
+              {isEditing && (
                 <>
                   <button onClick={handleUpdate} disabled={saving} className={styles.saveBtn}>
                     {saving ? '⏳ กำลังบันทึก...' : '✅ บันทึกข้อมูล'}
                   </button>
                   <button onClick={() => {
                     setIsEditing(false);
-                    setEditedUser({ name: user.name, email: user.email, phone: user.phone, address: user.address });
+                    setEditedUser({ name: user.name, email: user.email, phone: user.phone, address: user.address, bankName: user.bankName, bankAccount: user.bankAccount });
                   }} className={styles.cancelBtn}>ยกเลิก</button>
                 </>
-              ) : (
-                <button onClick={handleLogout} className={styles.logoutBtn}>
-                  <i className="fa-solid fa-arrow-right-from-bracket" /> ออกจากระบบ
-                </button>
               )}
             </div>
           </div>
@@ -659,9 +707,34 @@ export default function ProfilePage() {
                     </div>
                     <div className={styles.histFooter}>
                       <span className={styles.histStatus} style={{ color: st.color }}>
-                        {Number(order.OdrStatus) === 5 ? '✅ ' : Number(order.OdrStatus) === 6 ? '❌ ' : '⏳ '}
+                        {Number(order.OdrStatus) === 5 || Number(order.OdrStatus) === 4 ? '✅ ' : Number(order.OdrStatus) === 6 ? '✨ ' : Number(order.OdrStatus) === 7 ? '❌ ' : '⏳ '}
                         {st.lbl}
                       </span>
+                      {Number(order.OdrStatus) === 7 && Number(order.OdrRefundStatus) > 0 && (
+                        <div className={styles.refundStatusWrap}>
+                          {Number(order.OdrRefundStatus) === 1 ? (
+                            <span className={styles.refundPending}>
+                              <i className="fa-solid fa-clock-rotate-left" /> รอเจ้าหน้าที่โอนเงินคืน
+                            </span>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                              <span className={styles.refundSuccess}>
+                                <i className="fa-solid fa-circle-check" /> คืนเงินสำเร็จแล้ว
+                              </span>
+                              {order.OdrRefundSlip && (
+                                <a 
+                                  href={`http://localhost/bitesync/public${order.OdrRefundSlip}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={styles.viewRefundSlip}
+                                >
+                                  ดูหลักฐาน
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div className={styles.histActions}>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                           {!isFinal && (

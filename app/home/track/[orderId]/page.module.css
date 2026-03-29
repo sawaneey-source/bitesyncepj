@@ -88,6 +88,79 @@
 .cancelledCard { background: #fff5f5; border: 1.5px solid #feb2b2; border-radius: 16px; padding: 24px; text-align: center; }
 .cancelledTitle { color: #c53030; font-weight: 800; font-size: 18px; font-family: 'Prompt', sans-serif; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
 .cancelledText { font-size: 14px; color: #7b2c2c; margin-bottom: 20px; font-family: 'Prompt', sans-serif; line-height: 1.6; }
+.cancelledText {
+  color: #64748b;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.cancelledDivider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 16px 0;
+}
+
+.trackRefundInfo {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.refundBoxPending, .refundBoxSuccess {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid;
+}
+
+.refundBoxPending {
+  background: #fffbeb;
+  border-color: #fef3c7;
+  color: #92400e;
+}
+
+.refundBoxSuccess {
+  background: #f0fdf4;
+  border-color: #dcfce7;
+  color: #166534;
+}
+
+.refundIcon {
+  font-size: 24px;
+}
+
+.refundTitle {
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.refundDesc {
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+.viewSlipBtn {
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.viewSlipBtn:hover {
+  text-decoration: underline;
+}
+
+.cancelledHint {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 24px;
+  font-style: italic;
+}
+
 .backHomeBtn { background: #c53030; color: #fff; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
 .backHomeBtn:hover { background: #9b2c2c; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(197, 48, 48, 0.2); }
 

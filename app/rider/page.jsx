@@ -131,7 +131,7 @@ export default function RiderDashboard() {
           <span className={styles.activeAlertIcon}>🔥</span>
           <div className={styles.activeAlertInfo}>
             <div className={styles.activeAlertTitle}>มีงานที่กำลังส่งอยู่!</div>
-            <div className={styles.activeAlertSub}>Order {activeJob.id} · {activeJob.shopName}</div>
+            <div className={styles.activeAlertSub}>Order {activeJob.id} · {activeJob.shopName} · ห่างจาก{activeJob.stopType} {activeJob.riderToStopDist} กม.</div>
           </div>
           <span className={styles.activeAlertArrow}>→</span>
         </div>

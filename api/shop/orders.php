@@ -100,7 +100,7 @@ if ($method === 'GET') {
     $statusMapInvert = ['Unpaid'=>1, 'Pending'=>2, 'Preparing'=>3, 'Ready'=>4, 'Delivering'=>5, 'Completed'=>6, 'Cancelled'=>7];
     $odrStatus = $statusMapInvert[$statusStr] ?? 1;
 
-    $sql = "UPDATE tbl_order SET OdrStatus = ?" . ($odrStatus === 7 ? ", OdrCancelBy = 'shop'" : "") . " WHERE OdrId = ?";
+    $sql = "UPDATE tbl_order SET OdrStatus = ?" . ($odrStatus === 7 ? ", OdrCancelBy = 'shop', OdrRefundStatus = 1" : "") . " WHERE OdrId = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $odrStatus, $orderId);
     if ($stmt->execute()) {

@@ -131,7 +131,12 @@ async function handleManageUser(action, usrId) {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <button className={styles.refreshBtn} onClick={fetchAllData}>🔄 รีเฟรช</button>
+          <button className={styles.premiumRefresh} onClick={fetchAllData}>
+            <span className={styles.refreshIconBox}>
+              <i className="fa-solid fa-rotate" />
+            </span>
+            รีเฟรช
+          </button>
         </div>
 
         <div className={styles.tableWrap}>
