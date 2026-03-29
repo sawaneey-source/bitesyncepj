@@ -113,7 +113,7 @@ export default function ShopProfilePage() {
           setShopName(s.ShopName || '')
           setShopPhone(s.ShopPhone || '')
           setShopCatType(s.ShopCatType || 'อาหารตามสั่ง')
-          setShopStatus(s.ShopStatus ?? 1)
+          setShopStatus(parseInt(s.ShopStatus ?? 1))
           setLogoPreview(s.ShopLogoPath)
           setOriginalLogo(s.ShopLogoOriPath || s.ShopLogoPath)
           setBannerPreview(s.ShopBannerPath)
@@ -337,6 +337,26 @@ export default function ShopProfilePage() {
     }
   }
 
+  const handleToggleStatus = async () => {
+    const newStatus = parseInt(shopStatus) === 1 ? 0 : 1
+    try {
+      const res = await fetch('http://localhost/bitesync/api/shop/status.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usrId: user.id, status: newStatus })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setShopStatus(newStatus)
+        showToast(`บันทึกสถานะเป็น ${newStatus === 1 ? '🟢 เปิดร้าน' : '⚫ ปิดร้าน'} เรียบร้อยแล้ว ✨`)
+      } else {
+        showToast(data.message || 'เกิดข้อผิดพลาด', false)
+      }
+    } catch (e) {
+      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อเปลี่ยนสถานะได้', false)
+    }
+  }
+
   const handleSave = async () => {
     if (userPw.trim()) {
       if (!oldPw.trim()) {
@@ -390,7 +410,7 @@ export default function ShopProfilePage() {
           setShopName(s.ShopName || '')
           setShopPhone(s.ShopPhone || '')
           setShopCatType(s.ShopCatType || 'อาหารตามสั่ง')
-          setShopStatus(s.ShopStatus ?? 1)
+          setShopStatus(parseInt(s.ShopStatus ?? 1))
           
           if (s.ShopLogoPath) setLogoPreview(s.ShopLogoPath)
           if (s.ShopLogoOriPath || s.ShopLogoPath) setOriginalLogo(s.ShopLogoOriPath || s.ShopLogoPath)
@@ -417,8 +437,8 @@ export default function ShopProfilePage() {
         <div className={styles.profileCard}>
 
           {/* Banner */}
-          <div className={styles.bannerWrap}>
-            <img src={bannerPreview || 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=1500'} alt="Banner" className={styles.bannerImg} />
+          <div className={styles.bannerWrap} style={{ background: bannerPreview ? 'transparent' : 'linear-gradient(135deg, #e0ece0 0%, #f4f6f4 100%)' }}>
+            {bannerPreview && <img src={bannerPreview} alt="Banner" className={styles.bannerImg} />}
             <div className={styles.bannerBtnContainer}>
               <button className={styles.bannerBtnMini} onClick={(e) => { 
                 e.stopPropagation(); 
@@ -523,12 +543,12 @@ export default function ShopProfilePage() {
               <div className={styles.infoItem}>
                 <label className={styles.resLabel}>สถานะร้านค้า</label>
                 <div className={styles.toggleRow}>
-                  <span className={shopStatus === 0 ? styles.activeLabel : ''}>ปิด</span>
-                  <button className={`${styles.toggleBtn} ${shopStatus === 1 ? styles.toggleOn : ''}`}
-                    onClick={() => setShopStatus(shopStatus === 1 ? 0 : 1)}>
+                  <span className={parseInt(shopStatus) === 0 ? styles.activeLabel : ''}>ปิด</span>
+                  <button className={`${styles.toggleBtn} ${parseInt(shopStatus) === 1 ? styles.toggleOn : ''}`}
+                    onClick={handleToggleStatus}>
                     <span className={styles.toggleCircle} />
                   </button>
-                  <span className={shopStatus === 1 ? styles.activeLabel : ''}>เปิด</span>
+                  <span className={parseInt(shopStatus) === 1 ? styles.activeLabel : ''}>เปิด</span>
                 </div>
               </div>
 

@@ -50,8 +50,6 @@ CREATE TABLE IF NOT EXISTS tbl_shop (
     ShopBannerOriPath VARCHAR(255),
     ShopPrepTime INT DEFAULT 30,
     AdrId INT,
-    ShopLat DECIMAL(10, 8),
-    ShopLng DECIMAL(11, 8),
     FOREIGN KEY (UsrId) REFERENCES tbl_userinfo(UsrId) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

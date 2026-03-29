@@ -103,7 +103,7 @@ $newPw = $_POST['usrPassword'] ?? '';
 if ($fullName) { $userUpdates[] = "UsrFullName = ?"; $userParams[] = $fullName; $userTypes .= "s"; }
 if ($phone) { $userUpdates[] = "UsrPhone = ?"; $userParams[] = $phone; $userTypes .= "s"; }
 if ($logoPath) { $userUpdates[] = "UsrImagePath = ?"; $userParams[] = $logoPath; $userTypes .= "s"; }
-if ($logoOriPath) { $userUpdates[] = "UsrImageOri = ?"; $userParams[] = $logoOriPath; $userTypes .= "s"; }
+if ($logoOriPath) { $userUpdates[] = "UsrImageOriPath = ?"; $userParams[] = $logoOriPath; $userTypes .= "s"; }
 if (!empty($newPw)) {
     // Verify old password first
     $chk = $conn->prepare("SELECT UsrPassword FROM tbl_userinfo WHERE UsrId = ?");
@@ -136,8 +136,7 @@ if ($shopName) { $shopUpdates[] = "ShopName = ?"; $shopParams[] = $shopName; $sh
 if ($shopPhone) { $shopUpdates[] = "ShopPhone = ?"; $shopParams[] = $shopPhone; $shopTypes .= "s"; }
 if ($shopCatType) { $shopUpdates[] = "ShopCatType = ?"; $shopParams[] = $shopCatType; $shopTypes .= "s"; }
 if ($shopStatus) { $shopUpdates[] = "ShopStatus = ?"; $shopParams[] = $shopStatus; $shopTypes .= "s"; }
-if ($shopLat) { $shopUpdates[] = "ShopLat = ?"; $shopParams[] = $shopLat; $shopTypes .= "s"; }
-if ($shopLng) { $shopUpdates[] = "ShopLng = ?"; $shopParams[] = $shopLng; $shopTypes .= "s"; }
+// ShopLat and ShopLng are now managed in tbl_address
 if ($bannerPath) { $shopUpdates[] = "ShopBannerPath = ?"; $shopParams[] = $bannerPath; $shopTypes .= "s"; }
 
 if (!empty($shopUpdates)) {
@@ -151,10 +150,10 @@ if (!empty($shopUpdates)) {
 
 // Refresh User Data (Join tbl_userinfo and tbl_shop)
 $sql_refresh = "SELECT u.UsrId as id, u.UsrFullName as name, u.UsrEmail as email, u.UsrPhone as phone, 
-                       u.UsrRole as role, u.UsrImagePath as image, u.UsrImageOri as imageOri,
+                       u.UsrRole as role, u.UsrImagePath as image, u.UsrImageOriPath as imageOri,
                        CONCAT(COALESCE(a.HouseNo,''), ' ', COALESCE(a.SubDistrict,''), ' ', COALESCE(a.District,''), ' ', COALESCE(a.Province,''), ' ', COALESCE(a.Zipcode,'')) as address,
                        s.ShopName as shopName, s.ShopPhone as shopPhone, s.ShopCatType as shopCatType, 
-                       s.ShopStatus as shopStatus, s.ShopLat as shopLat, s.ShopLng as shopLng, 
+                       s.ShopStatus as shopStatus, a.AdrLat as shopLat, a.AdrLng as shopLng, 
                        s.ShopBannerPath as banner 
                 FROM tbl_userinfo u 
                 LEFT JOIN tbl_shop s ON u.UsrId = s.UsrId 
