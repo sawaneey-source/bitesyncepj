@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import Navbar from '@/components/Navbar'
+import { API_BASE, PUBLIC_URL } from '@/utils/api'
 
 export default function CustomerChat() {
   const router = useRouter()
@@ -33,7 +34,7 @@ export default function CustomerChat() {
 
   async function fetchShopInfo(uid) {
     try {
-      const res = await fetch(`http://localhost/bitesync/api/shop/profile.php?usrId=${uid}`)
+      const res = await fetch(`${API_BASE}/shop/profile.php?usrId=${uid}`)
       const data = await res.json()
       if (data.success) {
         setShopLogo(data.data.ShopLogoPath)
@@ -49,13 +50,13 @@ export default function CustomerChat() {
 
   async function fetchMessages(uid) {
     try {
-      const res = await fetch(`http://localhost/bitesync/api/chat/messages.php?senderId=${uid}&receiverId=0`)
+      const res = await fetch(`${API_BASE}/chat/messages.php?senderId=${uid}&receiverId=0`)
       const data = await res.json()
       if (data.success) {
         setMessages(data.data)
       }
     } catch (e) {
-      console.error(e)
+      console.error("Fetch messages error:", e)
     }
   }
 
@@ -65,7 +66,7 @@ export default function CustomerChat() {
 
     const msg = { senderId: user.id, receiverId: 0, message: input }
     try {
-      const res = await fetch('http://localhost/bitesync/api/chat/messages.php', {
+      const res = await fetch(`${API_BASE}/chat/messages.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(msg)
@@ -74,9 +75,12 @@ export default function CustomerChat() {
       if (data.success) {
         setInput('')
         fetchMessages(user.id)
+      } else {
+        alert("ส่งข้อความไม่ได้: " + (data.message || "Unknown error"))
       }
     } catch (e) {
-      console.error(e)
+      console.error("Send message error:", e)
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์")
     }
   }
 
@@ -127,7 +131,7 @@ export default function CustomerChat() {
                         {shopLogo ? (
                             <img src={`${shopLogo}`} alt="ShopLogo" />
                         ) : user.image ? (
-                            <img src={`http://localhost/bitesync/public${user.image}`} alt="Me" />
+                            <img src={`${PUBLIC_URL}${user.image}`} alt="Me" />
                         ) : (
                             user.name?.[0].toUpperCase()
                         )}

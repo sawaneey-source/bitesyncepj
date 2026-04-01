@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import Navbar from '@/components/Navbar'
+import { API_BASE, PUBLIC_URL } from '@/utils/api'
 
 export default function AdminChat() {
   const router = useRouter()
@@ -34,26 +35,26 @@ export default function AdminChat() {
 
   async function fetchContacts() {
     try {
-      const res = await fetch('http://localhost/bitesync/api/chat/contacts.php')
+      const res = await fetch(`${API_BASE}/chat/contacts.php`)
       const data = await res.json()
       if (data.success) {
         setContacts(data.data)
       }
     } catch (e) {
-      console.error(e)
+      console.error("Fetch contacts error:", e)
     }
   }
 
   async function fetchMessages() {
     if (!activeUser) return
     try {
-      const res = await fetch(`http://localhost/bitesync/api/chat/messages.php?senderId=0&receiverId=${activeUser.UsrId}`)
+      const res = await fetch(`${API_BASE}/chat/messages.php?senderId=0&receiverId=${activeUser.UsrId}`)
       const data = await res.json()
       if (data.success) {
         setMessages(data.data)
       }
     } catch (e) {
-      console.error(e)
+      console.error("Fetch messages error:", e)
     }
   }
 
@@ -63,7 +64,7 @@ export default function AdminChat() {
 
     const msg = { senderId: 0, receiverId: activeUser.UsrId, message: input }
     try {
-      const res = await fetch('http://localhost/bitesync/api/chat/messages.php', {
+      const res = await fetch(`${API_BASE}/chat/messages.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(msg)
@@ -72,9 +73,12 @@ export default function AdminChat() {
       if (data.success) {
         setInput('')
         fetchMessages()
+      } else {
+        alert("แอดมินส่งข้อความไม่ได้: " + (data.message || "Unknown error"))
       }
     } catch (e) {
-      console.error(e)
+      console.error("Admin send error:", e)
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์")
     }
   }
 
@@ -99,7 +103,7 @@ export default function AdminChat() {
                 <div className={styles.avatar}>
                   {c.UsrImagePath ? (
                     <img 
-                      src={`http://localhost/bitesync/public${c.UsrImagePath}`} 
+                      src={`${PUBLIC_URL}${c.UsrImagePath}`} 
                       alt="Avatar" 
                       style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
                     />
@@ -133,7 +137,7 @@ export default function AdminChat() {
                 <div className={styles.avatar}>
                   {activeUser.UsrImagePath ? (
                     <img 
-                      src={`http://localhost/bitesync/public${activeUser.UsrImagePath}`} 
+                      src={`${PUBLIC_URL}${activeUser.UsrImagePath}`} 
                       alt="Avatar" 
                       style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
                     />

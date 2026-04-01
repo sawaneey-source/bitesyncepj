@@ -16,10 +16,10 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     // Fetch messages between two users
-    $senderId = $_GET['senderId'] ?? 0;
+    $senderId = $_GET['senderId'] ?? null;
     $receiverId = $_GET['receiverId'] ?? 0; // 0 means Admin
 
-    if (!$senderId && $senderId !== "0") {
+    if ($senderId === null || $senderId === '') {
         echo json_encode(['success' => false, 'message' => 'Missing SenderId']);
         exit();
     }
@@ -62,11 +62,11 @@ if ($method === 'GET') {
 } else if ($method === 'POST') {
     // Send a message
     $data = json_decode(file_get_contents("php://input"), true);
-    $senderId = $data['senderId'] ?? 0;
+    $senderId = $data['senderId'] ?? null;
     $receiverId = $data['receiverId'] ?? 0;
     $message = $data['message'] ?? '';
 
-    if (!isset($data['senderId']) || !$message) {
+    if ($senderId === null || $message === '') {
         echo json_encode(['success' => false, 'message' => 'Missing data']);
         exit();
     }

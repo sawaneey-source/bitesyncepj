@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS tbl_shop (
     ShopBalance DECIMAL(10, 2) DEFAULT 0.00,
     ShopTotalSettled DECIMAL(10, 2) DEFAULT 0.00,
     AdrId INT,
-    FOREIGN KEY (UsrId) REFERENCES tbl_userinfo(UsrId) ON DELETE CASCADE
+    FOREIGN KEY (UsrId) REFERENCES tbl_userinfo(UsrId) ON DELETE CASCADE,
+    FOREIGN KEY (AdrId) REFERENCES tbl_address(AdrId) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4. tbl_rider
@@ -100,7 +101,8 @@ CREATE TABLE IF NOT EXISTS tbl_food (
     FoodImagePath VARCHAR(255),
     ShopId INT NOT NULL,
     FoodPrepTime INT DEFAULT 30,
-    FOREIGN KEY (ShopId) REFERENCES tbl_shop(ShopId) ON DELETE CASCADE
+    FOREIGN KEY (ShopId) REFERENCES tbl_shop(ShopId) ON DELETE CASCADE,
+    FOREIGN KEY (CatId) REFERENCES tbl_menu_category(CatId) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 7. tbl_addon
@@ -141,7 +143,9 @@ CREATE TABLE IF NOT EXISTS tbl_order (
     OdrRefundStatus TINYINT(4) NOT NULL DEFAULT 0 COMMENT '0=None, 1=Pending, 2=Refunded',
     OdrRefundSlip VARCHAR(255) DEFAULT NULL,
     FOREIGN KEY (UsrId) REFERENCES tbl_userinfo(UsrId),
-    FOREIGN KEY (ShopId) REFERENCES tbl_shop(ShopId)
+    FOREIGN KEY (ShopId) REFERENCES tbl_shop(ShopId),
+    FOREIGN KEY (RiderId) REFERENCES tbl_rider(RiderId),
+    FOREIGN KEY (AdrId) REFERENCES tbl_address(AdrId)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 9. tbl_order_detail
@@ -177,7 +181,9 @@ CREATE TABLE IF NOT EXISTS tbl_order_cancel_history (
     OchId INT AUTO_INCREMENT PRIMARY KEY,
     OdrId INT NOT NULL,
     RiderId INT NOT NULL,
-    OchCreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    OchCreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (OdrId) REFERENCES tbl_order(OdrId) ON DELETE CASCADE,
+    FOREIGN KEY (RiderId) REFERENCES tbl_rider(RiderId) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 12. tbl_payment
@@ -205,3 +211,14 @@ INSERT IGNORE INTO tbl_settings (SettingKey, SettingValue, SettingName) VALUES
 ('platform_fee', '12', 'ค่าธรรมเนียมบริการระบบ (บาท)'),
 ('gp_rate', '0.25', 'อัตราค่า GP ร้านค้า (0.25 = 25%)'),
 ('rider_share', '0.80', 'ส่วนแบ่งรายได้ไรเดอร์ (0.80 = 80%)');
+
+-- 14. tbl_chat
+CREATE TABLE IF NOT EXISTS tbl_chat (
+    ChatId INT AUTO_INCREMENT PRIMARY KEY,
+    SenderId INT NOT NULL,
+    ReceiverId INT NOT NULL COMMENT '0=Admin',
+    ChatMessage TEXT NOT NULL,
+    ChatStatus TINYINT(1) DEFAULT 0 COMMENT '0=Unread, 1=Read',
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (SenderId) REFERENCES tbl_userinfo(UsrId) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
